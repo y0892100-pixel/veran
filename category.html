@@ -27,3 +27,87 @@
     <script>window.onload = categoryPage;</script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المنتجات - VAREN</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import firebaseConfig from './firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.app = { db, collection, getDocs };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap'); * { font-family: 'Cairo', sans-serif; }</style>
+</head>
+<body class="bg-gray-50">
+<nav class="bg-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <a href="index.html" class="text-2xl font-bold">VAREN</a>
+        <a href="cart.html" class="text-xl"><i class="fa-solid fa-cart-shopping"></i></a>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 py-10">
+    <h1 id="cat-title" class="text-3xl font-bold mb-8">المنتجات</h1>
+    <div id="products-grid" class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <p class="col-span-full text-center text-gray-500 py-10">جاري تحميل المنتجات...</p>
+    </div>
+</main>
+
+<script type="module">
+    const { db, collection, getDocs } = window.app;
+    const params = new URLSearchParams(window.location.search);
+    const gender = params.get('gender') || 'all';
+    const titleEl = document.getElementById('cat-title');
+    titleEl.textContent = gender === 'women' ? 'ملابس نسائية' : gender === 'men' ? 'ملابس رجالية' : gender === 'girls' ? 'ملابس بنات' : 'ملابس أولاد';
+
+    const gridEl = document.getElementById('products-grid');
+
+    async function loadProducts() {
+        try {
+            const snap = await getDocs(collection(db, 'products'));
+            gridEl.innerHTML = '';
+            if (snap.empty) {
+                gridEl.innerHTML = '<p class="col-span-full text-center text-gray-500 py-10">لا توجد منتجات متاحة حالياً</p>';
+                return;
+            }
+            snap.forEach(doc => {
+                const p = doc.data();
+                if (gender !== 'all' && p.gender !== gender) return;
+                gridEl.innerHTML += `
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden group">
+                        <img src="${p.img || ''}" class="w-full h-60 object-cover group-hover:scale-105 transition">
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg">${p.name || 'منتج'}</h3>
+                            <p class="text-xl font-semibold text-black">${p.price || 0} درهم</p>
+                            <button onclick="addToCart('${doc.id}','${p.name||''}',${p.price||0},'${p.img||''}')" class="w-full mt-3 bg-black text-white py-2 rounded-lg hover:bg-gray-800">أضف للسلة</button>
+                        </div>
+                    </div>
+                `;
+            });
+        } catch (e) {
+            gridEl.innerHTML = '<p class="col-span-full text-center text-red-500 py-10">خطأ في تحميل المنتجات</p>';
+        }
+    }
+
+    window.addToCart = (id, name, price, img) => {
+        const CART_KEY = 'fl_cart_v4';
+        const cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+        const existing = cart.find(i => i.id === id);
+        if (existing) existing.quantity = (existing.quantity || 1) + 1;
+        else cart.push({ id, name, price, img, quantity: 1 });
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        alert('أضيف للسلة ✅');
+    };
+
+    loadProducts();
+</script>
+</body>
+</html>
