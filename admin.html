@@ -37,3 +37,126 @@
     <img src="varen.jpeg" alt="VAREN" class="site-logo">
     <span style="font-size:24px; font-weight:bold;">VAREN</span>
 </a>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - VAREN</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import firebaseConfig from './firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        window.app = { auth, db, collection, addDoc, getDocs, deleteDoc, doc, onAuthStateChanged };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap'); * { font-family: 'Cairo', sans-serif; }</style>
+</head>
+<body class="bg-gray-100">
+<div class="max-w-4xl mx-auto px-4 py-10">
+    <h1 class="text-3xl font-bold mb-8 text-center">لوحة تحكم المتجر</h1>
+    <div id="access-denied" class="hidden text-center py-20">
+        <i class="fa-solid fa-lock text-6xl text-red-500 mb-4"></i>
+        <p class="text-xl text-red-600">غير مسموح لك بالدخول هنا</p>
+        <a href="index.html" class="inline-block mt-4 bg-black text-white px-6 py-2 rounded-lg">العودة للرئيسية</a>
+    </div>
+    <div id="admin-content" class="hidden">
+        <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md mb-8 space-y-4">
+            <h2 class="text-xl font-bold">إضافة منتج جديد</h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-semibold mb-1">اسم المنتج</label>
+                    <input type="text" id="p-name" class="w-full border rounded-lg p-3" required>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">السعر (درهم)</label>
+                    <input type="number" id="p-price" class="w-full border rounded-lg p-3" required>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">التصنيف</label>
+                    <select id="p-gender" class="w-full border rounded-lg p-3">
+                        <option value="women">نسائي</option>
+                        <option value="men">رجالي</option>
+                        <option value="girls">بنات</option>
+                        <option value="boys">أولاد</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">النوع</label>
+                    <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان...">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block font-semibold mb-1">رابط الصورة</label>
+                    <input type="url" id="p-img" class="w-full border rounded-lg p-3" required>
+                </div>
+            </div>
+            <button type="submit" class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">إضافة المنتج</button>
+        </form>
+
+        <h2 class="text-xl font-bold mb-4">المنتجات الحالية</h2>
+        <div id="products-list" class="space-y-3"></div>
+    </div>
+</div>
+
+<script type="module">
+    const { auth, db, collection, addDoc, getDocs, deleteDoc, doc, onAuthStateChanged } = window.app;
+    const adminEmail = 'y0892100@gmail.com'; // غيّر لبريدك الحقيقي
+
+    onAuthStateChanged(auth, async user => {
+        if (!user || user.email !== adminEmail) {
+            document.getElementById('access-denied').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('admin-content').classList.remove('hidden');
+        loadProducts();
+    });
+
+    async function loadProducts() {
+        const list = document.getElementById('products-list');
+        const snap = await getDocs(collection(db, 'products'));
+        list.innerHTML = '';
+        snap.forEach(d => {
+            const p = d.data();
+            list.innerHTML += `
+                <div class="bg-white p-4 rounded-lg shadow-sm flex items-center gap-4">
+                    <img src="${p.img}" class="w-16 h-16 object-cover rounded">
+                    <div class="flex-1">
+                        <h3 class="font-bold">${p.name}</h3>
+                        <p class="text-sm text-gray-500">${p.price} درهم - ${p.gender}</p>
+                    </div>
+                    <button data-id="${d.id}" class="delete-btn text-red-500"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
+        });
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (confirm('حذف المنتج؟')) {
+                    await deleteDoc(doc(db, 'products', btn.dataset.id));
+                    loadProducts();
+                }
+            });
+        });
+    }
+
+    document.getElementById('add-product-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        await addDoc(collection(db, 'products'), {
+            name: document.getElementById('p-name').value.trim(),
+            price: Number(document.getElementById('p-price').value),
+            gender: document.getElementById('p-gender').value,
+            type: document.getElementById('p-type').value.trim(),
+            img: document.getElementById('p-img').value.trim()
+        });
+        alert('تم إضافة المنتج ✅');
+        e.target.reset();
+        loadProducts();
+    });
+</script>
+</body>
+</html>
