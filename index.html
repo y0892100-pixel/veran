@@ -3,30 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VAREN - متجر الملابس</title>
+  <title>VAREN — متجر الملابس</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" type="image/png" href="varen.jpeg">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-    .modal.active { display: flex; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
+    .product-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .product-card { transition: all 0.3s ease; }
   </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import firebaseConfig from './firebase-config.js';
     import * as Store from './store.js';
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const googleProvider = new GoogleAuthProvider();
-    window.app = { auth, db, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile, doc, setDoc, getDoc, collection, getDocs };
+
+    window.app = { auth, db, onAuthStateChanged, signOut, collection, getDocs };
     window.Store = Store;
   </script>
 </head>
@@ -36,11 +35,12 @@
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
     <div class="hidden md:flex gap-8">
-      <a href="index.html" class="hover:text-gray-600">الرئيسية</a>
-      <a href="category.html?gender=women" class="hover:text-gray-600">نسائي</a>
-      <a href="category.html?gender=men" class="hover:text-gray-600">رجالي</a>
-      <a href="category.html?gender=girls" class="hover:text-gray-600">بنات</a>
-      <a href="category.html?gender=boys" class="hover:text-gray-600">أولاد</a>
+      <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
+      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
+      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
+      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
+      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
+      <a href="admin.html" class="font-medium text-sm text-gray-500 hover:text-black">لوحة التحكم</a>
     </div>
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
@@ -48,212 +48,109 @@
         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
       <div id="user-area">
-        <button id="login-btn" onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>
+        <button onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
       </div>
     </div>
   </div>
 </nav>
 
-<main>
-  <section class="bg-gradient-to-r from-gray-900 to-gray-700 text-white py-20">
-    <div class="max-w-7xl mx-auto px-4 text-center">
-      <h1 class="text-5xl font-bold mb-4">أحدث صيحات الموضة</h1>
-      <p class="text-xl mb-8">تسوق أفضل الملابس العصرية لجميع أفراد العائلة</p>
-      <a href="category.html" class="inline-block bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-200">تسوق الآن</a>
-    </div>
-  </section>
+<!-- قسم البداية -->
+<section class="bg-gradient-to-r from-gray-900 to-gray-700 text-white py-16 md:py-24">
+  <div class="max-w-7xl mx-auto px-4 text-center md:text-right">
+    <h1 class="text-4xl md:text-5xl font-bold mb-4">أحدث صيحات الموضة</h1>
+    <p class="text-lg md:text-xl mb-8 text-gray-200">تسوّق أجمل الملابس العصرية بأسعار مناسبة</p>
+    <a href="#products" class="inline-block bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-100">تصفّح المنتجات</a>
+  </div>
+</section>
 
-  <section class="py-16 max-w-7xl mx-auto px-4 grid md:grid-cols-3 gap-8 text-center">
-    <div><i class="fa-solid fa-truck text-4xl mb-4 text-black"></i><h3 class="font-bold text-lg">شحن سريع</h3><p>توصيل لباب بيتك بسرعة</p></div>
-    <div><i class="fa-solid fa-shield-halved text-4xl mb-4 text-black"></i><h3 class="font-bold text-lg">دفع آمن</h3><p>طرق دفع آمنة وموثوقة</p></div>
-    <div><i class="fa-solid fa-rotate-left text-4xl mb-4 text-black"></i><h3 class="font-bold text-lg">إرجاع سهل</h3><p>إذا ما أعجبك شيء رجعه بسهولة</p></div>
-  </section>
-
-  <section class="max-w-7xl mx-auto px-4 pb-16">
-    <h2 class="text-2xl font-bold mb-6">أحدث المنتجات</h2>
-    <div id="products-grid" class="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
-      <p class="col-span-full text-center py-10">جاري التحميل...</p>
-    </div>
-  </section>
-</main>
-
-<div id="login-modal" class="modal">
-  <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">تسجيل الدخول</h2>
-      <button onclick="closeModal('login-modal')" class="text-gray-500 text-2xl">&times;</button>
-    </div>
-    <div id="login-options">
-      <button onclick="loginWithGoogle()" class="w-full flex items-center justify-center gap-2 border border-gray-300 py-3 rounded-lg mb-4 hover:bg-gray-50">
-        <i class="fa-brands fa-google text-red-500"></i> الدخول بحساب قوقل
-      </button>
-      <div class="flex items-center gap-4 my-4"><hr class="flex-1"><span>أو</span><hr class="flex-1"></div>
-      <button onclick="showEmailLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">الدخول بالإيميل</button>
-      <p class="text-center mt-4">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب جديد</button></p>
-    </div>
-    <div id="email-login" class="hidden">
-      <input type="email" id="login-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border border-gray-300 rounded-lg p-3 mb-4">
-      <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
-      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
-    </div>
-    <div id="register-form" class="hidden">
-      <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف على الأقل)" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="tel" id="reg-phone" placeholder="رقم الهاتف" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <textarea id="reg-address" placeholder="العنوان بالتفصيل" class="w-full border border-gray-300 rounded-lg p-3 mb-4" rows="2"></textarea>
-      <button onclick="registerUser()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">إنشاء حساب</button>
-      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
+<!-- المنتجات -->
+<section id="products" class="max-w-7xl mx-auto px-4 py-12">
+  <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center">منتجاتنا</h2>
+  <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div class="col-span-full text-center py-12 text-gray-500">
+      <i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i>
+      <p>جاري تحميل المنتجات...</p>
     </div>
   </div>
-</div>
+</section>
+
+<!-- مزايا -->
+<section class="bg-white py-12 border-t">
+  <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+    <div><i class="fa-solid fa-truck-fast text-3xl mb-3 text-black"></i><h3 class="font-bold text-lg">شحن سريع</h3><p class="text-gray-600">توصيل لباب بيتك</p></div>
+    <div><i class="fa-solid fa-shield-halved text-3xl mb-3 text-black"></i><h3 class="font-bold text-lg">دفع آمن</h3><p class="text-gray-600">معلوماتك محمية بالكامل</p></div>
+    <div><i class="fa-solid fa-rotate-left text-3xl mb-3 text-black"></i><h3 class="font-bold text-lg">إرجاع سهل</h3><p class="text-gray-600">إرجاع خلال 7 أيام</p></div>
+  </div>
+</section>
+
+<footer class="bg-gray-900 text-white py-8 text-center">
+  <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
+</footer>
 
 <div id="toast" class="toast"></div>
 
 <script>
-window.openModal = id => { document.getElementById(id).classList.add('active'); };
-window.closeModal = id => { document.getElementById(id).classList.remove('active'); };
-window.showEmailLogin = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('email-login').classList.remove('hidden');
-};
-window.showRegister = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('register-form').classList.remove('hidden');
-};
-window.backToOptions = () => {
-  document.getElementById('login-options').classList.remove('hidden');
-  document.getElementById('email-login').classList.add('hidden');
-  document.getElementById('register-form').classList.add('hidden');
-};
-
-function updateUI(user) {
+// تحديث زر المستخدم
+function updateUserUI(user) {
   const area = document.getElementById('user-area');
   if (user) {
     area.innerHTML = `
-      <div class="relative" id="account-menu-container">
-        <button id="account-menu-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
-          <i class="fa-solid fa-user"></i>
-          <span>${user.displayName || 'حسابي'}</span>
-          <i class="fa-solid fa-chevron-down text-xs"></i>
-        </button>
-        <div id="account-menu" class="absolute left-0 bottom-full mb-2 w-48 bg-white shadow-lg rounded-lg p-2 hidden z-50">
-          <a href="account.html" class="block px-4 py-2 hover:bg-gray-100 rounded">حسابي</a>
-          <a href="orders.html" class="block px-4 py-2 hover:bg-gray-100 rounded">طلباتي</a>
-          <a href="returns.html" class="block px-4 py-2 hover:bg-gray-100 rounded">الاسترجاعات</a>
-          <hr class="my-2">
-          <button onclick="logout()" class="block w-full text-right px-4 py-2 text-red-500 hover:bg-gray-100 rounded">تسجيل الخروج</button>
-        </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm">أهلاً بك، ${user.displayName || 'العميل'}</span>
+        <button onclick="window.location.href='admin.html'" class="text-sm text-gray-600 hover:text-black">تحكم</button>
+        <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700">خروج</button>
       </div>
     `;
-    setTimeout(() => {
-      const btn = document.getElementById('account-menu-btn');
-      const menu = document.getElementById('account-menu');
-      if (!btn || !menu) return;
-      btn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); };
-      document.onclick = () => menu.classList.add('hidden');
-      menu.onclick = (e) => e.stopPropagation();
-    }, 10);
   } else {
-    area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
+    area.innerHTML = `<button onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>`;
   }
   window.Store.updateCartCount();
 }
 
-window.loginWithGoogle = async () => {
-  try {
-    const result = await window.app.signInWithPopup(window.app.auth, window.app.googleProvider);
-    const user = result.user;
-    const userRef = window.app.doc(window.app.db, 'users', user.uid);
-    const snap = await window.app.getDoc(userRef);
-    if (!snap.exists()) {
-      await window.app.setDoc(userRef, {
-        name: user.displayName || '',
-        email: user.email,
-        phone: '',
-        address: '',
-        createdAt: new Date()
-      });
-    }
-    closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول بنجاح!');
-  } catch (e) {
-    window.Store.showToast(e.message, 'error');
-  }
-};
-
-window.registerUser = async () => {
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const pass = document.getElementById('reg-password').value;
-  const phone = document.getElementById('reg-phone').value.trim();
-  const address = document.getElementById('reg-address').value.trim();
-  if (!name || !email || pass.length < 6) {
-    return window.Store.showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
-  }
-  try {
-    const cred = await window.app.createUserWithEmailAndPassword(window.app.auth, email, pass);
-    await window.app.updateProfile(cred.user, { displayName: name });
-    await window.app.setDoc(window.app.doc(window.app.db, 'users', cred.user.uid), {
-      name, email, phone, address, createdAt: new Date()
-    });
-    closeModal('login-modal');
-    window.Store.showToast('تم إنشاء الحساب بنجاح! ✅');
-  } catch (e) {
-    window.Store.showToast(e.message, 'error');
-  }
-};
-
-window.loginWithEmail = async () => {
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-password').value;
-  try {
-    await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
-    closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول! ✅');
-  } catch (e) {
-    window.Store.showToast('إيميل أو كلمة مرور خاطئة', 'error');
-  }
-};
-
-window.logout = async () => {
+async function logout() {
   await window.app.signOut(window.app.auth);
   window.Store.showToast('تم تسجيل الخروج');
-};
+}
 
-document.addEventListener('DOMContentLoaded', () => {
-  window.app.onAuthStateChanged(window.app.auth, updateUI);
-  loadProducts();
-});
-
+// جلب وعرض المنتجات
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
   try {
-    const snap = await window.app.getDocs(window.app.collection(window.app.db, 'products'));
-    grid.innerHTML = '';
-    if (snap.empty) {
-      grid.innerHTML = '<p class="col-span-full text-center text-gray-500">لا توجد منتجات بعد</p>';
+    const snapshot = await window.app.getDocs(window.app.collection(window.app.db, 'products'));
+    if (snapshot.empty) {
+      grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات متاحة حالياً. أضف منتجات من لوحة التحكم.</p></div>';
       return;
     }
-    snap.forEach(d => {
-      const p = d.data();
-      const img = p.images?.[0] || p.img || 'https://via.placeholder.com/300x400?text=صورة';
+    grid.innerHTML = '';
+    snapshot.forEach(doc => {
+      const p = { id: doc.id, ...doc.data() };
+      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} ر.س</span>` : '';
+      const img = p.images?.[0] || 'https://via.placeholder.com/400x500?text=لا+صورة';
       grid.innerHTML += `
-        <a href="product.html?id=${d.id}" class="block bg-white rounded-xl shadow-sm overflow-hidden group">
-          <img src="${img}" class="w-full h-60 object-cover group-hover:scale-105 transition">
+        <a href="product.html?id=${p.id}" class="product-card bg-white rounded-xl overflow-hidden shadow-sm block">
+          <img src="${img}" alt="${p.name}" class="w-full h-64 object-cover">
           <div class="p-4">
-            <h3 class="font-bold text-lg">${p.name || 'منتج'}</h3>
-            <p class="text-xl font-semibold">${p.price || 0} درهم</p>
-            ${p.priceOriginal && p.priceOriginal > p.price ? `<span class="text-sm text-red-500">خصم!</span>` : ''}
+            <h3 class="font-bold text-lg mb-1">${p.name}</h3>
+            <p class="text-gray-600 text-sm mb-2">${p.type || ''}</p>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-lg">${p.price} ر.س</span>
+              ${priceTag}
+            </div>
+            <button class="mt-3 w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 text-sm">عرض التفاصيل</button>
           </div>
         </a>
       `;
     });
-  } catch (e) {
-    grid.innerHTML = `<p class="col-span-full text-center text-red-500">خطأ: ${e.message}</p>`;
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  window.app.onAuthStateChanged(window.app.auth, updateUserUI);
+  loadProducts();
+});
 </script>
 </body>
 </html>
