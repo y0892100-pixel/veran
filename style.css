@@ -119,3 +119,16 @@ input, select, textarea { font: inherit; padding: 10px; border: 1px solid #ddd; 
     width: auto;
     object-fit: contain;
 }
+<div class="bg-white rounded-xl shadow-sm overflow-hidden group">
+    <a href="product.html?id=${doc.id}">
+        <img src="${p.images?.[0] || p.img || ''}" class="w-full h-60 object-cover group-hover:scale-105 transition">
+    </a>
+    <div class="p-4">
+        <a href="product.html?id=${doc.id}">
+            <h3 class="font-bold text-lg">${p.name || 'منتج'}</h3>
+        </a>
+        <p class="text-xl font-semibold text-black">${p.price || 0} درهم</p>
+        <button onclick="addToCart('${doc.id}','${p.name||''}',${p.price||0},'${p.images?.[0] || p.img || ''}')" 
+            class="w-full mt-3 bg-black text-white py-2 rounded-lg hover:bg-gray-800">أضف للسلة</button>
+    </div>
+</div>
