@@ -143,8 +143,7 @@ function header() {
         <div class="drawerHead"><b>الأقسام</b><button class="icon" onclick="drawer(false)">×</button></div>
         
         <section><h3>👩 النساء</h3>
-
-            <a class="sub" href="category.html?g=women&s=underwear">ملابس داخلية</a>
+             <a class="sub" href="category.html?g=women&s=underwear">ملابس داخلية</a>
             <a class="sub" href="category.html?g=women&s=winter">شتوية</a>
             <a class="sub" href="category.html?g=women&s=summer">صيفية</a>
             <a class="sub" href="category.html?g=women&t=hoodies">هوديات</a>
@@ -156,8 +155,7 @@ function header() {
         </section>
 
         <section><h3>👨 الرجال</h3>
-  
-            <a class="sub" href="category.html?g=men&s=underwear">ملابس داخلية</a>
+              <a class="sub" href="category.html?g=men&s=underwear">ملابس داخلية</a>
             <a class="sub" href="category.html?g=men&s=winter">شتوية</a>
             <a class="sub" href="category.html?g=men&s=summer">صيفية</a>
             <a class="sub" href="category.html?g=men&t=hoodies">هوديات</a>
@@ -169,8 +167,7 @@ function header() {
         </section>
 
         <section><h3>👧 البنات</h3>
-
-            <a class="sub" href="category.html?g=girls&s=underwear">ملابس داخلية</a>
+              <a class="sub" href="category.html?g=girls&s=underwear">ملابس داخلية</a>
             <a class="sub" href="category.html?g=girls&s=winter">شتوية</a>
             <a class="sub" href="category.html?g=girls&s=summer">صيفية</a>
             <a class="sub" href="category.html?g=girls&t=hoodies">هوديات</a>
@@ -181,7 +178,6 @@ function header() {
         </section>
 
         <section><h3>👦 الأولاد</h3>
-
             <a class="sub" href="category.html?g=boys&s=underwear">ملابس داخلية</a>
             <a class="sub" href="category.html?g=boys&s=winter">شتوية</a>
             <a class="sub" href="category.html?g=boys&s=summer">صيفية</a>
