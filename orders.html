@@ -15,14 +15,12 @@
   </style>
 </head>
 <body class="bg-gray-50">
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
     <div id="user-area"></div>
   </div>
 </nav>
-
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6">طلباتي</h1>
   <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
@@ -42,26 +40,30 @@
 </main>
 
 <script>
+// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
-  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-  authDomain: "varen-f7756.firebaseapp.com",
-  projectId: "varen-f7756",
-  storageBucket: "varen-f7756.firebasestorage.app",
-  messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b"
+  apiKey: "AIzaSyDQTvVXrLYgbkpNI_YfwdVpZrQFBIzzPmU",
+  authDomain: "varen-5dcfd.firebaseapp.com",
+  projectId: "varen-5dcfd",
+  storageBucket: "varen-5dcfd.firebasestorage.app",
+  messagingSenderId: "769663614271",
+  appId: "1:769663614271:web:4b2b843f99a8d7a071678a",
+  measurementId: "G-DNHBHJHDVX"
 };
+
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const ADMIN_EMAIL = 'y0892100@gmail.com';
 
-// ✅ نفس القائمة المنسدلة
+// ✅ القائمة المنسدلة للحساب
 function updateUserNav(user) {
   const area = document.getElementById('user-area');
   if (!user) {
     area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg">تسجيل الدخول</button>`;
     return;
   }
-  const isAdmin = user.email === 'y0892100@gmail.com';
+  const isAdmin = user.email === ADMIN_EMAIL;
   area.innerHTML = `
     <div class="relative group">
       <button class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
@@ -85,56 +87,84 @@ window.logout = async () => {
   window.location.href = 'index.html';
 };
 
+// ✅ تحميل طلبات المستخدم
 auth.onAuthStateChanged(async user => {
   document.getElementById('loading').classList.add('hidden');
+  
   if (!user) {
     document.getElementById('no-login').classList.remove('hidden');
     return;
   }
+  
   document.getElementById('content').classList.remove('hidden');
   updateUserNav(user);
-
-  // جلب الطلبات
-  const snapshot = await db.collection('orders').where('userId', '==', user.uid).orderBy('createdAt', 'desc').get();
-  const list = document.getElementById('orders-list');
   
-  if (snapshot.empty) {
-    document.getElementById('no-orders').classList.remove('hidden');
-    return;
-  }
+  try {
+    // نجلب كل طلبات المستخدم ثم نرتبها في الكود
+    const snapshot = await db.collection('orders')
+      .where('userId', '==', user.uid)
+      .get();
 
-  snapshot.forEach(doc => {
-    const order = doc.data();
-    const date = order.createdAt?.toDate ? new Date(order.createdAt.toDate()).toLocaleDateString('ar-AE') : 'غير محدد';
-    list.innerHTML += `
-      <div class="bg-white p-5 rounded-xl shadow-sm mb-4 border">
-        <div class="flex justify-between items-center mb-3">
-          <span class="font-bold">طلب بتاريخ: ${date}</span>
-          <span class="px-3 py-1 rounded-full text-sm font-medium ${
-            order.status === 'جديد' ? 'bg-blue-100 text-blue-700' :
-            order.status === 'تم التأكيد' ? 'bg-green-100 text-green-700' :
-            'bg-gray-100 text-gray-700'
-          }">${order.status || 'قيد المعالجة'}</span>
-        </div>
-        <p class="text-sm text-gray-600 mb-2">الاسم: ${order.name || 'غير مذكور'}</p>
-        <p class="text-sm text-gray-600 mb-2">العنوان: ${order.address || 'غير مذكور'}</p>
-        <p class="text-sm text-gray-600 mb-3">الهاتف: ${order.phone || 'غير مذكور'}</p>
-        <div class="border-t pt-3">
-          <p class="font-semibold mb-2">المشتريات:</p>
-          ${(order.items || []).map(item => `
-            <div class="flex justify-between text-sm py-1">
-              <span>${item.name} (${item.size} - ${item.color}) × ${item.quantity}</span>
-              <span class="font-medium">${(item.price * item.quantity).toFixed(2)} درهم</span>
+    const list = document.getElementById('orders-list');
+    
+    if (snapshot.empty) {
+      document.getElementById('no-orders').classList.remove('hidden');
+      return;
+    }
+
+    // نرتب من الأحدث للأقدم
+    let orders = [];
+    snapshot.forEach(doc => {
+      orders.push({ id: doc.id, ...doc.data() });
+    });
+    orders.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+      return dateB - dateA;
+    });
+
+    orders.forEach(order => {
+      const date = order.createdAt?.toDate 
+        ? new Date(order.createdAt.toDate()).toLocaleDateString('ar-AE') 
+        : 'غير محدد';
+      
+      const statusClass = 
+        order.status === 'جديد' ? 'bg-blue-100 text-blue-700' :
+        order.status === 'مؤكد' ? 'bg-green-100 text-green-700' :
+        order.status === 'ملغي' ? 'bg-red-100 text-red-700' :
+        'bg-gray-100 text-gray-700';
+
+      list.innerHTML += `
+        <div class="bg-white p-5 rounded-xl shadow-sm mb-4 border">
+          <div class="flex justify-between items-center mb-3">
+            <span class="font-bold">رقم الطلب: ${order.orderNumber || order.id}</span>
+            <span class="px-3 py-1 rounded-full text-sm font-medium ${statusClass}">${order.status || 'قيد المعالجة'}</span>
+          </div>
+          <p class="text-sm text-gray-600 mb-1">التاريخ: ${date}</p>
+          <p class="text-sm text-gray-600 mb-1">الاسم: ${order.fullName || order.name || 'غير مذكور'}</p>
+          <p class="text-sm text-gray-600 mb-1">الهاتف: ${order.phone || 'غير مذكور'}</p>
+          <p class="text-sm text-gray-600 mb-3">العنوان: ${order.address || 'غير مذكور'}</p>
+          <div class="border-t pt-3">
+            <p class="font-semibold mb-2">المشتريات:</p>
+            ${(order.items || []).map(item => `
+              <div class="flex justify-between text-sm py-1">
+                <span>${item.name} — المقاس: ${item.size || '-'} — اللون: ${item.color || '-'} × ${item.quantity}</span>
+                <span class="font-medium">${(item.price * item.quantity).toFixed(2)} درهم</span>
+              </div>
+            `).join('')}
+            <div class="flex justify-between font-bold mt-2 pt-2 border-t">
+              <span>المجموع الكلي</span>
+              <span>${(order.total || 0).toFixed(2)} درهم</span>
             </div>
-          `).join('')}
-          <div class="flex justify-between font-bold mt-2 pt-2 border-t">
-            <span>المجموع</span>
-            <span>${(order.total || 0).toFixed(2)} درهم</span>
           </div>
         </div>
-      </div>
-    `;
-  });
+      `;
+    });
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('orders-list').innerHTML = `<p class="text-red-500">خطأ في تحميل الطلبات: ${err.message}</p>`;
+  }
 });
 </script>
 </body>
