@@ -35,6 +35,10 @@
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
     <div class="hidden md:flex gap-8">
       <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
+      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
+      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
+      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
+      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
     </div>
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
@@ -83,16 +87,13 @@
 
 <div id="toast" class="toast"></div>
 
-<!-- EmailJS Library -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
 <script>
-  // تهيئة EmailJS
   (function(){
     emailjs.init("3A0NspFA3vlSd64jc");
   })();
 
-  // عرض رسائل للمستخدم
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -100,30 +101,27 @@
     setTimeout(() => toast.classList.remove('show'), 4000);
   }
 
-  // تحويل محتوى السلة إلى نص
-  function formatCartItems(cart) {
-    if (!cart || cart.length === 0) return 'لا توجد منتجات';
-    return cart.map(item => 
-      `${item.name} × ${item.quantity} — ${item.price * item.quantity} درهم`
-    ).join('\n');
-  }
-
-  // عرض ملخص السلة في الصفحة
+  // عرض ملخص السلة في الصفحة — يتوافق مع store.js (يستخدم qty)
   function renderCartSummary(cart) {
     const container = document.getElementById('cart-items-summary');
     if (!cart || cart.length === 0) {
       container.innerHTML = '<p class="text-gray-500">السلة فارغة</p>';
       return;
     }
-    container.innerHTML = cart.map(item => `
-      <div class="flex justify-between">
-        <span>${item.name} × ${item.quantity}</span>
-        <span>${item.price * item.quantity} درهم</span>
-      </div>
-    `).join('');
+    container.innerHTML = cart.map(item => {
+      const qty = Number(item.qty) || 1;
+      const price = Number(item.price) || 0;
+      const total = price * qty;
+      return `
+        <div class="flex justify-between">
+          <span>${item.name} × ${qty}</span>
+          <span>${total} درهم</span>
+        </div>
+      `;
+    }).join('');
   }
 
-  // إرسال إيميل الإشعار
+  // إرسال إيميل الإشعار — ✅ أضفنا المعاملات الناقصة!
   async function sendOrderEmail(orderData) {
     const serviceID = "service_3bs6onj";
     const templateID = "template_om7zrjs";
@@ -134,6 +132,7 @@
       customer_email: orderData.userEmail,
       customer_phone: orderData.phone,
       customer_address: orderData.address,
+      customer_notes: orderData.notes || 'لا يوجد ملاحظات',
       order_items: orderData.itemsText,
       order_total: orderData.total,
       order_date: new Date().toLocaleString('ar-AE'),
@@ -143,8 +142,9 @@
     console.log("📧 بيانات الإيميل المرسلة:", templateParams);
 
     try {
-      const response = await emailjs.send("service_3bs6onj","template_om7zrjs");
-      console.log("✅ تم إرسال الإيميل بنجاح!", response.status, response.text);
+      // ✅ هنا كان الخطأ — لازم نمرر البيانات!
+      const response = await emailjs.send(serviceID, templateID, templateParams);
+      console.log("✅ تم إرسال الإيميل بنجاح!", response.status);
       return true;
     } catch (error) {
       console.error("❌ فشل إرسال الإيميل:", error);
@@ -153,24 +153,21 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    console.log("✅ الصفحة محملة تماماً");
-    if (window.Store && window.Store.updateCartCount) {
-      window.Store.updateCartCount();
-    }
-    const cart = window.Store && window.Store.getCart ? window.Store.getCart() : [];
-    const total = window.Store && window.Store.getCartTotal ? window.Store.getCartTotal() : '0';
-    document.getElementById('total-amount').textContent = total;
+    if (window.Store?.updateCartCount) window.Store.updateCartCount();
+    
+    const cart = window.Store?.getCart ? window.Store.getCart() : [];
+    const total = window.Store?.getCartTotal ? window.Store.getCartTotal() : 0;
+    
+    // ✅ عرض المجموع بشكل آمن
+    document.getElementById('total-amount').textContent = total + ' درهم';
     renderCartSummary(cart);
 
     document.getElementById('checkout-form').addEventListener('submit', async e => {
       e.preventDefault();
-      console.log("📝 تم الضغط على زر الإرسال");
-
       const submitBtn = document.getElementById('submit-btn');
       submitBtn.disabled = true;
       submitBtn.textContent = 'جاري المعالجة...';
 
-      const cart = window.Store && window.Store.getCart ? window.Store.getCart() : [];
       if (cart.length === 0) {
         showToast('السلة فارغة!', 'error');
         submitBtn.disabled = false;
@@ -178,7 +175,7 @@
         return;
       }
 
-      const user = window.app && window.app.auth ? window.app.auth.currentUser : null;
+      const user = window.app?.auth?.currentUser;
       if (!user) {
         showToast('سجّل دخول أولاً لإتمام الطلب', 'error');
         submitBtn.disabled = false;
@@ -200,7 +197,11 @@
         return;
       }
 
-      const itemsText = formatCartItems(cart);
+      // ✅ استدعاء الدالة الصحيحة من store.js
+      const itemsText = window.Store?.formatCartItemsForEmail 
+        ? window.Store.formatCartItemsForEmail(cart) 
+        : 'لا يمكن عرض تفاصيل المنتجات';
+
       const orderData = {
         userId: user.uid,
         userName,
@@ -210,13 +211,12 @@
         notes,
         items: cart,
         itemsText,
-        total,
+        total: total + ' درهم',
         status: 'جديد',
         createdAt: window.app.serverTimestamp()
       };
 
       try {
-        console.log("💾 جاري حفظ الطلب في قاعدة البيانات...");
         const orderRef = await window.app.addDoc(
           window.app.collection(window.app.db, 'orders'),
           orderData
@@ -224,17 +224,13 @@
         orderData.orderId = orderRef.id;
         console.log("✅ الطلب محفوظ، رقم الطلب:", orderRef.id);
 
-        console.log("📧 جاري إرسال الإيميل...");
-        const emailSent = await sendOrderEmail(orderData);
-        console.log("📧 نتيجة الإرسال:", emailSent ? "تم ✅" : "فشل ❌");
+        await sendOrderEmail(orderData);
 
-        if (window.Store && window.Store.clearCart) {
-          window.Store.clearCart();
-        }
+        if (window.Store?.clearCart) window.Store.clearCart();
         showToast('✅ تم استلام طلبك بنجاح! سنتواصل معك قريباً');
         setTimeout(() => window.location.href = 'index.html', 2000);
       } catch (err) {
-        console.error("❌ خطأ في إتمام الطلب:", err);
+        console.error("❌ خطأ:", err);
         showToast('حدث خطأ: ' + err.message, 'error');
         submitBtn.disabled = false;
         submitBtn.textContent = 'تأكيد الطلب';
