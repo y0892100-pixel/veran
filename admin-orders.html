@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إدارة الطلبات - VAREN</title>
+  <title>إتمام الطلب - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -18,42 +19,76 @@
     .toast.error { background: #dc2626; }
   </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 text-gray-800 min-h-screen">
 
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="admin.html" class="text-2xl font-bold text-gray-900">VAREN - لوحة التحكم</a>
-    <div>
-      <button onclick="logout()" class="text-red-500 hover:text-red-700 font-medium">
-        <i class="fa-solid fa-right-from-bracket ml-1"></i> تسجيل الخروج
-      </button>
-    </div>
+    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
+    <a href="cart.html" class="text-sm text-gray-600 hover:text-black">
+      <i class="fa-solid fa-arrow-right ml-1"></i> الرجوع للسلة
+    </a>
   </div>
 </nav>
 
-<main class="max-w-5xl mx-auto px-4 py-8">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold">إدارة الطلبات</h1>
-    <button onclick="location.reload()" class="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">
-      <i class="fa-solid fa-rotate-right ml-1"></i> تحديث
-    </button>
+<main class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center">إتمام الطلب</h1>
+  <div id="toast" class="toast"></div>
+
+  <!-- ملخص الطلب -->
+  <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+    <h2 class="text-xl font-bold mb-4">ملخص الطلب</h2>
+    <div id="order-items" class="space-y-3"></div>
+    <hr class="my-4">
+    <div class="flex justify-between text-lg font-bold">
+      <span>المجموع الكلي:</span>
+      <span id="order-total">0.00 درهم</span>
+    </div>
   </div>
 
-  <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
-  <div id="content" class="hidden">
-    <div id="orders-list"></div>
+  <!-- بيانات العميل -->
+  <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+    <h2 class="text-xl font-bold mb-4">بيانات التوصيل</h2>
+    <form id="checkout-form" class="space-y-4">
+      <div>
+        <label class="block font-medium mb-1">الاسم الكامل *</label>
+        <input type="text" id="full_name" required class="w-full border rounded-lg p-3" placeholder="أدخل اسمك الكامل">
+      </div>
+      <div>
+        <label class="block font-medium mb-1">رقم الهاتف *</label>
+        <input type="tel" id="phone" required class="w-full border rounded-lg p-3" placeholder="مثال: 0501234567">
+      </div>
+      <div>
+        <label class="block font-medium mb-1">البريد الإلكتروني *</label>
+        <input type="email" id="customer_email" required class="w-full border rounded-lg p-3" placeholder="example@email.com">
+      </div>
+      <div>
+        <label class="block font-medium mb-1">العنوان بالتفصيل *</label>
+        <textarea id="address" required rows="3" class="w-full border rounded-lg p-3" placeholder="المدينة، المنطقة، الشارع، رقم المبنى والشقة"></textarea>
+      </div>
+      <div>
+        <label class="block font-medium mb-1">ملاحظات إضافية (اختياري)</label>
+        <textarea id="notes" rows="2" class="w-full border rounded-lg p-3" placeholder="أي تعليمات خاصة بالتوصيل أو الطلب"></textarea>
+      </div>
+      <button type="submit" id="submit-btn" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 mt-2">
+        <span>تأكيد الطلب</span>
+        <i class="fa-solid fa-check ml-1"></i>
+      </button>
+    </form>
   </div>
-  <div id="no-orders" class="hidden text-center py-16">
-    <i class="fa-solid fa-inbox text-6xl text-gray-300 mb-4"></i>
-    <p class="text-xl text-gray-500">لا يوجد طلبات حتى الآن</p>
+
+  <!-- حالة الطلب -->
+  <div id="success-section" class="hidden bg-green-50 border border-green-200 rounded-xl p-8 text-center">
+    <i class="fa-solid fa-circle-check text-green-500 text-5xl mb-4"></i>
+    <h2 class="text-2xl font-bold text-green-700 mb-2">تم استلام طلبك!</h2>
+    <p class="text-green-600 mb-4">رقم الطلب: <span id="order-number" class="font-bold"></span></p>
+    <p class="text-gray-600 mb-6">سنتواصل معك قريباً لتأكيد التوصيل، وتم إرسال تفاصيل الطلب إلى بريدك الإلكتروني.</p>
+    <a href="index.html" class="inline-block bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">العودة للرئيسية</a>
   </div>
-  <div id="no-access" class="hidden text-center py-16">
-    <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
-    <p class="text-xl text-gray-500 mb-4">غير مصرح لك بالدخول</p>
-    <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block">تسجيل الدخول</a>
-  </div>
-  <div id="toast" class="toast"></div>
 </main>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -62,120 +97,197 @@ const firebaseConfig = {
   projectId: "varen-f7756",
   storageBucket: "varen-f7756.firebasestorage.app",
   messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b"
+  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
+  measurementId: "G-SV7DKGPH2M"
 };
 
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 const db = firebase.firestore();
+const auth = firebase.auth();
+
+// ✅ إعدادات EmailJS
+const EMAILJS_SERVICE_ID = 'service_3bs6onj';
+const EMAILJS_TEMPLATE_ID = 'template_om7zrjs';
+const EMAILJS_PUBLIC_KEY = '3A0NspFA3vlSd64jc';
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
+// تهيئة EmailJS
+emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+let cart = [];
+let total = 0;
+
 function showToast(msg, type='success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove('show'), 4000);
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
-window.logout = async () => {
-  await auth.signOut();
-  window.location.href = 'login.html';
-};
-
-// تغيير حالة الطلب
-window.updateOrderStatus = async (orderId, newStatus) => {
-  try {
-    await db.collection('orders').doc(orderId).update({ status: newStatus });
-    showToast('✅ تم تحديث الحالة');
-    loadOrders();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-};
-
-// تحميل كل الطلبات
-async function loadOrders() {
-  const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').get();
-  const list = document.getElementById('orders-list');
-  list.innerHTML = '';
-
-  if (snapshot.empty) {
-    document.getElementById('no-orders').classList.remove('hidden');
+function loadCart() {
+  const saved = localStorage.getItem('varen_cart');
+  if (!saved || saved === '[]') {
+    document.querySelector('main').innerHTML = `
+      <div class="text-center py-16">
+        <i class="fa-solid fa-cart-shopping text-gray-300 text-6xl mb-4"></i>
+        <h2 class="text-xl font-bold text-gray-500 mb-2">السلة فارغة</h2>
+        <p class="text-gray-400 mb-6">أضف منتجات أولاً لإتمام الطلب</p>
+        <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block hover:bg-gray-800">التصفح</a>
+      </div>
+    `;
     return;
   }
+  cart = JSON.parse(saved);
+  renderCart();
+}
 
-  snapshot.forEach(doc => {
-    const order = doc.data();
-    const orderId = doc.id;
-    const date = order.createdAt?.toDate ? new Date(order.createdAt.toDate()).toLocaleString('ar-AE') : 'غير محدد';
-    const status = order.status || 'جديد';
+function renderCart() {
+  const container = document.getElementById('order-items');
+  container.innerHTML = '';
+  total = 0;
 
-    const statusColors = {
-      'جديد': 'bg-blue-100 text-blue-700',
-      'تم التأكيد': 'bg-green-100 text-green-700',
-      'قيد التوصيل': 'bg-yellow-100 text-yellow-700',
-      'مُسلّم': 'bg-emerald-100 text-emerald-700',
-      'ملغي': 'bg-red-100 text-red-700'
-    };
-
-    list.innerHTML += `
-      <div class="bg-white p-5 rounded-xl shadow-sm mb-4 border">
-        <!-- رأس الطلب -->
-        <div class="flex flex-wrap justify-between items-center gap-2 mb-4 pb-3 border-b">
-          <div>
-            <span class="font-bold text-lg">طلب: ${orderId.substring(0, 8)}</span>
-            <span class="text-sm text-gray-500 mr-2">${date}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="px-3 py-1 rounded-full text-sm font-medium ${statusColors[status] || 'bg-gray-100 text-gray-700'}">${status}</span>
-            <select onchange="updateOrderStatus('${orderId}', this.value)" class="border rounded px-2 py-1 text-sm">
-              <option value="جديد" ${status==='جديد'?'selected':''}>جديد</option>
-              <option value="تم التأكيد" ${status==='تم التأكيد'?'selected':''}>تم التأكيد</option>
-              <option value="قيد التوصيل" ${status==='قيد التوصيل'?'selected':''}>قيد التوصيل</option>
-              <option value="مُسلّم" ${status==='مُسلّم'?'selected':''}>مُسلّم</option>
-              <option value="ملغي" ${status==='ملغي'?'selected':''}>ملغي</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- بيانات العميل -->
-        <div class="grid md:grid-cols-2 gap-3 mb-4 text-sm">
-          <div><strong>الاسم:</strong> ${order.name || 'غير مذكور'}</div>
-          <div><strong>الهاتف:</strong> ${order.phone || 'غير مذكور'}</div>
-          <div><strong>الإيميل:</strong> ${order.email || 'غير مذكور'}</div>
-          <div><strong>العنوان:</strong> ${order.address || 'غير مذكور'}</div>
-        </div>
-
-        <!-- المشتريات -->
-        <div class="border-t pt-3">
-          <p class="font-semibold mb-2">المشتريات:</p>
-          ${(order.items || []).map(item => `
-            <div class="flex justify-between items-center py-1 text-sm border-b">
-              <span>${item.name} — ${item.size} / ${item.color} × ${item.quantity}</span>
-              <span class="font-medium">${(item.price * item.quantity).toFixed(2)} درهم</span>
-            </div>
-          `).join('')}
-          <div class="flex justify-between font-bold text-lg mt-2 pt-2">
-            <span>المجموع الكلي</span>
-            <span>${(order.total || 0).toFixed(2)} درهم</span>
-          </div>
+  cart.forEach((item, idx) => {
+    const subtotal = item.price * item.quantity;
+    total += subtotal;
+    container.innerHTML += `
+      <div class="flex items-center gap-3 border-b pb-3">
+        <img src="${item.image || 'https://via.placeholder.com/80x80'}" alt="${item.name}" class="w-16 h-16 object-cover rounded-lg">
+        <div class="flex-1">
+          <h3 class="font-semibold">${item.name}</h3>
+          <p class="text-sm text-gray-500">
+            المقاس: ${item.size || 'غير محدد'} | اللون: ${item.color || 'غير محدد'}
+          </p>
+          <p class="text-sm">${item.price} درهم × ${item.quantity} = ${subtotal.toFixed(2)} درهم</p>
         </div>
       </div>
     `;
   });
+
+  document.getElementById('order-total').textContent = `${total.toFixed(2)} درهم`;
 }
 
-// التحقق من صلاحية الدخول
-auth.onAuthStateChanged(async user => {
-  document.getElementById('loading').classList.add('hidden');
-  
-  if (!user || user.email !== ADMIN_EMAIL) {
-    document.getElementById('no-access').classList.remove('hidden');
+function generateOrderNumber() {
+  const date = new Date();
+  const yy = date.getFullYear().toString().slice(-2);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const rand = Math.floor(Math.random() * 9000) + 1000;
+  return `VA-${yy}${mm}${dd}-${rand}`;
+}
+
+function buildOrderItemsText() {
+  return cart.map((item, i) => 
+    `${i+1}. ${item.name}
+   المقاس: ${item.size || '-'} | اللون: ${item.color || '-'}
+   الكمية: ${item.quantity} | السعر: ${item.price} درهم
+   المجموع: ${(item.price * item.quantity).toFixed(2)} درهم`
+  ).join('\n\n');
+}
+
+async function sendEmail(orderData) {
+  const orderItemsText = buildOrderItemsText();
+  const orderDate = new Date().toLocaleString('ar-AE');
+
+  // ✅ أسماء المتغيرات مطابقة تماماً لقالبك
+  const templateParams = {
+    order_id: orderData.orderNumber,
+    order_date: orderDate,
+    customer_name: orderData.fullName,
+    customer_email: orderData.customerEmail,
+    customer_phone: orderData.phone,
+    customer_address: orderData.address,
+    customer_notes: orderData.notes || 'لا يوجد',
+    order_items: orderItemsText,
+    order_total: `${total.toFixed(2)} درهم`
+  };
+
+  try {
+    const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+    console.log('✅ تم إرسال الإيميل بنجاح:', response);
+    return true;
+  } catch (err) {
+    console.error('❌ خطأ في إرسال الإيميل:', err);
+    showToast('خطأ في إرسال الإيميل: ' + err.message, 'error');
+    return false;
+  }
+}
+
+async function saveOrderToFirebase(orderData) {
+  const user = auth.currentUser;
+  const orderRef = db.collection('orders').doc(orderData.orderNumber);
+  await orderRef.set({
+    orderNumber: orderData.orderNumber,
+    userId: user?.uid || 'guest',
+    userEmail: orderData.customerEmail,
+    fullName: orderData.fullName,
+    phone: orderData.phone,
+    address: orderData.address,
+    notes: orderData.notes || '',
+    items: cart,
+    total: total,
+    status: 'جديد',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  console.log('✅ تم حفظ الطلب في Firestore');
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جاري المعالجة...';
+
+  const orderData = {
+    orderNumber: generateOrderNumber(),
+    fullName: document.getElementById('full_name').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    customerEmail: document.getElementById('customer_email').value.trim(),
+    address: document.getElementById('address').value.trim(),
+    notes: document.getElementById('notes').value.trim()
+  };
+
+  // التحقق من الحقول
+  if (!orderData.fullName || !orderData.phone || !orderData.customerEmail || !orderData.address) {
+    showToast('املأ جميع الحقول المطلوبة (*)', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span>تأكيد الطلب</span><i class="fa-solid fa-check ml-1"></i>';
     return;
   }
 
-  document.getElementById('content').classList.remove('hidden');
-  loadOrders();
+  try {
+    // حفظ في قاعدة البيانات
+    await saveOrderToFirebase(orderData);
+    
+    // إرسال الإيميل
+    const emailSent = await sendEmail(orderData);
+    if (!emailSent) {
+      showToast('تم حفظ الطلب لكن فشل إرسال الإيميل! راجع إعدادات EmailJS', 'error');
+    } else {
+      showToast('✅ تم تأكيد الطلب وإرسال التفاصيل');
+    }
+
+    // تفريغ السلة
+    localStorage.removeItem('varen_cart');
+
+    // عرض صفحة النجاح
+    document.getElementById('checkout-form').parentElement.classList.add('hidden');
+    document.getElementById('order-items').parentElement.classList.add('hidden');
+    document.getElementById('success-section').classList.remove('hidden');
+    document.getElementById('order-number').textContent = orderData.orderNumber;
+
+  } catch (err) {
+    console.error(err);
+    showToast('حدث خطأ: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span>تأكيد الطلب</span><i class="fa-solid fa-check ml-1"></i>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadCart();
+  document.getElementById('checkout-form').addEventListener('submit', handleSubmit);
 });
 </script>
 
