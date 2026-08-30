@@ -189,8 +189,9 @@ async function logout() {
 function renderColors(colors) {
   const list = document.getElementById('colors-list');
   list.innerHTML = '';
-  if (!colors || colors.length === 0) {
-    list.innerHTML = '<span class="text-gray-500">غير محدد</span>';
+  if (!colors || !Array.isArray(colors) || colors.length === 0) {
+    list.innerHTML = '<span class="text-gray-500">قياسي</span>';
+    selectedColor = 'قياسي';
     return;
   }
   colors.forEach(c => {
@@ -211,8 +212,9 @@ function renderColors(colors) {
 function renderSizes(sizes) {
   const list = document.getElementById('sizes-list');
   list.innerHTML = '';
-  if (!sizes || sizes.length === 0) {
+  if (!sizes || !Array.isArray(sizes) || sizes.length === 0) {
     list.innerHTML = '<span class="text-gray-500">قياس موحد</span>';
+    selectedSize = 'قياس موحد';
     return;
   }
   sizes.forEach(s => {
@@ -235,7 +237,7 @@ function renderImages(images) {
   const defaultImg = 'https://via.placeholder.com/600x600?text=لا+صورة+متاحة';
   main.src = images?.[0] || defaultImg;
   thumbs.innerHTML = '';
-  if (!images || images.length <= 1) return;
+  if (!images || !Array.isArray(images) || images.length <= 1) return;
   images.forEach(img => {
     const t = document.createElement('img');
     t.src = img;
@@ -275,10 +277,10 @@ async function loadRelatedProducts() {
         <a href="product.html?id=${p.id}" class="product-card bg-white rounded-xl overflow-hidden shadow-sm block">
           <img src="${img}" alt="${p.name}" class="w-full h-64 object-cover">
           <div class="p-4">
-            <h3 class="font-bold text-lg mb-1">${p.name}</h3>
+            <h3 class="font-bold text-lg mb-1">${p.name || 'منتج'}</h3>
             <p class="text-gray-600 text-sm mb-2">${p.type || ''}</p>
             <div class="flex items-center justify-between">
-              <span class="font-bold text-lg">${p.price} د.إ</span>
+              <span class="font-bold text-lg">${p.price || 0} د.إ</span>
               ${priceTag}
             </div>
           </div>
@@ -318,7 +320,9 @@ async function loadProduct() {
     // ملء بيانات المنتج
     document.getElementById('p-name').textContent = productData.name || 'منتج بدون اسم';
     document.getElementById('p-type').textContent = [productData.gender, productData.type, productData.season].filter(Boolean).join(' - ');
-    document.getElementById('p-price').textContent = `${productData.price} درهم`;
+    
+    const price = Number(productData.price) || 0;
+    document.getElementById('p-price').textContent = `${price} درهم`;
     
     if (productData.priceOriginal) {
       document.getElementById('p-price-original').textContent = `${productData.priceOriginal} درهم`;
@@ -350,14 +354,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const addBtn = document.getElementById('add-to-cart-btn');
   addBtn.onclick = () => {
+    // التحقق من توفر المنتج
+    if (productData.available === false) {
+      showToast('هذا المنتج غير متوفر حالياً', 'error');
+      return;
+    }
+    // التحقق من الاختيارات
     if (!selectedColor || !selectedSize) {
       showToast('اختر اللون والمقاس أولاً', 'error');
       return;
     }
+    // إضافة للسلة مع تحويل السعر لرقم
+    const price = Number(productData.price) || 0;
     window.Store.addToCart(
       productData.id,
       productData.name,
-      productData.price,
+      price,
       productData.images?.[0] || '',
       selectedSize,
       selectedColor,
