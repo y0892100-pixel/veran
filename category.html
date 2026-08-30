@@ -6,6 +6,10 @@
   <title>الأقسام - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- ✅ مكتبات Firebase متوافقة وموحّدة -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -17,22 +21,8 @@
     .product-card { transition: all 0.3s ease; }
     .filter-btn.active { background: black; color: white; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import firebaseConfig from './firebase-config.js';
-    import * as Store from './store.js';
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    window.app = { auth, db, onAuthStateChanged, signOut, collection, query, where, getDocs };
-    window.Store = Store;
-  </script>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
@@ -64,10 +54,8 @@
     </div>
   </div>
 </nav>
-
 <main class="max-w-7xl mx-auto px-4 py-8">
   <h1 id="category-title" class="text-2xl md:text-3xl font-bold mb-8 text-center">جميع المنتجات</h1>
-
   <!-- فلاتر -->
   <div class="mb-8 flex flex-wrap justify-center gap-3">
     <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100 active" data-filter="all">الكل</button>
@@ -76,7 +64,6 @@
     <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="winter">شتوي</button>
     <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="summer">صيفي</button>
   </div>
-
   <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     <div class="col-span-full text-center py-12 text-gray-500">
       <i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i>
@@ -84,52 +71,38 @@
     </div>
   </div>
 </main>
-
 <footer class="bg-gray-900 text-white py-8 text-center">
   <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
 </footer>
-
 <div id="toast" class="toast"></div>
 
 <script>
+// ✅ إعدادات المشروع الجديد
+const firebaseConfig = {
+  apiKey: "AIzaSyDQTvVXrLYgbkpNI_YfwdVpZrQFBIzzPmU",
+  authDomain: "varen-5dcfd.firebaseapp.com",
+  projectId: "varen-5dcfd",
+  storageBucket: "varen-5dcfd.firebasestorage.app",
+  messagingSenderId: "769663614271",
+  appId: "1:769663614271:web:4b2b843f99a8d7a071678a",
+  measurementId: "G-DNHBHJHDVX"
+};
+
+// ✅ تهيئة Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+
 let currentGender = null;
 let currentFilter = 'all';
-
-const accountBtn = document.getElementById('account-btn');
-const accountMenu = document.getElementById('account-menu');
 const toast = document.getElementById('toast');
 
 function showToast(msg, type = 'success') {
   toast.textContent = msg;
   toast.className = `toast show ${type}`;
   setTimeout(() => toast.classList.remove('show'), 4000);
-}
-
-if (accountBtn) {
-  accountBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    accountMenu.classList.toggle('hidden');
-  });
-  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
-  accountMenu?.addEventListener('click', (e) => e.stopPropagation());
-}
-
-function updateUserUI(user) {
-  const loginBtn = document.getElementById('login-btn');
-  if (user) {
-    if (loginBtn) loginBtn.classList.add('hidden');
-    if (accountBtn) { accountBtn.classList.remove('hidden'); accountBtn.classList.add('flex'); }
-  } else {
-    if (loginBtn) loginBtn.classList.remove('hidden');
-    if (accountBtn) accountBtn.classList.add('hidden');
-    if (accountMenu) accountMenu.classList.add('hidden');
-  }
-  if (window.Store?.updateCartCount) window.Store.updateCartCount();
-}
-
-async function logout() {
-  await window.app.auth.signOut();
-  window.location.href = 'index.html';
 }
 
 function setCategoryTitle(gender) {
@@ -151,18 +124,50 @@ function matchesFilter(product, filter) {
   return false;
 }
 
+// ✅ تحديث عداد السلة
+function updateCartCount() {
+  const cart = JSON.parse(localStorage.getItem('varen_cart') || '[]');
+  const countEl = document.getElementById('cart-count');
+  if (countEl) {
+    const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    countEl.textContent = total;
+  }
+}
+
+// ✅ تحميل المنتجات بدون فهارس
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
   grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i><p>جاري تحميل المنتجات...</p></div>';
-
+  
   try {
-    let q = window.app.collection(window.app.db, 'products');
-    if (currentGender) q = window.app.query(q, window.app.where('gender', '==', currentGender));
+    // نجلب الكل ثم نفلتر في الكود
+    let snapshot;
+    if (currentGender) {
+      snapshot = await db.collection('products').where('gender', '==', currentGender).get();
+    } else {
+      snapshot = await db.collection('products').get();
+    }
 
-    const snapshot = await window.app.getDocs(q);
-    let products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    if (currentFilter !== 'all') products = products.filter(p => matchesFilter(p, currentFilter));
+    let products = [];
+    snapshot.forEach(doc => {
+      const p = { id: doc.id, ...doc.data() };
+      // نعرض المتوفر فقط
+      if (p.available !== false) {
+        products.push(p);
+      }
+    });
+
+    // نفلتر حسب النوع والموسم
+    if (currentFilter !== 'all') {
+      products = products.filter(p => matchesFilter(p, currentFilter));
+    }
+
+    // نرتب من الأحدث للأقدم
+    products.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+      return dateB - dateA;
+    });
 
     if (products.length === 0) {
       grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات في هذا القسم حالياً</p></div>';
@@ -171,7 +176,7 @@ async function loadProducts() {
 
     grid.innerHTML = '';
     products.forEach(p => {
-      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} د.إ</span>` : '';
+      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} درهم</span>` : '';
       const img = p.images?.[0] || 'https://via.placeholder.com/400x500?text=لا+صورة';
       grid.innerHTML += `
         <a href="product.html?id=${p.id}" class="product-card bg-white rounded-xl overflow-hidden shadow-sm block">
@@ -180,24 +185,62 @@ async function loadProducts() {
             <h3 class="font-bold text-lg mb-1">${p.name}</h3>
             <p class="text-gray-600 text-sm mb-2">${p.type || ''}</p>
             <div class="flex items-center justify-between">
-              <span class="font-bold text-lg">${p.price} د.إ</span>
+              <span class="font-bold text-lg">${p.price} درهم</span>
               ${priceTag}
             </div>
           </div>
         </a>
       `;
     });
+
   } catch (err) {
     console.error(err);
     grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
   }
 }
 
+// ✅ تحديث واجهة المستخدم
+function updateUserUI(user) {
+  const loginBtn = document.getElementById('login-btn');
+  const accountBtn = document.getElementById('account-btn');
+  const accountMenu = document.getElementById('account-menu');
+
+  if (user) {
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) { accountBtn.classList.remove('hidden'); accountBtn.classList.add('flex'); }
+  } else {
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
+  }
+  updateCartCount();
+}
+
+// ✅ تسجيل الخروج
+window.logout = async function () {
+  await auth.signOut();
+  window.location.href = 'index.html';
+};
+
+// ✅ فتح وإغلاق قائمة الحساب
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+if (accountBtn && accountMenu) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => accountMenu.classList.add('hidden'));
+  accountMenu.addEventListener('click', (e) => e.stopPropagation());
+}
+
+// ✅ عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   currentGender = params.get('gender');
   setCategoryTitle(currentGender);
 
+  // أزرار الفلتر
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -207,69 +250,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  window.app.onAuthStateChanged(window.app.auth, updateUserUI);
+  // مراقبة حالة تسجيل الدخول
+  auth.onAuthStateChanged(updateUserUI);
+
+  // تحميل السلة
+  updateCartCount();
+
+  // تحميل المنتجات
   loadProducts();
 });
-</script>
-
-<!-- ضع هذا قبل نهاية </body> في كل صفحة -->
-<script>
-// مراقبة حالة تسجيل الدخول
-auth.onAuthStateChanged(user => {
-  updateUserUI(user);
-});
-
-function updateUserUI(user) {
-  const loginBtn = document.getElementById('login-btn');
-  const accountBtn = document.getElementById('account-btn');
-  const accountMenu = document.getElementById('account-menu');
-  
-  if (user) {
-    // مسجّل دخول → أخفِ زر تسجيل الدخول، وأظهر زر الحساب
-    if (loginBtn) loginBtn.classList.add('hidden');
-    if (accountBtn) {
-      accountBtn.classList.remove('hidden');
-      accountBtn.classList.add('flex');
-    }
-  } else {
-    // مو مسجّل → أظهر زر تسجيل الدخول، وأخفِ زر الحساب
-    if (loginBtn) loginBtn.classList.remove('hidden');
-    if (accountBtn) accountBtn.classList.add('hidden');
-    if (accountMenu) accountMenu.classList.add('hidden');
-  }
-  
-  // تحديث عداد السلة إن وجد
-  if (window.Store?.updateCartCount) {
-    window.Store.updateCartCount();
-  }
-}
-
-// فتح وإغلاق قائمة الحساب
-const accountBtn = document.getElementById('account-btn');
-const accountMenu = document.getElementById('account-menu');
-
-if (accountBtn && accountMenu) {
-  accountBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    accountMenu.classList.toggle('hidden');
-  });
-  
-  // إغلاق القائمة لما تضغط براها
-  document.addEventListener('click', () => {
-    accountMenu.classList.add('hidden');
-  });
-  
-  // منع إغلاق القائمة لما تضغط جواها
-  accountMenu.addEventListener('click', (e) => {
-    e.stopPropagation();
-  });
-}
-
-// تسجيل الخروج
-async function logout() {
-  await auth.signOut();
-  window.location.href = 'index.html';
-}
 </script>
 </body>
 </html>
