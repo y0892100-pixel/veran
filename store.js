@@ -1,3 +1,4 @@
+// ⚠️ تأكد إن الاسم هذا نفسه في كل الملفات!
 const CART_KEY = 'varen_cart_v1';
 
 // جلب السلة
@@ -24,14 +25,14 @@ export function addToCart(id, name, price, img, size, color, category = '', type
     cart.push({ 
       id, 
       name, 
-      price, 
+      price: Number(price), // ✅ نخزن السعر كرقم من البداية
       img, 
-      size,        // المقاس
-      color,       // اللون
-      qty: 1,      // الكمية
-      category,    // تصنيف إضافي (رجالي/نسائي)
-      type,        // النوع (هودي/تيشيرت...)
-      season       // الموسم (صيفي/شتوي)
+      size,
+      color,
+      qty: 1,
+      category,
+      type,
+      season
     });
   }
   saveCart(cart);
@@ -43,14 +44,18 @@ export function updateCartCount() {
   const countEl = document.getElementById('cart-count');
   if (!countEl) return;
   const cart = getCart();
-  const total = cart.reduce((sum, item) => sum + item.qty, 0);
+  const total = cart.reduce((sum, item) => sum + (item.qty || 0), 0);
   countEl.textContent = total;
 }
 
-// حساب المجموع الكلي
+// حساب المجموع الكلي — ✅ نحول لأرقام عشان ما يطلع NaN
 export function getCartTotal() {
   const cart = getCart();
-  return cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  return cart.reduce((sum, item) => {
+    const price = Number(item.price) || 0;
+    const qty = Number(item.qty) || 0;
+    return sum + (price * qty);
+  }, 0);
 }
 
 // حذف عنصر من السلة
@@ -87,7 +92,6 @@ export function getColorBg(color) {
   return map[color] || '#ddd';
 }
 
-// ✅ دوال مساعدة للتوافق مع checkout.html
 // تحويل بيانات السلة لنص منظم للإيميل
 export function formatCartItemsForEmail(cart) {
   if (!cart || cart.length === 0) return 'لا توجد منتجات';
@@ -96,15 +100,16 @@ export function formatCartItemsForEmail(cart) {
     const itemNumber = index + 1;
     const size = item.size || 'غير محدد';
     const color = item.color || 'غير محدد';
-    const quantity = item.qty || 1;
-    const totalPrice = (item.price || 0) * quantity;
+    const quantity = Number(item.qty) || 1;
+    const price = Number(item.price) || 0;
+    const totalPrice = price * quantity;
     const category = item.category || '';
     const type = item.type || '';
     const season = item.season || '';
     const classification = [category, type, season].filter(Boolean).join(' - ');
     
     return `المنتج رقم ${itemNumber}:
-اسم المنتج: ${item.name}
+اسم المنتج: ${item.name || 'غير مسمى'}
 ${classification ? `التصنيف: ${classification}` : ''}
 اللون: ${color}
 المقاس: ${size}
