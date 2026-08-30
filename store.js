@@ -117,3 +117,4 @@ ${classification ? `التصنيف: ${classification}` : ''}
 السعر: ${totalPrice} درهم`;
   }).join('\n\n---\n\n');
 }
+export { formatCartItemsForEmail };
