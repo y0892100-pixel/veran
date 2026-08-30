@@ -212,5 +212,64 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<!-- ضع هذا قبل نهاية </body> في كل صفحة -->
+<script>
+// مراقبة حالة تسجيل الدخول
+auth.onAuthStateChanged(user => {
+  updateUserUI(user);
+});
+
+function updateUserUI(user) {
+  const loginBtn = document.getElementById('login-btn');
+  const accountBtn = document.getElementById('account-btn');
+  const accountMenu = document.getElementById('account-menu');
+  
+  if (user) {
+    // مسجّل دخول → أخفِ زر تسجيل الدخول، وأظهر زر الحساب
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) {
+      accountBtn.classList.remove('hidden');
+      accountBtn.classList.add('flex');
+    }
+  } else {
+    // مو مسجّل → أظهر زر تسجيل الدخول، وأخفِ زر الحساب
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
+  }
+  
+  // تحديث عداد السلة إن وجد
+  if (window.Store?.updateCartCount) {
+    window.Store.updateCartCount();
+  }
+}
+
+// فتح وإغلاق قائمة الحساب
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+
+if (accountBtn && accountMenu) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  
+  // إغلاق القائمة لما تضغط براها
+  document.addEventListener('click', () => {
+    accountMenu.classList.add('hidden');
+  });
+  
+  // منع إغلاق القائمة لما تضغط جواها
+  accountMenu.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+}
+
+// تسجيل الخروج
+async function logout() {
+  await auth.signOut();
+  window.location.href = 'index.html';
+}
+</script>
 </body>
 </html>
