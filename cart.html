@@ -6,7 +6,6 @@
   <title>سلة التسوق - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -16,7 +15,6 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
@@ -25,18 +23,15 @@
     </a>
   </div>
 </nav>
-
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center">سلة التسوق</h1>
   <div id="toast" class="toast"></div>
-
   <div id="empty-cart" class="hidden text-center py-16">
     <i class="fa-solid fa-cart-shopping text-gray-300 text-6xl mb-4"></i>
     <h2 class="text-xl font-bold text-gray-500 mb-2">السلة فارغة</h2>
     <p class="text-gray-400 mb-6">أضف منتجات للسلة أولاً</p>
     <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block hover:bg-gray-800">التصفح</a>
   </div>
-
   <div id="cart-content">
     <div id="cart-items" class="space-y-4 mb-8"></div>
     <div class="bg-white rounded-xl shadow-sm p-6">
@@ -54,7 +49,6 @@
     </div>
   </div>
 </main>
-
 <script>
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
@@ -62,46 +56,38 @@ function showToast(msg, type='success') {
   toast.className = `toast ${type} show`;
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
-
 function getCart() {
   return JSON.parse(localStorage.getItem('varen_cart') || '[]');
 }
-
 function saveCart(cart) {
   localStorage.setItem('varen_cart', JSON.stringify(cart));
   renderCart();
 }
-
 function removeItem(index) {
   const cart = getCart();
   cart.splice(index, 1);
   saveCart(cart);
   showToast('تم حذف المنتج من السلة');
 }
-
 function changeQty(index, delta) {
   const cart = getCart();
   cart[index].quantity = Math.max(1, cart[index].quantity + delta);
   saveCart(cart);
 }
-
 function renderCart() {
   const cart = getCart();
   const emptyState = document.getElementById('empty-cart');
   const content = document.getElementById('cart-content');
   const itemsCont = document.getElementById('cart-items');
-
   if (cart.length === 0) {
     emptyState.classList.remove('hidden');
     content.classList.add('hidden');
     return;
   }
-
   emptyState.classList.add('hidden');
   content.classList.remove('hidden');
   itemsCont.innerHTML = '';
   let total = 0;
-
   cart.forEach((item, index) => {
     const subtotal = item.price * item.quantity;
     total += subtotal;
@@ -127,13 +113,10 @@ function renderCart() {
       </div>
     `;
   });
-
   document.getElementById('subtotal').textContent = `${total.toFixed(2)} درهم`;
   document.getElementById('total').textContent = `${total.toFixed(2)} درهم`;
 }
-
 document.addEventListener('DOMContentLoaded', renderCart);
 </script>
-
 </body>
 </html>
