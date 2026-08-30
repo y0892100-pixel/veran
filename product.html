@@ -8,13 +8,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
     .size-btn.selected { background: black; color: white; }
     .color-btn.selected { border: 3px solid black; }
     .related-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
@@ -22,7 +22,6 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
@@ -31,13 +30,11 @@
     </a>
   </div>
 </nav>
-
 <main class="max-w-7xl mx-auto px-4 py-8">
   <div id="loading" class="text-center py-16">
     <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
     <p class="mt-2">جاري التحميل...</p>
   </div>
-
   <div id="product-content" class="hidden">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
       <!-- صور المنتج -->
@@ -47,7 +44,6 @@
         </div>
         <div id="thumbnails" class="grid grid-cols-5 gap-2"></div>
       </div>
-
       <!-- معلومات المنتج -->
       <div>
         <h1 id="prod-name" class="text-3xl font-bold mb-2"></h1>
@@ -57,23 +53,19 @@
           <span id="prod-price" class="text-2xl font-bold"></span>
           <span id="prod-original-price" class="text-lg text-gray-400 line-through hidden"></span>
         </div>
-
         <div id="unavailable-msg" class="hidden text-red-500 font-medium mb-4">
           <i class="fa-solid fa-circle-xmark ml-1"></i> المنتج غير متوفر حالياً
         </div>
-
         <!-- اختيار المقاس -->
         <div class="mb-4">
           <p class="font-medium mb-2">المقاس:</p>
           <div id="sizes-container" class="flex flex-wrap gap-2"></div>
         </div>
-
         <!-- اختيار اللون -->
         <div class="mb-4">
           <p class="font-medium mb-2">اللون:</p>
           <div id="colors-container" class="flex flex-wrap gap-2"></div>
         </div>
-
         <!-- الكمية -->
         <div class="mb-6">
           <p class="font-medium mb-2">الكمية:</p>
@@ -83,39 +75,36 @@
             <button onclick="changeQty(1)" class="w-10 h-10 border rounded-lg flex items-center justify-center hover:bg-gray-100">+</button>
           </div>
         </div>
-
         <!-- زر الإضافة -->
         <button id="add-cart-btn" onclick="addToCart()" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">
           <i class="fa-solid fa-cart-plus ml-1"></i> أضف للسلة
         </button>
       </div>
     </div>
-
     <!-- منتجات مشابهة -->
     <div id="related-section" class="border-t pt-10">
       <h2 class="text-2xl font-bold mb-6">منتجات مشابهة</h2>
       <div id="related-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
     </div>
   </div>
-
   <div id="not-found" class="hidden text-center py-16">
     <i class="fa-solid fa-circle-exclamation text-gray-300 text-6xl mb-4"></i>
     <h2 class="text-xl font-bold text-gray-500 mb-2">المنتج غير موجود</h2>
     <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block mt-2">العودة للرئيسية</a>
   </div>
 </main>
-
 <div id="toast" class="toast"></div>
 
 <script>
+// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
-  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-  authDomain: "varen-f7756.firebaseapp.com",
-  projectId: "varen-f7756",
-  storageBucket: "varen-f7756.firebasestorage.app",
-  messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
-  measurementId: "G-SV7DKGPH2M"
+  apiKey: "AIzaSyDQTvVXrLYgbkpNI_YfwdVpZrQFBIzzPmU",
+  authDomain: "varen-5dcfd.firebaseapp.com",
+  projectId: "varen-5dcfd",
+  storageBucket: "varen-5dcfd.firebasestorage.app",
+  messagingSenderId: "769663614271",
+  appId: "1:769663614271:web:4b2b843f99a8d7a071678a",
+  measurementId: "G-DNHBHJHDVX"
 };
 
 if (!firebase.apps.length) {
@@ -133,8 +122,8 @@ let product = null;
 let selectedSize = null;
 let selectedColor = null;
 let quantity = 1;
-let allSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-let allColors = Object.keys(COLOR_HEX);
+const DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const DEFAULT_COLORS = Object.keys(COLOR_HEX);
 
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
@@ -151,7 +140,6 @@ function getProductId() {
 async function loadProduct() {
   const id = getProductId();
   if (!id) return showNotFound();
-
   try {
     const doc = await db.collection('products').doc(id).get();
     if (!doc.exists) return showNotFound();
@@ -173,12 +161,21 @@ function showNotFound() {
 function renderProduct() {
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('product-content').classList.remove('hidden');
-
+  
   // الاسم والمعلومات
   document.getElementById('prod-name').textContent = product.name || 'منتج بدون اسم';
-  const parts = [product.gender, product.type, product.season].filter(Boolean);
+  const parts = [
+    product.gender === 'women' ? 'نسائي' : 
+    product.gender === 'men' ? 'رجالي' : 
+    product.gender === 'girls' ? 'بنات' : 
+    product.gender === 'boys' ? 'أولاد' : null,
+    product.type || '',
+    product.season === 'winter' ? 'شتوي' : 
+    product.season === 'summer' ? 'صيفي' : 
+    product.season || ''
+  ].filter(Boolean);
   document.getElementById('prod-meta').textContent = parts.join(' • ');
-
+  
   // السعر
   const price = Number(product.price) || 0;
   const origPrice = product.priceOriginal ? Number(product.priceOriginal) : null;
@@ -187,7 +184,7 @@ function renderProduct() {
     document.getElementById('prod-original-price').textContent = `${origPrice} درهم`;
     document.getElementById('prod-original-price').classList.remove('hidden');
   }
-
+  
   // التوفر
   const isAvailable = product.available !== false;
   if (!isAvailable) {
@@ -195,7 +192,7 @@ function renderProduct() {
     document.getElementById('add-cart-btn').disabled = true;
     document.getElementById('add-cart-btn').classList.add('opacity-50', 'cursor-not-allowed');
   }
-
+  
   // الصور
   const images = product.images?.length ? product.images : ['https://via.placeholder.com/600x600?text=لا+صورة'];
   document.getElementById('main-img-el').src = images[0];
@@ -204,17 +201,17 @@ function renderProduct() {
   images.forEach((img, i) => {
     thumbs.innerHTML += `<button onclick="changeMainImg('${img}')" class="aspect-square overflow-hidden rounded-lg border-2 ${i===0?'border-black':'border-transparent'} hover:border-gray-400"><img src="${img}" alt="" class="w-full h-full object-cover"></button>`;
   });
-
+  
   // المقاسات
-  const sizes = product.sizes?.length ? product.sizes : allSizes;
+  const sizes = product.sizes?.length ? product.sizes : DEFAULT_SIZES;
   const sizesCont = document.getElementById('sizes-container');
   sizesCont.innerHTML = '';
   sizes.forEach(s => {
     sizesCont.innerHTML += `<button class="size-btn border px-4 py-2 rounded-lg hover:bg-gray-100" onclick="selectSize('${s}', this)">${s}</button>`;
   });
-
+  
   // الألوان
-  const colors = product.colors?.length ? product.colors : allColors;
+  const colors = product.colors?.length ? product.colors : DEFAULT_COLORS;
   const colorsCont = document.getElementById('colors-container');
   colorsCont.innerHTML = '';
   colors.forEach(c => {
@@ -250,12 +247,12 @@ function addToCart() {
   if (!isAvailable) return showToast('المنتج غير متوفر', 'error');
   if (!selectedSize) return showToast('اختر المقاس أولاً', 'error');
   if (!selectedColor) return showToast('اختر اللون أولاً', 'error');
-
+  
   const cart = JSON.parse(localStorage.getItem('varen_cart') || '[]');
   const existingIdx = cart.findIndex(item => 
     item.id === product.id && item.size === selectedSize && item.color === selectedColor
   );
-
+  
   const itemData = {
     id: product.id,
     name: product.name,
@@ -265,72 +262,60 @@ function addToCart() {
     color: selectedColor,
     quantity: quantity
   };
-
+  
   if (existingIdx !== -1) {
     cart[existingIdx].quantity += quantity;
   } else {
     cart.push(itemData);
   }
-
+  
   localStorage.setItem('varen_cart', JSON.stringify(cart));
   showToast('✅ أضيف للسلة بنجاح!');
   quantity = 1;
   document.getElementById('qty-val').textContent = '1';
 }
-  async function loadProducts() {
-  const grid = document.getElementById('products-grid');
-  try {
-    // ✅ نجلب كل المنتجات بدون أي فلتر في قاعدة البيانات
-    const snapshot = await db.collection('products').get();
-    
-    if (snapshot.empty) {
-      grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات متوفرة حالياً</p></div>';
-      return;
-    }
 
-    // ✅ نرتب ونفلتر هنا في الكود مباشرة
-    const products = [];
+// ✅ تحميل منتجات مشابهة
+async function loadRelated() {
+  const grid = document.getElementById('related-grid');
+  try {
+    const snapshot = await db.collection('products').limit(8).get();
+    let products = [];
     snapshot.forEach(doc => {
-      const p = doc.data();
-      if (p.available !== false) { // نعرض المتوفر فقط
-        products.push({ id: doc.id, ...p });
+      const p = { id: doc.id, ...doc.data() };
+      if (p.available !== false && p.id !== product.id) {
+        products.push(p);
       }
     });
-
-    // ✅ نرتب من الأحدث للأقدم
-    products.sort((a, b) => {
-      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
-      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
-      return dateB - dateA;
-    });
-
-    // ✅ نعرض المنتجات
+    
+    // نعرض حتى 4 منتجات مشابهة
+    products = products.slice(0, 4);
+    
+    if (products.length === 0) {
+      grid.innerHTML = '<p class="col-span-full text-center text-gray-500">لا توجد منتجات مشابهة حالياً</p>';
+      return;
+    }
+    
     grid.innerHTML = '';
     products.forEach(p => {
-      const productId = p.id;
-      const priceOriginal = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} درهم</span>` : '';
-      const imageUrl = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/300x400';
-
+      const img = p.images?.[0] || 'https://via.placeholder.com/300x400';
       grid.innerHTML += `
-        <a href="product.html?id=${productId}" class="product-card block bg-white rounded-xl shadow-sm overflow-hidden border">
-          <img src="${imageUrl}" alt="${p.name}" class="w-full h-64 object-cover">
-          <div class="p-4">
-            <h3 class="font-bold text-lg mb-2">${p.name}</h3>
-            <p class="text-sm text-gray-500 mb-2">${p.type || ''} — ${p.gender === 'women' ? 'نسائي' : p.gender === 'men' ? 'رجالي' : p.gender === 'girls' ? 'بنات' : 'أولاد'}</p>
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-lg">${p.price} درهم</span>
-              ${priceOriginal}
-            </div>
+        <a href="product.html?id=${p.id}" class="related-card block bg-white rounded-xl shadow-sm overflow-hidden border">
+          <img src="${img}" alt="${p.name}" class="w-full h-36 object-cover">
+          <div class="p-3">
+            <h3 class="font-bold text-sm mb-1">${p.name}</h3>
+            <span class="font-semibold">${p.price} درهم</span>
           </div>
         </a>
       `;
     });
-
   } catch (err) {
     console.error(err);
-    grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
   }
 }
+
+// ✅ عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', loadProduct);
 </script>
 </body>
 </html>
