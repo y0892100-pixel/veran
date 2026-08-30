@@ -11,6 +11,8 @@
     * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
     .status-new { background: #fef3c7; color: #92400e; }
     .status-processing { background: #dbeafe; color: #1e40af; }
     .status-shipped { background: #d1fae5; color: #065f46; }
@@ -49,7 +51,7 @@
         حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
       </button>
       <button id="login-btn" onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
-      <div id="account-menu" class="hidden absolute right-0 mt-8 w-48 bg-white rounded-lg shadow-lg border z-50">
+      <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
         <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
         <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
         <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
@@ -78,6 +80,13 @@
 <script>
 const accountBtn = document.getElementById('account-btn');
 const accountMenu = document.getElementById('account-menu');
+const toast = document.getElementById('toast');
+
+function showToast(msg, type='success') {
+  toast.textContent = msg;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
 
 if (accountBtn) {
   accountBtn.addEventListener('click', (e) => {
@@ -112,27 +121,40 @@ async function logout() {
 function getStatusLabel(status) {
   const map = {
     'جديد': 'طلب جديد',
+    'new': 'طلب جديد',
     'processing': 'قيد التجهيز',
     'shipped': 'تم الشحن',
     'delivered': 'تم التوصيل',
     'cancelled': 'ملغي'
   };
-  return map[status] || status;
+  return map[status] || status || 'جديد';
 }
 
 function getStatusClass(status) {
-  const s = status?.toLowerCase() || '';
+  const s = String(status || '').toLowerCase();
   if (s.includes('جديد') || s.includes('new')) return 'status-new';
   if (s.includes('تجهيز') || s.includes('process')) return 'status-processing';
   if (s.includes('شحن') || s.includes('ship') || s.includes('توصيل') || s.includes('deliver')) return 'status-shipped';
   if (s.includes('إلغاء') || s.includes('cancel')) return 'status-cancelled';
-  return '';
+  return 'status-new';
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return '—';
+  if (timestamp.toDate) return timestamp.toDate().toLocaleDateString('ar-AE');
+  if (timestamp.seconds) return new Date(timestamp.seconds * 1000).toLocaleDateString('ar-AE');
+  return new Date(timestamp).toLocaleDateString('ar-AE');
 }
 
 async function loadOrders(user) {
   const list = document.getElementById('orders-list');
   if (!user) {
-    list.innerHTML = '<div class="text-center py-12 text-gray-500"><p>سجل دخول أولاً لعرض طلباتك.</p><a href="admin.html" class="inline-block mt-3 bg-black text-white px-6 py-2 rounded-lg">تسجيل الدخول</a></div>';
+    list.innerHTML = `
+      <div class="text-center py-12 text-gray-500">
+        <i class="fa-solid fa-user-lock text-4xl mb-4"></i>
+        <p>سجل دخول أولاً لعرض طلباتك.</p>
+        <a href="admin.html" class="inline-block mt-3 bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</a>
+      </div>`;
     return;
   }
 
@@ -145,40 +167,52 @@ async function loadOrders(user) {
     const snapshot = await window.app.getDocs(q);
 
     if (snapshot.empty) {
-      list.innerHTML = '<div class="text-center py-12 text-gray-500"><i class="fa-solid fa-box-open text-5xl mb-4"></i><p>لا يوجد طلبات حتى الآن.</p><a href="index.html" class="inline-block mt-3 bg-black text-white px-6 py-2 rounded-lg">ابدأ التسوق</a></div>';
+      list.innerHTML = `
+        <div class="text-center py-12 text-gray-500">
+          <i class="fa-solid fa-box-open text-5xl mb-4"></i>
+          <p>لا يوجد طلبات حتى الآن.</p>
+          <a href="index.html" class="inline-block mt-3 bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">ابدأ التسوق</a>
+        </div>`;
       return;
     }
 
     list.innerHTML = '';
     snapshot.forEach(doc => {
       const order = { id: doc.id, ...doc.data() };
-      const date = order.createdAt?.toDate ? new Date(order.createdAt.toDate()).toLocaleDateString('ar-AE') : '—';
+      const date = formatDate(order.createdAt);
+      
       list.innerHTML += `
         <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
-          <div class="flex justify-between items-start mb-3">
+          <div class="flex flex-col sm:flex-row justify-between items-start mb-3 gap-2">
             <div>
-              <p class="text-sm text-gray-500">رقم الطلب: ${order.id.slice(0, 8).toUpperCase()}</p>
+              <p class="text-sm text-gray-500">رقم الطلب: <span class="font-mono font-medium">${order.id.slice(0, 8).toUpperCase()}</span></p>
               <p class="text-sm text-gray-500">التاريخ: ${date}</p>
             </div>
-            <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}">${getStatusLabel(order.status)}</span>
+            <span class="px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${getStatusClass(order.status)}">
+              ${getStatusLabel(order.status)}
+            </span>
           </div>
-          <div class="border-t pt-3 space-y-1">
-            <p class="text-sm font-medium">المنتجات:</p>
-            ${order.items.map(item => `
-              <div class="flex justify-between text-sm">
-                <span>${item.name} — ${item.size} / ${item.color} × ${item.qty}</span>
-                <span>${item.price * item.qty} د.إ</span>
+          
+          <div class="border-t pt-3 space-y-2">
+            <p class="text-sm font-semibold">المنتجات:</p>
+            ${(order.items || []).map(item => `
+              <div class="flex justify-between text-sm py-1 border-b border-gray-100">
+                <span>${item.name || 'منتج'} — ${item.size || '—'} / ${item.color || '—'} × ${item.qty || 1}</span>
+                <span class="font-medium">${(item.price * item.qty).toFixed(2)} د.إ</span>
               </div>
             `).join('')}
           </div>
+          
           <div class="border-t mt-3 pt-3 flex justify-between font-bold text-lg">
             <span>المجموع:</span>
-            <span>${order.total} د.إ</span>
+            <span>${(order.total || 0).toFixed(2)} د.إ</span>
           </div>
-          <div class="mt-2 text-sm text-gray-600">
+          
+          <div class="mt-4 text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded-lg">
             <p><strong>الاسم:</strong> ${order.userName || '—'}</p>
             <p><strong>الهاتف:</strong> ${order.phone || '—'}</p>
             <p><strong>العنوان:</strong> ${order.address || '—'}</p>
+            ${order.paymentMethod ? `<p><strong>طريقة الدفع:</strong> ${order.paymentMethod}</p>` : ''}
             ${order.notes ? `<p><strong>ملاحظات:</strong> ${order.notes}</p>` : ''}
           </div>
         </div>
@@ -186,7 +220,12 @@ async function loadOrders(user) {
     });
   } catch (err) {
     console.error(err);
-    list.innerHTML = `<div class="text-center py-12 text-red-500"><p>خطأ في تحميل الطلبات: ${err.message}</p></div>`;
+    list.innerHTML = `
+      <div class="text-center py-12 text-red-500">
+        <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
+        <p>خطأ في تحميل الطلبات: ${err.message}</p>
+        <button onclick="location.reload()" class="mt-3 bg-black text-white px-4 py-2 rounded-lg text-sm">إعادة المحاولة</button>
+      </div>`;
   }
 }
 
