@@ -86,92 +86,162 @@
 <!-- EmailJS Library -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
+<script>
+  // تهيئة EmailJS
+  (function(){
+    emailjs.init("3A0NspFA3vISd64jc");
+  })();
 
-document.addEventListener('DOMContentLoaded', () => {
-  console.log("✅ الصفحة محملة تماماً");
-  window.Store.updateCartCount();
-  const cart = window.Store.getCart();
-  const total = window.Store.getCartTotal();
-  document.getElementById('total-amount').textContent = total;
-  renderCartSummary(cart);
+  // عرض رسائل للمستخدم
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast show ${type}`;
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }
 
-  document.getElementById('checkout-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    console.log("📝 تم الضغط على زر الإرسال"); // ✅ يتأكد إن الزر شغال
+  // تحويل محتوى السلة إلى نص
+  function formatCartItems(cart) {
+    if (!cart || cart.length === 0) return 'لا توجد منتجات';
+    return cart.map(item => 
+      `${item.name} × ${item.quantity} — ${item.price * item.quantity} درهم`
+    ).join('\n');
+  }
 
-    const submitBtn = document.getElementById('submit-btn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'جاري المعالجة...';
-
-    const cart = window.Store.getCart();
-    if (cart.length === 0) {
-      showToast('السلة فارغة!', 'error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'تأكيد الطلب';
+  // عرض ملخص السلة في الصفحة
+  function renderCartSummary(cart) {
+    const container = document.getElementById('cart-items-summary');
+    if (!cart || cart.length === 0) {
+      container.innerHTML = '<p class="text-gray-500">السلة فارغة</p>';
       return;
     }
+    container.innerHTML = cart.map(item => `
+      <div class="flex justify-between">
+        <span>${item.name} × ${item.quantity}</span>
+        <span>${item.price * item.quantity} درهم</span>
+      </div>
+    `).join('');
+  }
 
-    const user = window.app.auth.currentUser;
-    if (!user) {
-      showToast('سجّل دخول أولاً لإتمام الطلب', 'error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'تأكيد الطلب';
-      window.location.href = 'login.html';
-      return;
-    }
+  // إرسال إيميل الإشعار
+  async function sendOrderEmail(orderData) {
+    const serviceID = "service_pz0cxlr";
+    const templateID = "template_g6k71ll";
 
-    const userName = document.getElementById('full-name').value.trim();
-    const userEmail = document.getElementById('email').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const address = document.getElementById('address').value.trim();
-    const notes = document.getElementById('notes').value.trim();
-
-    if (!userName || !userEmail || !phone || !address) {
-      showToast('املأ جميع الحقول المطلوبة', 'error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'تأكيد الطلب';
-      return;
-    }
-
-    const itemsText = formatCartItems(cart);
-    const orderData = {
-      userId: user.uid,
-      userName,
-      userEmail,
-      phone,
-      address,
-      notes,
-      items: cart,
-      itemsText,
-      total,
-      status: 'جديد',
-      createdAt: window.app.serverTimestamp()
+    const templateParams = {
+      to_email: "y0892100@gmail.com",
+      customer_name: orderData.userName,
+      customer_email: orderData.userEmail,
+      customer_phone: orderData.phone,
+      customer_address: orderData.address,
+      order_items: orderData.itemsText,
+      order_total: orderData.total,
+      order_date: new Date().toLocaleString('ar-AE'),
+      order_id: orderData.orderId
     };
 
+    console.log("📧 بيانات الإيميل المرسلة:", templateParams);
+
     try {
-      console.log("💾 جاري حفظ الطلب في قاعدة البيانات..."); // ✅
-      const orderRef = await window.app.addDoc(
-        window.app.collection(window.app.db, 'orders'),
-        orderData
-      );
-      orderData.orderId = orderRef.id;
-      console.log("✅ الطلب محفوظ، رقم الطلب:", orderRef.id); // ✅
-
-      console.log("📧 جاري إرسال الإيميل..."); // ✅ هنا نعرف وصلنا لمرحلة الإيميل
-      const emailSent = await sendOrderEmail(orderData);
-      console.log("📧 نتيجة الإرسال:", emailSent ? "تم ✅" : "فشل ❌"); // ✅
-
-      window.Store.clearCart();
-      showToast('✅ تم استلام طلبك بنجاح! سنتواصل معك قريباً');
-      setTimeout(() => window.location.href = 'index.html', 2000);
-    } catch (err) {
-      console.error("❌ خطأ في إتمام الطلب:", err);
-      showToast('حدث خطأ: ' + err.message, 'error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'تأكيد الطلب';
+      const response = await emailjs.send(serviceID, templateID, templateParams);
+      console.log("✅ تم إرسال الإيميل بنجاح!", response.status, response.text);
+      return true;
+    } catch (error) {
+      console.error("❌ فشل إرسال الإيميل:", error);
+      return false;
     }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log("✅ الصفحة محملة تماماً");
+    if (window.Store && window.Store.updateCartCount) {
+      window.Store.updateCartCount();
+    }
+    const cart = window.Store && window.Store.getCart ? window.Store.getCart() : [];
+    const total = window.Store && window.Store.getCartTotal ? window.Store.getCartTotal() : '0';
+    document.getElementById('total-amount').textContent = total;
+    renderCartSummary(cart);
+
+    document.getElementById('checkout-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      console.log("📝 تم الضغط على زر الإرسال");
+
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'جاري المعالجة...';
+
+      const cart = window.Store && window.Store.getCart ? window.Store.getCart() : [];
+      if (cart.length === 0) {
+        showToast('السلة فارغة!', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تأكيد الطلب';
+        return;
+      }
+
+      const user = window.app && window.app.auth ? window.app.auth.currentUser : null;
+      if (!user) {
+        showToast('سجّل دخول أولاً لإتمام الطلب', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تأكيد الطلب';
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const userName = document.getElementById('full-name').value.trim();
+      const userEmail = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const address = document.getElementById('address').value.trim();
+      const notes = document.getElementById('notes').value.trim();
+
+      if (!userName || !userEmail || !phone || !address) {
+        showToast('املأ جميع الحقول المطلوبة', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تأكيد الطلب';
+        return;
+      }
+
+      const itemsText = formatCartItems(cart);
+      const orderData = {
+        userId: user.uid,
+        userName,
+        userEmail,
+        phone,
+        address,
+        notes,
+        items: cart,
+        itemsText,
+        total,
+        status: 'جديد',
+        createdAt: window.app.serverTimestamp()
+      };
+
+      try {
+        console.log("💾 جاري حفظ الطلب في قاعدة البيانات...");
+        const orderRef = await window.app.addDoc(
+          window.app.collection(window.app.db, 'orders'),
+          orderData
+        );
+        orderData.orderId = orderRef.id;
+        console.log("✅ الطلب محفوظ، رقم الطلب:", orderRef.id);
+
+        console.log("📧 جاري إرسال الإيميل...");
+        const emailSent = await sendOrderEmail(orderData);
+        console.log("📧 نتيجة الإرسال:", emailSent ? "تم ✅" : "فشل ❌");
+
+        if (window.Store && window.Store.clearCart) {
+          window.Store.clearCart();
+        }
+        showToast('✅ تم استلام طلبك بنجاح! سنتواصل معك قريباً');
+        setTimeout(() => window.location.href = 'index.html', 2000);
+      } catch (err) {
+        console.error("❌ خطأ في إتمام الطلب:", err);
+        showToast('حدث خطأ: ' + err.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تأكيد الطلب';
+      }
+    });
   });
-});
-<script>
+</script>
+
 </body>
 </html>
