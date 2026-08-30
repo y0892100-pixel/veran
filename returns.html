@@ -19,14 +19,12 @@
   </style>
 </head>
 <body class="bg-gray-50">
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
     <div id="user-area"></div>
   </div>
 </nav>
-
 <main class="max-w-lg mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6">طلبات الاسترجاع</h1>
   <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
@@ -43,7 +41,6 @@
       </div>
       <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">إرسال الطلب</button>
     </form>
-
     <h2 class="text-lg font-bold mb-4">طلباتي السابقة</h2>
     <div id="returns-list"></div>
   </div>
@@ -60,17 +57,21 @@
 </main>
 
 <script>
+// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
-  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-  authDomain: "varen-f7756.firebaseapp.com",
-  projectId: "varen-f7756",
-  storageBucket: "varen-f7756.firebasestorage.app",
-  messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b"
+  apiKey: "AIzaSyDQTvVXrLYgbkpNI_YfwdVpZrQFBIzzPmU",
+  authDomain: "varen-5dcfd.firebaseapp.com",
+  projectId: "varen-5dcfd",
+  storageBucket: "varen-5dcfd.firebasestorage.app",
+  messagingSenderId: "769663614271",
+  appId: "1:769663614271:web:4b2b843f99a8d7a071678a",
+  measurementId: "G-DNHBHJHDVX"
 };
+
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const ADMIN_EMAIL = 'y0892100@gmail.com';
 
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
@@ -79,14 +80,14 @@ function showToast(msg, type='success') {
   setTimeout(() => t.classList.remove('show'), 4000);
 }
 
-// ✅ نفس القائمة المنسدلة في كل الصفحات
+// ✅ القائمة المنسدلة للحساب
 function updateUserNav(user) {
   const area = document.getElementById('user-area');
   if (!user) {
     area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg">تسجيل الدخول</button>`;
     return;
   }
-  const isAdmin = user.email === 'y0892100@gmail.com';
+  const isAdmin = user.email === ADMIN_EMAIL;
   area.innerHTML = `
     <div class="relative group">
       <button class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
@@ -112,63 +113,94 @@ window.logout = async () => {
 
 auth.onAuthStateChanged(async user => {
   document.getElementById('loading').classList.add('hidden');
+  
   if (!user) {
     document.getElementById('no-login').classList.remove('hidden');
     return;
   }
+  
   document.getElementById('content').classList.remove('hidden');
   updateUserNav(user);
 
-  // إرسال طلب استرجاع
+  // ✅ إرسال طلب استرجاع
   document.getElementById('return-form').addEventListener('submit', async e => {
     e.preventDefault();
     const orderId = document.getElementById('r-order-id').value.trim();
     const reason = document.getElementById('r-reason').value.trim();
+    
     if (!orderId || !reason) return showToast('املأ جميع الحقول', 'error');
-
-    await db.collection('returns').add({
-      userId: user.uid,
-      userEmail: user.email,
-      orderId,
-      reason,
-      status: 'قيد المراجعة',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    showToast('✅ تم إرسال طلب الاسترجاع');
-    document.getElementById('return-form').reset();
-    loadReturns();
+    
+    try {
+      await db.collection('returns').add({
+        userId: user.uid,
+        userEmail: user.email,
+        orderId,
+        reason,
+        status: 'قيد المراجعة',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('✅ تم إرسال طلب الاسترجاع');
+      document.getElementById('return-form').reset();
+      loadReturns();
+    } catch (err) {
+      showToast('خطأ في الإرسال: ' + err.message, 'error');
+    }
   });
 
-  // تحميل طلبات الاسترجاع
+  // ✅ تحميل طلبات الاسترجاع
   async function loadReturns() {
-    const snapshot = await db.collection('returns').where('userId', '==', user.uid).orderBy('createdAt', 'desc').get();
-    const list = document.getElementById('returns-list');
-    list.innerHTML = '';
-    
-    if (snapshot.empty) {
-      document.getElementById('no-returns').classList.remove('hidden');
-      return;
-    }
-    document.getElementById('no-returns').classList.add('hidden');
+    try {
+      const snapshot = await db.collection('returns')
+        .where('userId', '==', user.uid)
+        .get();
 
-    snapshot.forEach(doc => {
-      const r = doc.data();
-      const date = r.createdAt?.toDate ? new Date(r.createdAt.toDate()).toLocaleDateString('ar-AE') : 'غير محدد';
-      list.innerHTML += `
-        <div class="bg-white p-4 rounded-lg shadow-sm mb-3 border">
-          <div class="flex justify-between items-center mb-2">
-            <span class="font-semibold">طلب: ${r.orderId}</span>
-            <span class="px-2 py-1 rounded text-xs font-medium ${
-              r.status === 'قيد المراجعة' ? 'bg-yellow-100 text-yellow-700' :
-              r.status === 'مقبول' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }">${r.status}</span>
+      const list = document.getElementById('returns-list');
+      list.innerHTML = '';
+      
+      if (snapshot.empty) {
+        document.getElementById('no-returns').classList.remove('hidden');
+        return;
+      }
+      
+      document.getElementById('no-returns').classList.add('hidden');
+      
+      // ترتيب من الأحدث للأقدم
+      let returns = [];
+      snapshot.forEach(doc => {
+        returns.push({ id: doc.id, ...doc.data() });
+      });
+      returns.sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+        return dateB - dateA;
+      });
+
+      returns.forEach(r => {
+        const date = r.createdAt?.toDate 
+          ? new Date(r.createdAt.toDate()).toLocaleDateString('ar-AE') 
+          : 'غير محدد';
+        
+        const statusClass = 
+          r.status === 'قيد المراجعة' ? 'bg-yellow-100 text-yellow-700' :
+          r.status === 'مقبول' ? 'bg-green-100 text-green-700' : 
+          r.status === 'مرفوض' ? 'bg-red-100 text-red-700' :
+          'bg-gray-100 text-gray-700';
+
+        list.innerHTML += `
+          <div class="bg-white p-4 rounded-lg shadow-sm mb-3 border">
+            <div class="flex justify-between items-center mb-2">
+              <span class="font-semibold">طلب: ${r.orderId}</span>
+              <span class="px-2 py-1 rounded text-xs font-medium ${statusClass}">${r.status}</span>
+            </div>
+            <p class="text-sm text-gray-600 mb-1">التاريخ: ${date}</p>
+            <p class="text-sm">السبب: ${r.reason}</p>
           </div>
-          <p class="text-sm text-gray-600 mb-1">التاريخ: ${date}</p>
-          <p class="text-sm">السبب: ${r.reason}</p>
-        </div>
-      `;
-    });
+        `;
+      });
+    } catch (err) {
+      console.error(err);
+      document.getElementById('returns-list').innerHTML = `<p class="text-red-500">خطأ في التحميل: ${err.message}</p>`;
+    }
   }
 
   loadReturns();
