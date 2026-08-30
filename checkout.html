@@ -143,7 +143,7 @@
     console.log("📧 بيانات الإيميل المرسلة:", templateParams);
 
     try {
-      const response = await emailjs.send(serviceID, templateID, templateParams);
+      const response = await emailjs.send("service_3bs6onj","template_om7zrjs");
       console.log("✅ تم إرسال الإيميل بنجاح!", response.status, response.text);
       return true;
     } catch (error) {
