@@ -282,14 +282,17 @@ async function loadRelated() {
   const grid = document.getElementById('related-grid');
   grid.innerHTML = '';
   try {
-    const q = db.collection('products')
-      .where('gender', '==', product.gender || '')
-      .limit(6);
-    const snap = await q.get();
+    // ✅ نجلب بدون فلتر مركب عشان ما يطلب فهرس
+    const snap = await db.collection('products').limit(12).get();
     let count = 0;
+    
     snap.forEach(doc => {
-      if (doc.id === product.id) return;
+      if (doc.id === product.id) return; // نعرض غير هذا المنتج
       const p = { id: doc.id, ...doc.data() };
+      
+      // ✅ نفلتر نفس التصنيف هنا في الكود
+      if (p.gender !== (product.gender || '')) return;
+      
       const img = p.images?.[0] || 'https://via.placeholder.com/300x300?text=لا+صورة';
       grid.innerHTML += `
         <a href="product.html?id=${p.id}" class="related-card block bg-white rounded-xl overflow-hidden shadow-sm">
@@ -302,16 +305,15 @@ async function loadRelated() {
       `;
       count++;
     });
+    
     if (count === 0) {
       document.getElementById('related-section').classList.add('hidden');
     }
   } catch (e) {
     console.error(e);
+    document.getElementById('related-section').classList.add('hidden');
   }
 }
-
-document.addEventListener('DOMContentLoaded', loadProduct);
 </script>
-
 </body>
 </html>
