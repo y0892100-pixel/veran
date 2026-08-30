@@ -277,41 +277,58 @@ function addToCart() {
   quantity = 1;
   document.getElementById('qty-val').textContent = '1';
 }
-
-async function loadRelated() {
-  const grid = document.getElementById('related-grid');
-  grid.innerHTML = '';
+  async function loadProducts() {
+  const grid = document.getElementById('products-grid');
   try {
-    // ✅ نجلب بدون فلتر مركب عشان ما يطلب فهرس
-    const snap = await db.collection('products').limit(12).get();
-    let count = 0;
+    // ✅ نجلب كل المنتجات بدون أي فلتر في قاعدة البيانات
+    const snapshot = await db.collection('products').get();
     
-    snap.forEach(doc => {
-      if (doc.id === product.id) return; // نعرض غير هذا المنتج
-      const p = { id: doc.id, ...doc.data() };
-      
-      // ✅ نفلتر نفس التصنيف هنا في الكود
-      if (p.gender !== (product.gender || '')) return;
-      
-      const img = p.images?.[0] || 'https://via.placeholder.com/300x300?text=لا+صورة';
+    if (snapshot.empty) {
+      grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات متوفرة حالياً</p></div>';
+      return;
+    }
+
+    // ✅ نرتب ونفلتر هنا في الكود مباشرة
+    const products = [];
+    snapshot.forEach(doc => {
+      const p = doc.data();
+      if (p.available !== false) { // نعرض المتوفر فقط
+        products.push({ id: doc.id, ...p });
+      }
+    });
+
+    // ✅ نرتب من الأحدث للأقدم
+    products.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+      return dateB - dateA;
+    });
+
+    // ✅ نعرض المنتجات
+    grid.innerHTML = '';
+    products.forEach(p => {
+      const productId = p.id;
+      const priceOriginal = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} درهم</span>` : '';
+      const imageUrl = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/300x400';
+
       grid.innerHTML += `
-        <a href="product.html?id=${p.id}" class="related-card block bg-white rounded-xl overflow-hidden shadow-sm">
-          <img src="${img}" alt="${p.name}" class="w-full aspect-square object-cover">
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">${p.name}</h3>
-            <p class="font-bold">${p.price} درهم</p>
+        <a href="product.html?id=${productId}" class="product-card block bg-white rounded-xl shadow-sm overflow-hidden border">
+          <img src="${imageUrl}" alt="${p.name}" class="w-full h-64 object-cover">
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">${p.name}</h3>
+            <p class="text-sm text-gray-500 mb-2">${p.type || ''} — ${p.gender === 'women' ? 'نسائي' : p.gender === 'men' ? 'رجالي' : p.gender === 'girls' ? 'بنات' : 'أولاد'}</p>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-lg">${p.price} درهم</span>
+              ${priceOriginal}
+            </div>
           </div>
         </a>
       `;
-      count++;
     });
-    
-    if (count === 0) {
-      document.getElementById('related-section').classList.add('hidden');
-    }
-  } catch (e) {
-    console.error(e);
-    document.getElementById('related-section').classList.add('hidden');
+
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
   }
 }
 </script>
