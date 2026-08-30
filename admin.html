@@ -11,7 +11,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -24,7 +23,6 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
@@ -44,16 +42,13 @@
     </div>
   </div>
 </nav>
-
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6">لوحة التحكم</h1>
-
   <!-- أزرار التحكم -->
   <div id="admin-buttons" class="hidden flex gap-4 mb-8">
     <button onclick="showForm('add')" class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">إضافة منتج جديد</button>
     <button onclick="location.href='admin-orders.html'" class="bg-gray-200 px-6 py-2 rounded-lg hover:bg-gray-300">إدارة الطلبات</button>
   </div>
-
   <!-- نموذج إضافة منتج -->
   <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md space-y-4 hidden">
     <h2 class="text-xl font-bold mb-4">إضافة منتج جديد</h2>
@@ -81,7 +76,7 @@
       </div>
       <div>
         <label class="block font-semibold mb-1">النوع</label>
-        <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان...">
+        <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان / عطر / حذاء...">
       </div>
       <div>
         <label class="block font-semibold mb-1">الموسم</label>
@@ -89,6 +84,7 @@
           <option value="">غير محدد</option>
           <option value="winter">شتوي</option>
           <option value="summer">صيفي</option>
+          <option value="formal">رسمي</option>
         </select>
       </div>
       <div>
@@ -131,7 +127,6 @@
     </div>
     <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full">إضافة المنتج</button>
   </form>
-
   <!-- رسالة لغير المصرح لهم -->
   <div id="not-admin-message" class="text-center py-16 hidden">
     <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
@@ -139,7 +134,6 @@
     <button onclick="openModal('login-modal')" class="mt-4 bg-black text-white px-6 py-2 rounded-lg">تسجيل الدخول</button>
   </div>
 </main>
-
 <!-- نافذة تسجيل الدخول -->
 <div id="login-modal" class="modal">
   <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
@@ -162,19 +156,17 @@
     </div>
   </div>
 </div>
-
 <div id="toast" class="toast"></div>
-
 <script>
-// ✅ إعدادات Firebase
+// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
-  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-  authDomain: "varen-f7756.firebaseapp.com",
-  projectId: "varen-f7756",
-  storageBucket: "varen-f7756.firebasestorage.app",
-  messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
-  measurementId: "G-SV7DKGPH2M"
+  apiKey: "AIzaSyDQTvVXrLYgbkpNI_YfwdVpZrQFBIzzPmU",
+  authDomain: "varen-5dcfd.firebaseapp.com",
+  projectId: "varen-5dcfd",
+  storageBucket: "varen-5dcfd.firebasestorage.app",
+  messagingSenderId: "769663614271",
+  appId: "1:769663614271:web:4b2b843f99a8d7a071678a",
+  measurementId: "G-DNHBHJHDVX"
 };
 
 // ✅ تهيئة Firebase
@@ -222,7 +214,7 @@ function updateUI(user, isAdmin) {
   const form = document.getElementById('add-product-form');
   const adminBtns = document.getElementById('admin-buttons');
   const noAccess = document.getElementById('not-admin-message');
-
+  
   if (user && isAdmin) {
     area.innerHTML = `
       <div class="flex items-center gap-2">
@@ -305,7 +297,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedColors = Array.from(document.querySelectorAll('input[name="colors"]:checked')).map(c => c.value);
     const selectedSizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked')).map(c => c.value);
     const images = document.getElementById('p-images').value.trim().split('\n').map(s => s.trim()).filter(s => s);
-    
     const priceOriginalVal = document.getElementById('p-price-original').value.trim();
     
     try {
@@ -331,6 +322,5 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
-
 </body>
 </html>
