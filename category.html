@@ -99,7 +99,7 @@ async function loadProducts() {
     grid.innerHTML = '';
     snapshot.forEach(doc => {
       const p = { id: doc.id, ...doc.data() };
-      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} ر.س</span>` : '';
+      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal}درهم</span>` : '';
       const img = p.images?.[0] || 'https://via.placeholder.com/400x500?text=لا+صورة';
       grid.innerHTML += `
         <a href="product.html?id=${p.id}" class="product-card bg-white rounded-xl overflow-hidden shadow-sm block">
@@ -108,7 +108,7 @@ async function loadProducts() {
             <h3 class="font-bold text-lg mb-1">${p.name}</h3>
             <p class="text-gray-600 text-sm mb-2">${p.type || ''}</p>
             <div class="flex items-center justify-between">
-              <span class="font-bold text-lg">${p.price} ر.س</span>
+              <span class="font-bold text-lg">${p.price}درهم</span>
               ${priceTag}
             </div>
             <button class="mt-3 w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 text-sm">عرض التفاصيل</button>
