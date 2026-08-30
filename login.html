@@ -6,6 +6,12 @@
   <title>تسجيل الدخول - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Firebase UMD (تشتغل مباشرة بدون import) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -16,37 +22,6 @@
     .step { display: none; }
     .step.active { display: block; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendEmailVerification, updateProfile, PhoneAuthProvider, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, query, collection, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import firebaseConfig from './firebase-config.js';
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    let recaptchaVerifier = null;
-    let confirmationResult = null;
-
-    // ✅ تصدير صحيح للدوال
-    window.auth = auth;
-    window.db = db;
-    window.PhoneAuthProvider = PhoneAuthProvider;
-    window.RecaptchaVerifier = RecaptchaVerifier;
-    window.onAuthStateChanged = onAuthStateChanged;
-    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
-    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-    window.signOut = signOut;
-    window.sendEmailVerification = sendEmailVerification;
-    window.updateProfile = updateProfile;
-    window.doc = doc;
-    window.setDoc = setDoc;
-    window.getDoc = getDoc;
-    window.query = query;
-    window.collection = collection;
-    window.where = where;
-    window.getDocs = getDocs;
-  </script>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex items-center justify-center">
 
@@ -89,6 +64,24 @@
 <div id="recaptcha-container" class="hidden"></div>
 
 <script>
+// 🔧 إعداد Firebase — ضع بياناتك هنا
+const firebaseConfig = {
+  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
+  authDomain: "varen-f7756.firebaseapp.com",
+  projectId: "varen-f7756",
+  storageBucket: "varen-f7756.appspot.com",
+  messagingSenderId: "480929313858",
+  appId: "1:480929313858:web:7abcdef1234567890abcdef"
+};
+
+// تهيئة Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let recaptchaVerifier = null;
+let confirmationResult = null;
+
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
@@ -106,23 +99,23 @@ function showStep(stepId) {
 
 async function checkEmailExists(email) {
   try {
-    const q = window.query(window.collection(window.db, 'users'), window.where('email', '==', email));
-    const snap = await window.getDocs(q);
+    const q = db.collection('users').where('email', '==', email);
+    const snap = await q.get();
     return !snap.empty;
   } catch { return false; }
 }
 
 async function checkPhoneExists(phone) {
   try {
-    const q = window.query(window.collection(window.db, 'users'), window.where('phone', '==', phone));
-    const snap = await window.getDocs(q);
+    const q = db.collection('users').where('phone', '==', phone);
+    const snap = await q.get();
     return !snap.empty;
   } catch { return false; }
 }
 
 function initRecaptcha() {
   if (!recaptchaVerifier) {
-    recaptchaVerifier = new window.RecaptchaVerifier(window.auth, 'recaptcha-container', { size: 'invisible' });
+    recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
   }
 }
 
@@ -150,13 +143,11 @@ async function sendVerificationCode() {
 
   try {
     initRecaptcha();
-    const appVerifier = recaptchaVerifier;
-    confirmationResult = await window.PhoneAuthProvider.signInWithPhoneNumber(window.auth, phone, appVerifier);
+    confirmationResult = await auth.signInWithPhoneNumber(phone, recaptchaVerifier);
     showToast('✅ تم إرسال الكود إلى هاتفك!');
     document.getElementById('otp-section').classList.remove('hidden');
   } catch (err) {
     console.error(err);
-    if (recaptchaVerifier) recaptchaVerifier.render().then(w => w.clear());
     let msg = 'خطأ في إرسال الكود: ' + (err.message || err.code);
     if (err.code === 'auth/invalid-phone-number') msg = 'رقم الهاتف غير صالح! استخدم الصيغة: +97150XXXXXXX';
     if (err.code === 'auth/quota-exceeded') msg = 'تم تجاوز الحد اليومي! جرب غداً أو أضف بطاقة في الفوترة.';
@@ -177,12 +168,12 @@ async function verifyCodeAndRegister() {
 
   try {
     await confirmationResult.confirm(code);
-    const cred = await window.createUserWithEmailAndPassword(window.auth, email, pass);
-    await window.updateProfile(cred.user, { displayName: name });
-    await window.setDoc(window.doc(window.db, 'users', cred.user.uid), {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await cred.user.updateProfile({ displayName: name });
+    await db.collection('users').doc(cred.user.uid).set({
       name, email, phone, createdAt: new Date()
     });
-    await window.sendEmailVerification(cred.user);
+    await cred.user.sendEmailVerification();
     showToast('✅ تم إنشاء الحساب! رابط التأكيد أُرسل إلى بريدك.');
     setTimeout(() => window.location.href = 'index.html', 2000);
   } catch (err) {
@@ -200,7 +191,7 @@ async function handleLogin() {
   const pass = document.getElementById('login-password').value;
   if (!email || !pass) return showToast('أدخل الإيميل وكلمة المرور', 'error');
   try {
-    await window.signInWithEmailAndPassword(window.auth, email, pass);
+    await auth.signInWithEmailAndPassword(email, pass);
     showToast('✅ تم تسجيل الدخول!');
     setTimeout(() => window.location.href = 'index.html', 1500);
   } catch (err) {
@@ -212,11 +203,12 @@ async function handleLogin() {
   }
 }
 
-window.onAuthStateChanged(window.auth, user => {
+auth.onAuthStateChanged(user => {
   if (user && window.location.pathname.includes('login')) {
     window.location.href = 'index.html';
   }
 });
 </script>
+
 </body>
 </html>
