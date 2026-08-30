@@ -11,6 +11,8 @@
     * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
+    .toast.success { background: #22c55e; }
+    .toast.error { background: #ef4444; }
   </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -47,26 +49,31 @@
   <h1 class="text-2xl font-bold mb-8 text-center">إتمام الطلب</h1>
   <form id="checkout-form" class="bg-white p-6 rounded-xl shadow-md space-y-4">
     <div>
-      <label class="block font-semibold mb-1">الاسم الكامل</label>
+      <label for="full-name" class="block font-semibold mb-1">الاسم الكامل *</label>
       <input type="text" id="full-name" class="w-full border rounded-lg p-3" required>
     </div>
     <div>
-      <label class="block font-semibold mb-1">رقم الهاتف</label>
+      <label for="email" class="block font-semibold mb-1">البريد الإلكتروني *</label>
+      <input type="email" id="email" class="w-full border rounded-lg p-3" required>
+    </div>
+    <div>
+      <label for="phone" class="block font-semibold mb-1">رقم الهاتف *</label>
       <input type="tel" id="phone" class="w-full border rounded-lg p-3" required>
     </div>
     <div>
-      <label class="block font-semibold mb-1">العنوان بالكامل</label>
+      <label for="address" class="block font-semibold mb-1">العنوان بالكامل *</label>
       <textarea id="address" class="w-full border rounded-lg p-3" rows="3" required></textarea>
     </div>
     <div>
-      <label class="block font-semibold mb-1">ملاحظات (اختياري)</label>
+      <label for="notes" class="block font-semibold mb-1">ملاحظات (اختياري)</label>
       <textarea id="notes" class="w-full border rounded-lg p-3" rows="2"></textarea>
     </div>
     <div class="bg-gray-50 p-4 rounded-lg">
       <h3 class="font-bold text-lg mb-2">ملخص الطلب</h3>
-      <p class="text-xl font-bold">المجموع: <span id="total-amount">0</span> درهم</p>
+      <div id="cart-items-summary" class="mb-2 text-sm space-y-1"></div>
+      <p class="text-xl font-bold pt-2 border-t">المجموع: <span id="total-amount">0</span> درهم</p>
     </div>
-    <button type="submit" class="w-full bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800">تأكيد الطلب</button>
+    <button type="submit" id="submit-btn" class="w-full bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800">تأكيد الطلب</button>
   </form>
 </main>
 
@@ -76,49 +83,6 @@
 
 <div id="toast" class="toast"></div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  window.Store.updateCartCount();
-  const total = window.Store.getCartTotal();
-  document.getElementById('total-amount').textContent = total;
-
-  document.getElementById('checkout-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const cart = window.Store.getCart();
-    if (cart.length === 0) {
-      window.Store.showToast('السلة فارغة!', 'error');
-      return;
-    }
-
-    const user = window.app.auth.currentUser;
-    if (!user) {
-      window.Store.showToast('سجل دخول أولاً', 'error');
-      return;
-    }
-
-    const orderData = {
-      userId: user.uid,
-      userName: document.getElementById('full-name').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
-      address: document.getElementById('address').value.trim(),
-      notes: document.getElementById('notes').value.trim(),
-      items: cart,
-      total: total,
-      status: 'جديد',
-      createdAt: window.app.serverTimestamp()
-    };
-
-    try {
-      await window.app.addDoc(window.app.collection(window.app.db, 'orders'), orderData);
-      window.Store.clearCart();
-      window.Store.showToast('تم تأكيد طلبك ✅');
-      setTimeout(() => window.location.href = 'index.html', 1500);
-    } catch (err) {
-      window.Store.showToast('خطأ: ' + err.message, 'error');
-    }
-  });
-});
-</script>
 <!-- EmailJS Library -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
@@ -128,15 +92,41 @@ document.addEventListener('DOMContentLoaded', () => {
     emailjs.init("3A0NspFA3vISd64jc");
   })();
 
-  // إرسال إشعار بالطلب الجديد
+  // عرض رسالة للمستخدم
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast show ${type}`;
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }
+
+  // تحويل محتوى السلة لنص يُعرض ويُرسل بالإيميل
+  function formatCartItems(cart) {
+    return cart.map(item => 
+      `${item.name} × ${item.quantity} — ${item.price * item.quantity} درهم`
+    ).join('\n');
+  }
+
+  // تحديث ملخص السلة في الصفحة
+  function renderCartSummary(cart) {
+    const container = document.getElementById('cart-items-summary');
+    container.innerHTML = cart.map(item => `
+      <div class="flex justify-between">
+        <span>${item.name} × ${item.quantity}</span>
+        <span>${item.price * item.quantity} درهم</span>
+      </div>
+    `).join('');
+  }
+
+  // إرسال إيميل الإشعار
   async function sendOrderEmail(orderData) {
     const serviceID = "service_pz0cxlr";
     const templateID = "template_g6k71ll";
 
     const templateParams = {
       to_email: "y0892100@gmail.com",
-      customer_name: orderData.name,
-      customer_email: orderData.email,
+      customer_name: orderData.userName,
+      customer_email: orderData.userEmail,
       customer_phone: orderData.phone,
       customer_address: orderData.address,
       order_items: orderData.itemsText,
@@ -147,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const response = await emailjs.send(serviceID, templateID, templateParams);
-      console.log("✅ تم إرسال الإيميل بنجاح", response.status, response.text);
+      console.log("✅ تم إرسال الإيميل بنجاح", response.status);
       return true;
     } catch (error) {
       console.error("❌ فشل إرسال الإيميل:", error);
@@ -155,51 +145,88 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // مثال: دالة تُستدعى عند إكمال الطلب
-  async function completeOrderAndNotify(orderData) {
-    try {
-      // 1. احفظ الطلب في Firestore أولاً
-      const orderRef = await db.collection('orders').add({
-        ...orderData,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        status: 'جديد'
-      });
+  document.addEventListener('DOMContentLoaded', () => {
+    window.Store.updateCartCount();
+    const cart = window.Store.getCart();
+    const total = window.Store.getCartTotal();
+    document.getElementById('total-amount').textContent = total;
+    renderCartSummary(cart);
 
-      // أضف رقم الطلب للبيانات
-      orderData.orderId = orderRef.id;
+    document.getElementById('checkout-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'جاري المعالجة...';
 
-      // 2. أرسل إيميل الإشعار
-      await sendOrderEmail(orderData);
+      const cart = window.Store.getCart();
+      if (cart.length === 0) {
+        showToast('السلة فارغة!', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تأكيد الطلب';
+        return;
+      }
 
-      alert("✅ تم استلام طلبك بنجاح! سنتواصل معك قريباً");
-      window.location.href = 'index.html';
-    } catch (err) {
-      console.error("❌ خطأ في إتمام الطلب:", err);
-      alert("حدث خطأ، يرجى المحاولة مرة أخرى");
-    }
-  }
+      const user = window.app.auth.currentUser;
+      if (!user) {
+        showToast('سجّل دخول أولاً لإتمام الطلب', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تأكيد الطلب';
+        window.location.href = 'login.html'; // عدّل اسم ملف تسجيل الدخول حسب ملفك
+        return;
+      }
+
+      const userName = document.getElementById('full-name').value.trim();
+      const userEmail = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const address = document.getElementById('address').value.trim();
+      const notes = document.getElementById('notes').value.trim();
+
+      if (!userName || !userEmail || !phone || !address) {
+        showToast('املأ جميع الحقول المطلوبة', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تأكيد الطلب';
+        return;
+      }
+
+      const itemsText = formatCartItems(cart);
+      const orderData = {
+        userId: user.uid,
+        userName,
+        userEmail,
+        phone,
+        address,
+        notes,
+        items: cart,
+        itemsText,
+        total,
+        status: 'جديد',
+        createdAt: window.app.serverTimestamp()
+      };
+
+      try {
+        // حفظ الطلب في Firestore
+        const orderRef = await window.app.addDoc(
+          window.app.collection(window.app.db, 'orders'),
+          orderData
+        );
+        orderData.orderId = orderRef.id;
+
+        // إرسال إيميل الإشعار
+        await sendOrderEmail(orderData);
+
+        // تفريغ السلة وتوجيه المستخدم
+        window.Store.clearCart();
+        showToast('✅ تم استلام طلبك بنجاح! سنتواصل معك قريباً');
+        setTimeout(() => window.location.href = 'index.html', 2000);
+      } catch (err) {
+        console.error("❌ خطأ في إتمام الطلب:", err);
+        showToast('حدث خطأ: ' + err.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تأكيد الطلب';
+      }
+    });
+  });
 </script>
-<!-- زر الإرسال -->
-<button onclick="submitOrder()" class="w-full bg-black text-white py-3 rounded-lg">
-  إتمام الطلب
-</button>
 
-<script>
-// دالة تجمع البيانات من الصفحة وترسلها
-async function submitOrder() {
-  // هنا تجمع البيانات من حقول الصفحة
-  const orderData = {
-    name: document.getElementById('customer-name').value,
-    email: document.getElementById('customer-email').value,
-    phone: document.getElementById('customer-phone').value,
-    address: document.getElementById('customer-address').value,
-    itemsText: 'تفاصيل المنتجات هنا', // املأها من بيانات السلة
-    total: 'المجموع هنا' // املأه من مجموع السلة
-  };
-
-  // أرسل الطلب
-  await completeOrderAndNotify(orderData);
-}
-</script>
 </body>
 </html>
