@@ -32,10 +32,21 @@
         <i class="fa-solid fa-cart-shopping"></i>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
-      <div id="user-area"></div>
-    </div>
+    <div id="user-area" class="relative">
+  <!-- زر حسابي يظهر فقط لما يكون مسجل دخول -->
+  <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
+    حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
+  </button>
+  <button id="login-btn" onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
+
+  <!-- القائمة المنسدلة -->
+  <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+    <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
+    <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
+    <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
+    <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
   </div>
-</nav>
+</div>
 
 <main class="max-w-4xl mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-8 text-center">سلة التسوق</h1>
