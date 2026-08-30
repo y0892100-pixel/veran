@@ -6,6 +6,12 @@
   <title>لوحة التحكم - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- ✅ مكتبات Firebase متوافقة وموحّدة -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -16,36 +22,6 @@
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
     .modal.active { display: flex; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import firebaseConfig from './firebase-config.js';
-    import * as Store from './store.js';
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const googleProvider = new GoogleAuthProvider();
-
-    // ✅ إيميل الأدمن — غيره لإيميلك الحقيقي
-    const ADMIN_EMAIL = 'y0892100@gmail.com';
-
-    // ✅ التحقق من صلاحية الدخول
-    async function checkAdminAccess(user) {
-      if (!user) return false;
-      if (user.email !== ADMIN_EMAIL) {
-        alert('❌ ليس لديك صلاحية للدخول إلى لوحة التحكم');
-        await signOut(auth);
-        window.location.href = 'index.html';
-        return false;
-      }
-      return true;
-    }
-
-    window.app = { auth, db, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile, collection, addDoc, checkAdminAccess };
-    window.Store = Store;
-  </script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -64,16 +40,14 @@
         <i class="fa-solid fa-cart-shopping"></i>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
-      <div id="user-area">
-        <!-- يتغير بناءً على حالة تسجيل الدخول -->
-      </div>
+      <div id="user-area"></div>
     </div>
   </div>
 </nav>
 
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6">لوحة التحكم</h1>
-  
+
   <!-- أزرار التحكم -->
   <div id="admin-buttons" class="hidden flex gap-4 mb-8">
     <button onclick="showForm('add')" class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">إضافة منتج جديد</button>
@@ -127,11 +101,11 @@
       <div class="md:col-span-2">
         <label class="block font-semibold mb-2">الألوان المتاحة</label>
         <div class="flex flex-wrap gap-3">
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أحمر"> أحمر</label>
           <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أسود"> أسود</label>
           <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أبيض"> أبيض</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="بيج"> بيج</label>
           <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="رمادي"> رمادي</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="بيج"> بيج</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أحمر"> أحمر</label>
           <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أزرق"> أزرق</label>
           <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أخضر"> أخضر</label>
           <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="وردي"> وردي</label>
@@ -192,6 +166,39 @@
 <div id="toast" class="toast"></div>
 
 <script>
+// ✅ إعدادات Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
+  authDomain: "varen-f7756.firebaseapp.com",
+  projectId: "varen-f7756",
+  storageBucket: "varen-f7756.firebasestorage.app",
+  messagingSenderId: "648684291842",
+  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
+  measurementId: "G-SV7DKGPH2M"
+};
+
+// ✅ تهيئة Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+const ADMIN_EMAIL = 'y0892100@gmail.com';
+
+// ✅ التحقق من صلاحية الدخول
+async function checkAdminAccess(user) {
+  if (!user) return false;
+  if (user.email !== ADMIN_EMAIL) {
+    showToast('❌ ليس لديك صلاحية للدخول', 'error');
+    await auth.signOut();
+    setTimeout(() => window.location.href = 'index.html', 1500);
+    return false;
+  }
+  return true;
+}
+
+// دوال النافذة
 window.openModal = id => { document.getElementById(id).classList.add('active'); };
 window.closeModal = id => { document.getElementById(id).classList.remove('active'); backToOptions(); };
 window.showEmailLogin = () => { 
@@ -217,7 +224,6 @@ function updateUI(user, isAdmin) {
   const noAccess = document.getElementById('not-admin-message');
 
   if (user && isAdmin) {
-    // مدير مسجل دخول
     area.innerHTML = `
       <div class="flex items-center gap-2">
         <span class="text-sm">أهلاً بك، ${user.displayName || 'مدير'}</span>
@@ -228,52 +234,70 @@ function updateUI(user, isAdmin) {
     adminBtns.classList.remove('hidden');
     noAccess.classList.add('hidden');
   } else {
-    // غير مسجل أو ليس مدير
     area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
     form.classList.add('hidden');
     adminBtns.classList.add('hidden');
     noAccess.classList.remove('hidden');
   }
-  if (window.Store?.updateCartCount) window.Store.updateCartCount();
 }
 
+// تسجيل الدخول بقوقل
 window.loginWithGoogle = async () => {
   try {
-    const result = await window.app.signInWithPopup(window.app.auth, window.app.googleProvider);
-    const allowed = await window.app.checkAdminAccess(result.user);
+    const result = await auth.signInWithPopup(googleProvider);
+    const allowed = await checkAdminAccess(result.user);
     if (!allowed) return;
     closeModal('login-modal');
-    showToast('تم تسجيل الدخول ✅');
-  } catch (e) { showToast(e.message, 'error'); }
+    showToast('✅ تم تسجيل الدخول');
+  } catch (e) { 
+    console.error(e);
+    if (e.code !== 'auth/popup-closed-by-user') {
+      showToast('خطأ: ' + e.message, 'error');
+    }
+  }
 };
 
+// تسجيل الدخول بالإيميل
 window.loginWithEmail = async () => {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
   if (!email || !pass) return showToast('أدخل الإيميل وكلمة المرور', 'error');
   try {
-    const cred = await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
-    const allowed = await window.app.checkAdminAccess(cred.user);
+    const cred = await auth.signInWithEmailAndPassword(email, pass);
+    const allowed = await checkAdminAccess(cred.user);
     if (!allowed) return;
     closeModal('login-modal');
-    showToast('تم تسجيل الدخول ✅');
-  } catch (e) { showToast('إيميل أو كلمة مرور خاطئة', 'error'); }
+    showToast('✅ تم تسجيل الدخول');
+  } catch (e) { 
+    console.error(e);
+    showToast('❌ إيميل أو كلمة مرور خاطئة', 'error'); 
+  }
 };
 
+// تسجيل الخروج
 window.logout = async () => {
-  await window.app.signOut(window.app.auth);
-  showToast('تم تسجيل الخروج');
+  await auth.signOut();
+  showToast('✅ تم تسجيل الخروج');
+  setTimeout(() => window.location.reload(), 1000);
 };
 
+// إظهار النموذج
+window.showForm = () => {
+  document.getElementById('add-product-form').classList.remove('hidden');
+};
+
+// عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
-  window.app.onAuthStateChanged(window.app.auth, async user => {
+  // مراقبة حالة تسجيل الدخول
+  auth.onAuthStateChanged(async user => {
     let isAdmin = false;
     if (user) {
-      isAdmin = await window.app.checkAdminAccess(user);
+      isAdmin = await checkAdminAccess(user);
     }
     updateUI(user, isAdmin);
   });
 
+  // إضافة منتج
   const form = document.getElementById('add-product-form');
   form.addEventListener('submit', async e => {
     e.preventDefault();
@@ -283,9 +307,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const images = document.getElementById('p-images').value.trim().split('\n').map(s => s.trim()).filter(s => s);
     
     const priceOriginalVal = document.getElementById('p-price-original').value.trim();
-
+    
     try {
-      await window.app.addDoc(window.app.collection(window.app.db, 'products'), {
+      await db.collection('products').add({
         name: document.getElementById('p-name').value.trim(),
         priceOriginal: priceOriginalVal ? Number(priceOriginalVal) : null,
         price: Number(document.getElementById('p-price').value),
@@ -295,13 +319,14 @@ document.addEventListener('DOMContentLoaded', () => {
         available: document.getElementById('p-available').value === 'true',
         colors: selectedColors,
         sizes: selectedSizes,
-        images: images
+        images: images,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      showToast('تم إضافة المنتج بنجاح ✅');
+      showToast('✅ تم إضافة المنتج بنجاح');
       form.reset();
     } catch (err) { 
       console.error(err);
-      showToast('خطأ: ' + err.message, 'error'); 
+      showToast('❌ خطأ: ' + err.message, 'error'); 
     }
   });
 });
