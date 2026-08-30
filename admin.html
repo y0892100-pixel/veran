@@ -28,14 +28,12 @@
     const db = getFirestore(app);
     const googleProvider = new GoogleAuthProvider();
 
-    // ✅ إيميل الأدمن — تم وضعه هنا
+    // ✅ إيميل الأدمن — غيره لإيميلك الحقيقي
     const ADMIN_EMAIL = 'y0892100@gmail.com';
 
     // ✅ التحقق من صلاحية الدخول
     async function checkAdminAccess(user) {
-      if (!user) {
-        return false; // يبقى في صفحة تسجيل الدخول
-      }
+      if (!user) return false;
       if (user.email !== ADMIN_EMAIL) {
         alert('❌ ليس لديك صلاحية للدخول إلى لوحة التحكم');
         await signOut(auth);
@@ -58,6 +56,8 @@
       <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
       <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
       <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
+      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
+      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
     </div>
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
@@ -65,19 +65,27 @@
         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
       <div id="user-area">
-        <button id="login-btn" onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>
+        <!-- يتغير بناءً على حالة تسجيل الدخول -->
       </div>
     </div>
   </div>
 </nav>
 
 <main class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-6">لوحة التحكم — إضافة منتج</h1>
+  <h1 class="text-2xl font-bold mb-6">لوحة التحكم</h1>
   
-  <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md space-y-4">
+  <!-- أزرار التحكم -->
+  <div id="admin-buttons" class="hidden flex gap-4 mb-8">
+    <button onclick="showForm('add')" class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">إضافة منتج جديد</button>
+    <button onclick="location.href='admin-orders.html'" class="bg-gray-200 px-6 py-2 rounded-lg hover:bg-gray-300">إدارة الطلبات</button>
+  </div>
+
+  <!-- نموذج إضافة منتج -->
+  <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md space-y-4 hidden">
+    <h2 class="text-xl font-bold mb-4">إضافة منتج جديد</h2>
     <div class="grid md:grid-cols-2 gap-4">
       <div>
-        <label class="block font-semibold mb-1">اسم المنتج</label>
+        <label class="block font-semibold mb-1">اسم المنتج *</label>
         <input type="text" id="p-name" class="w-full border rounded-lg p-3" required>
       </div>
       <div>
@@ -85,11 +93,11 @@
         <input type="number" id="p-price-original" class="w-full border rounded-lg p-3" placeholder="اختياري">
       </div>
       <div>
-        <label class="block font-semibold mb-1">السعر الحالي (بالدرهم د.إ)</label>
+        <label class="block font-semibold mb-1">السعر الحالي (بالدرهم) *</label>
         <input type="number" id="p-price" class="w-full border rounded-lg p-3" required>
       </div>
       <div>
-        <label class="block font-semibold mb-1">التصنيف</label>
+        <label class="block font-semibold mb-1">التصنيف *</label>
         <select id="p-gender" class="w-full border rounded-lg p-3">
           <option value="women">نسائي</option>
           <option value="men">رجالي</option>
@@ -100,6 +108,14 @@
       <div>
         <label class="block font-semibold mb-1">النوع</label>
         <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان...">
+      </div>
+      <div>
+        <label class="block font-semibold mb-1">الموسم</label>
+        <select id="p-season" class="w-full border rounded-lg p-3">
+          <option value="">غير محدد</option>
+          <option value="winter">شتوي</option>
+          <option value="summer">صيفي</option>
+        </select>
       </div>
       <div>
         <label class="block font-semibold mb-1">حالة التوفر</label>
@@ -141,6 +157,13 @@
     </div>
     <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full">إضافة المنتج</button>
   </form>
+
+  <!-- رسالة لغير المصرح لهم -->
+  <div id="not-admin-message" class="text-center py-16 hidden">
+    <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
+    <p class="text-xl text-gray-500">سجّل دخولك كمدير للوصول للوحة التحكم</p>
+    <button onclick="openModal('login-modal')" class="mt-4 bg-black text-white px-6 py-2 rounded-lg">تسجيل الدخول</button>
+  </div>
 </main>
 
 <!-- نافذة تسجيل الدخول -->
@@ -156,19 +179,11 @@
       </button>
       <div class="flex items-center gap-4 my-4"><hr class="flex-1"><span>أو</span><hr class="flex-1"></div>
       <button onclick="showEmailLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">الدخول بالإيميل</button>
-      <p class="text-center mt-4 text-sm">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب</button></p>
     </div>
     <div id="email-login" class="hidden">
       <input type="email" id="login-email" placeholder="الإيميل" class="w-full border rounded-lg p-3 mb-3">
       <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border rounded-lg p-3 mb-4">
       <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
-      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
-    </div>
-    <div id="register-form" class="hidden">
-      <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border rounded-lg p-3 mb-3">
-      <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border rounded-lg p-3 mb-3">
-      <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف)" class="w-full border rounded-lg p-3 mb-3">
-      <button onclick="registerUser()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">إنشاء حساب</button>
       <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
     </div>
   </div>
@@ -177,11 +192,16 @@
 <div id="toast" class="toast"></div>
 
 <script>
-window.openModal = id => document.getElementById(id).classList.add('active');
-window.closeModal = id => document.getElementById(id).classList.remove('active');
-window.showEmailLogin = () => { document.getElementById('login-options').classList.add('hidden'); document.getElementById('email-login').classList.remove('hidden'); };
-window.showRegister = () => { document.getElementById('login-options').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden'); };
-window.backToOptions = () => { document.getElementById('login-options').classList.remove('hidden'); document.getElementById('email-login').classList.add('hidden'); document.getElementById('register-form').classList.add('hidden'); };
+window.openModal = id => { document.getElementById(id).classList.add('active'); };
+window.closeModal = id => { document.getElementById(id).classList.remove('active'); backToOptions(); };
+window.showEmailLogin = () => { 
+  document.getElementById('login-options').classList.add('hidden'); 
+  document.getElementById('email-login').classList.remove('hidden'); 
+};
+window.backToOptions = () => { 
+  document.getElementById('login-options').classList.remove('hidden'); 
+  document.getElementById('email-login').classList.add('hidden'); 
+};
 
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
@@ -190,23 +210,31 @@ function showToast(msg, type='success') {
   setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
-function updateUI(user) {
+function updateUI(user, isAdmin) {
   const area = document.getElementById('user-area');
   const form = document.getElementById('add-product-form');
-  
-  if (user) {
+  const adminBtns = document.getElementById('admin-buttons');
+  const noAccess = document.getElementById('not-admin-message');
+
+  if (user && isAdmin) {
+    // مدير مسجل دخول
     area.innerHTML = `
       <div class="flex items-center gap-2">
         <span class="text-sm">أهلاً بك، ${user.displayName || 'مدير'}</span>
         <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700">تسجيل الخروج</button>
       </div>
     `;
-    form.style.display = 'block';
+    form.classList.remove('hidden');
+    adminBtns.classList.remove('hidden');
+    noAccess.classList.add('hidden');
   } else {
+    // غير مسجل أو ليس مدير
     area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
-    form.style.display = 'none';
+    form.classList.add('hidden');
+    adminBtns.classList.add('hidden');
+    noAccess.classList.remove('hidden');
   }
-  window.Store?.updateCartCount?.();
+  if (window.Store?.updateCartCount) window.Store.updateCartCount();
 }
 
 window.loginWithGoogle = async () => {
@@ -219,24 +247,10 @@ window.loginWithGoogle = async () => {
   } catch (e) { showToast(e.message, 'error'); }
 };
 
-window.registerUser = async () => {
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const pass = document.getElementById('reg-password').value;
-  if (!name || !email || pass.length < 6) return showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
-  try {
-    const cred = await window.app.createUserWithEmailAndPassword(window.app.auth, email, pass);
-    await window.app.updateProfile(cred.user, { displayName: name });
-    const allowed = await window.app.checkAdminAccess(cred.user);
-    if (!allowed) return;
-    closeModal('login-modal');
-    showToast('تم إنشاء الحساب ✅');
-  } catch (e) { showToast(e.message, 'error'); }
-};
-
 window.loginWithEmail = async () => {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
+  if (!email || !pass) return showToast('أدخل الإيميل وكلمة المرور', 'error');
   try {
     const cred = await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
     const allowed = await window.app.checkAdminAccess(cred.user);
@@ -253,26 +267,31 @@ window.logout = async () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   window.app.onAuthStateChanged(window.app.auth, async user => {
+    let isAdmin = false;
     if (user) {
-      const allowed = await window.app.checkAdminAccess(user);
-      if (!allowed) return;
+      isAdmin = await window.app.checkAdminAccess(user);
     }
-    updateUI(user);
+    updateUI(user, isAdmin);
   });
 
   const form = document.getElementById('add-product-form');
   form.addEventListener('submit', async e => {
     e.preventDefault();
+    
     const selectedColors = Array.from(document.querySelectorAll('input[name="colors"]:checked')).map(c => c.value);
     const selectedSizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked')).map(c => c.value);
     const images = document.getElementById('p-images').value.trim().split('\n').map(s => s.trim()).filter(s => s);
+    
+    const priceOriginalVal = document.getElementById('p-price-original').value.trim();
+
     try {
       await window.app.addDoc(window.app.collection(window.app.db, 'products'), {
         name: document.getElementById('p-name').value.trim(),
-        priceOriginal: Number(document.getElementById('p-price-original').value) || null,
+        priceOriginal: priceOriginalVal ? Number(priceOriginalVal) : null,
         price: Number(document.getElementById('p-price').value),
         gender: document.getElementById('p-gender').value,
         type: document.getElementById('p-type').value.trim(),
+        season: document.getElementById('p-season').value || null,
         available: document.getElementById('p-available').value === 'true',
         colors: selectedColors,
         sizes: selectedSizes,
@@ -280,9 +299,13 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       showToast('تم إضافة المنتج بنجاح ✅');
       form.reset();
-    } catch (err) { showToast('خطأ: ' + err.message, 'error'); }
+    } catch (err) { 
+      console.error(err);
+      showToast('خطأ: ' + err.message, 'error'); 
+    }
   });
 });
 </script>
+
 </body>
 </html>
