@@ -24,7 +24,6 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
@@ -56,7 +55,6 @@
     </div>
   </div>
 </nav>
-
 <section class="bg-gradient-to-r from-gray-900 to-gray-700 text-white py-16 md:py-24">
   <div class="max-w-7xl mx-auto px-4 text-center md:text-right">
     <h1 class="text-4xl md:text-5xl font-bold mb-4">أحدث صيحات الموضة</h1>
@@ -64,7 +62,6 @@
     <a href="#products" class="inline-block bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-100">تصفّح المنتجات</a>
   </div>
 </section>
-
 <section id="products" class="max-w-7xl mx-auto px-4 py-12">
   <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center">منتجاتنا</h2>
   <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -74,7 +71,6 @@
     </div>
   </div>
 </section>
-
 <section class="bg-white py-12 border-t">
   <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
     <div><i class="fa-solid fa-truck-fast text-3xl mb-3 text-black"></i><h3 class="font-bold text-lg">شحن سريع</h3><p class="text-gray-600">توصيل لباب بيتك</p></div>
@@ -82,22 +78,21 @@
     <div><i class="fa-solid fa-rotate-left text-3xl mb-3 text-black"></i><h3 class="font-bold text-lg">إرجاع سهل</h3><p class="text-gray-600">إرجاع خلال 7 أيام</p></div>
   </div>
 </section>
-
 <footer class="bg-gray-900 text-white py-8 text-center">
   <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
 </footer>
-
 <div id="toast" class="toast"></div>
 
 <script>
-// ✅ إعدادات Firebase
+// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
-  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-  authDomain: "varen-f7756.firebaseapp.com",
-  projectId: "varen-f7756",
-  storageBucket: "varen-f7756.firebasestorage.app",
-  messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b"
+  apiKey: "AIzaSyDQTvVXrLYgbkpNI_YfwdVpZrQFBIzzPmU",
+  authDomain: "varen-5dcfd.firebaseapp.com",
+  projectId: "varen-5dcfd",
+  storageBucket: "varen-5dcfd.firebasestorage.app",
+  messagingSenderId: "769663614271",
+  appId: "1:769663614271:web:4b2b843f99a8d7a071678a",
+  measurementId: "G-DNHBHJHDVX"
 };
 
 // ✅ تهيئة Firebase مرة واحدة فقط
@@ -106,6 +101,16 @@ if (!firebase.apps.length) {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// ✅ تحديث عداد السلة
+function updateCartCount() {
+  const cart = JSON.parse(localStorage.getItem('varen_cart') || '[]');
+  const countEl = document.getElementById('cart-count');
+  if (countEl) {
+    const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    countEl.textContent = total;
+  }
+}
 
 // ✅ دوال مساعدة
 function showToast(msg, type='success') {
@@ -119,22 +124,35 @@ function showToast(msg, type='success') {
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
   try {
-    const snapshot = await db.collection('products').where('available', '==', true).orderBy('createdAt', 'desc').get();
+    // نجلب المتوفر فقط من الأحدث للأقدم
+    const snapshot = await db.collection('products')
+      .where('available', '==', true)
+      .get();
     
-    if (snapshot.empty) {
+    // نرتب في الكود لأن الفهارس قد لا تكون موجودة
+    let products = [];
+    snapshot.forEach(doc => {
+      products.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // ترتيب من الأحدث للأقدم
+    products.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+      return dateB - dateA;
+    });
+
+    if (products.length === 0) {
       grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات متوفرة حالياً</p></div>';
       return;
     }
 
     grid.innerHTML = '';
-    snapshot.forEach(doc => {
-      const p = doc.data();
-      const productId = doc.id;
+    products.forEach(p => {
       const priceOriginal = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} درهم</span>` : '';
       const imageUrl = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/300x400';
-
       grid.innerHTML += `
-        <a href="product.html?id=${productId}" class="product-card block bg-white rounded-xl shadow-sm overflow-hidden border">
+        <a href="product.html?id=${p.id}" class="product-card block bg-white rounded-xl shadow-sm overflow-hidden border">
           <img src="${imageUrl}" alt="${p.name}" class="w-full h-64 object-cover">
           <div class="p-4">
             <h3 class="font-bold text-lg mb-2">${p.name}</h3>
@@ -158,7 +176,7 @@ function updateUserUI(user) {
   const loginBtn = document.getElementById('login-btn');
   const accountBtn = document.getElementById('account-btn');
   const accountMenu = document.getElementById('account-menu');
-
+  
   if (user) {
     if (loginBtn) loginBtn.classList.add('hidden');
     if (accountBtn) {
@@ -170,12 +188,12 @@ function updateUserUI(user) {
     if (accountBtn) accountBtn.classList.add('hidden');
     if (accountMenu) accountMenu.classList.add('hidden');
   }
+  updateCartCount();
 }
 
-// ✅ فتح وإغلاق قائمة الحساب — تعريف مرة واحدة
+// ✅ فتح وإغلاق قائمة الحساب
 const accountBtn = document.getElementById('account-btn');
 const accountMenu = document.getElementById('account-menu');
-
 if (accountBtn && accountMenu) {
   accountBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -198,6 +216,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProducts();
 });
 </script>
-
 </body>
 </html>
