@@ -6,19 +6,18 @@
   <title>لوحة التحكم - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" type="image/png" href="varen.jpeg">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast.show { display: block; }
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
     .modal.active { display: flex; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
-    .toast.show { display: block; }
   </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import firebaseConfig from './firebase-config.js';
     import * as Store from './store.js';
 
@@ -27,12 +26,7 @@
     const db = getFirestore(app);
     const googleProvider = new GoogleAuthProvider();
 
-    window.app = { 
-      auth, db, googleProvider, 
-      signInWithEmailAndPassword, createUserWithEmailAndPassword,
-      signInWithPopup, signOut, onAuthStateChanged, updateProfile,
-      collection, addDoc, getDocs
-    };
+    window.app = { auth, db, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile, collection, addDoc };
     window.Store = Store;
   </script>
 </head>
@@ -42,11 +36,9 @@
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
     <div class="hidden md:flex gap-8">
-      <a href="index.html" class="hover:text-gray-600">الرئيسية</a>
-      <a href="category.html?gender=women" class="hover:text-gray-600">نسائي</a>
-      <a href="category.html?gender=men" class="hover:text-gray-600">رجالي</a>
-      <a href="category.html?gender=girls" class="hover:text-gray-600">بنات</a>
-      <a href="category.html?gender=boys" class="hover:text-gray-600">أولاد</a>
+      <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
+      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
+      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
     </div>
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
@@ -69,17 +61,14 @@
         <label class="block font-semibold mb-1">اسم المنتج</label>
         <input type="text" id="p-name" class="w-full border rounded-lg p-3" required>
       </div>
-
       <div>
         <label class="block font-semibold mb-1">السعر الأصلي (قبل الخصم)</label>
         <input type="number" id="p-price-original" class="w-full border rounded-lg p-3" placeholder="اختياري">
       </div>
-
       <div>
-        <label class="block font-semibold mb-1">السعر بعد الخصم (السعر الحالي)</label>
+        <label class="block font-semibold mb-1">السعر الحالي</label>
         <input type="number" id="p-price" class="w-full border rounded-lg p-3" required>
       </div>
-
       <div>
         <label class="block font-semibold mb-1">التصنيف</label>
         <select id="p-gender" class="w-full border rounded-lg p-3">
@@ -89,12 +78,10 @@
           <option value="boys">أولاد</option>
         </select>
       </div>
-
       <div>
         <label class="block font-semibold mb-1">النوع</label>
         <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان...">
       </div>
-
       <div>
         <label class="block font-semibold mb-1">حالة التوفر</label>
         <select id="p-available" class="w-full border rounded-lg p-3">
@@ -102,7 +89,6 @@
           <option value="false">غير متوفر ❌</option>
         </select>
       </div>
-
       <div class="md:col-span-2">
         <label class="block font-semibold mb-2">الألوان المتاحة</label>
         <div class="flex flex-wrap gap-3">
@@ -118,7 +104,6 @@
           <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="برتقالي"> برتقالي</label>
         </div>
       </div>
-
       <div class="md:col-span-2">
         <label class="block font-semibold mb-2">المقاسات المتاحة</label>
         <div class="flex flex-wrap gap-3">
@@ -130,13 +115,11 @@
           <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XXL"> XXL</label>
         </div>
       </div>
-
       <div class="md:col-span-2">
         <label class="block font-semibold mb-1">روابط الصور (كل رابط في سطر)</label>
-        <textarea id="p-images" class="w-full border rounded-lg p-3" rows="5" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
+        <textarea id="p-images" class="w-full border rounded-lg p-3" rows="4" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
       </div>
     </div>
-
     <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full">إضافة المنتج</button>
   </form>
 </main>
@@ -150,22 +133,22 @@
     </div>
     <div id="login-options">
       <button onclick="loginWithGoogle()" class="w-full flex items-center justify-center gap-2 border border-gray-300 py-3 rounded-lg mb-4 hover:bg-gray-50">
-        <i class="fa-brands fa-google text-red-500"></i> الدخول بحساب قوقل
+        <i class="fa-brands fa-google text-red-500"></i> الدخول بقوقل
       </button>
       <div class="flex items-center gap-4 my-4"><hr class="flex-1"><span>أو</span><hr class="flex-1"></div>
       <button onclick="showEmailLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">الدخول بالإيميل</button>
-      <p class="text-center mt-4">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب جديد</button></p>
+      <p class="text-center mt-4 text-sm">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب</button></p>
     </div>
     <div id="email-login" class="hidden">
-      <input type="email" id="login-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border border-gray-300 rounded-lg p-3 mb-4">
+      <input type="email" id="login-email" placeholder="الإيميل" class="w-full border rounded-lg p-3 mb-3">
+      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border rounded-lg p-3 mb-4">
       <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
       <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
     </div>
     <div id="register-form" class="hidden">
-      <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف على الأقل)" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border rounded-lg p-3 mb-3">
+      <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border rounded-lg p-3 mb-3">
+      <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف)" class="w-full border rounded-lg p-3 mb-3">
       <button onclick="registerUser()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">إنشاء حساب</button>
       <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
     </div>
@@ -175,49 +158,21 @@
 <div id="toast" class="toast"></div>
 
 <script>
-window.openModal = id => { document.getElementById(id).classList.add('active'); };
-window.closeModal = id => { document.getElementById(id).classList.remove('active'); };
-window.showEmailLogin = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('email-login').classList.remove('hidden');
-};
-window.showRegister = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('register-form').classList.remove('hidden');
-};
-window.backToOptions = () => {
-  document.getElementById('login-options').classList.remove('hidden');
-  document.getElementById('email-login').classList.add('hidden');
-  document.getElementById('register-form').classList.add('hidden');
-};
+window.openModal = id => document.getElementById(id).classList.add('active');
+window.closeModal = id => document.getElementById(id).classList.remove('active');
+window.showEmailLogin = () => { document.getElementById('login-options').classList.add('hidden'); document.getElementById('email-login').classList.remove('hidden'); };
+window.showRegister = () => { document.getElementById('login-options').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden'); };
+window.backToOptions = () => { document.getElementById('login-options').classList.remove('hidden'); document.getElementById('email-login').classList.add('hidden'); document.getElementById('register-form').classList.add('hidden'); };
 
 function updateUI(user) {
   const area = document.getElementById('user-area');
   if (user) {
     area.innerHTML = `
-      <div class="relative" id="account-menu-container">
-        <button id="account-menu-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
-          <i class="fa-solid fa-user"></i>
-          <span>${user.displayName || 'حسابي'}</span>
-          <i class="fa-solid fa-chevron-down text-xs"></i>
-        </button>
-        <div id="account-menu" class="absolute left-0 bottom-full mb-2 w-48 bg-white shadow-lg rounded-lg p-2 hidden z-50">
-          <a href="account.html" class="block px-4 py-2 hover:bg-gray-100 rounded">حسابي</a>
-          <a href="orders.html" class="block px-4 py-2 hover:bg-gray-100 rounded">طلباتي</a>
-          <a href="returns.html" class="block px-4 py-2 hover:bg-gray-100 rounded">الاسترجاعات</a>
-          <hr class="my-2">
-          <button onclick="logout()" class="block w-full text-right px-4 py-2 text-red-500 hover:bg-gray-100 rounded">تسجيل الخروج</button>
-        </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm">أهلاً بك، ${user.displayName || 'مدير'}</span>
+        <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700">تسجيل الخروج</button>
       </div>
     `;
-    setTimeout(() => {
-      const btn = document.getElementById('account-menu-btn');
-      const menu = document.getElementById('account-menu');
-      if (!btn || !menu) return;
-      btn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); };
-      document.onclick = () => menu.classList.add('hidden');
-      menu.onclick = (e) => e.stopPropagation();
-    }, 10);
   } else {
     area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
   }
@@ -228,27 +183,21 @@ window.loginWithGoogle = async () => {
   try {
     await window.app.signInWithPopup(window.app.auth, window.app.googleProvider);
     closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول بنجاح! ✅');
-  } catch (e) {
-    window.Store.showToast(e.message, 'error');
-  }
+    window.Store.showToast('تم تسجيل الدخول ✅');
+  } catch (e) { window.Store.showToast(e.message, 'error'); }
 };
 
 window.registerUser = async () => {
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const pass = document.getElementById('reg-password').value;
-  if (!name || !email || pass.length < 6) {
-    return window.Store.showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
-  }
+  if (!name || !email || pass.length < 6) return window.Store.showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
   try {
     const cred = await window.app.createUserWithEmailAndPassword(window.app.auth, email, pass);
     await window.app.updateProfile(cred.user, { displayName: name });
     closeModal('login-modal');
-    window.Store.showToast('تم إنشاء الحساب بنجاح! ✅');
-  } catch (e) {
-    window.Store.showToast(e.message, 'error');
-  }
+    window.Store.showToast('تم إنشاء الحساب ✅');
+  } catch (e) { window.Store.showToast(e.message, 'error'); }
 };
 
 window.loginWithEmail = async () => {
@@ -257,10 +206,8 @@ window.loginWithEmail = async () => {
   try {
     await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
     closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول! ✅');
-  } catch (e) {
-    window.Store.showToast('إيميل أو كلمة مرور خاطئة', 'error');
-  }
+    window.Store.showToast('تم تسجيل الدخول ✅');
+  } catch (e) { window.Store.showToast('إيميل أو كلمة مرور خاطئة', 'error'); }
 };
 
 window.logout = async () => {
@@ -270,15 +217,12 @@ window.logout = async () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   window.app.onAuthStateChanged(window.app.auth, updateUI);
-
   const form = document.getElementById('add-product-form');
-  form.addEventListener('submit', async function(e) {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
-    
-    const selectedColors = Array.from(document.querySelectorAll('input[name="colors"]:checked')).map(cb => cb.value);
-    const selectedSizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked')).map(cb => cb.value);
+    const selectedColors = Array.from(document.querySelectorAll('input[name="colors"]:checked')).map(c => c.value);
+    const selectedSizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked')).map(c => c.value);
     const images = document.getElementById('p-images').value.trim().split('\n').map(s => s.trim()).filter(s => s);
-
     try {
       await window.app.addDoc(window.app.collection(window.app.db, 'products'), {
         name: document.getElementById('p-name').value.trim(),
@@ -291,12 +235,9 @@ document.addEventListener('DOMContentLoaded', () => {
         sizes: selectedSizes,
         images: images
       });
-      
       window.Store.showToast('تم إضافة المنتج بنجاح ✅');
       form.reset();
-    } catch (err) {
-      window.Store.showToast('خطأ: ' + err.message, 'error');
-    }
+    } catch (err) { window.Store.showToast('خطأ: ' + err.message, 'error'); }
   });
 });
 </script>
