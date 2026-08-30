@@ -19,14 +19,12 @@
   </style>
 </head>
 <body class="bg-gray-50">
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
     <div id="user-area"></div>
   </div>
 </nav>
-
 <main class="max-w-lg mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6">بيانات الحساب</h1>
   <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
@@ -46,7 +44,7 @@
       </div>
       <div>
         <label class="block font-semibold mb-1">العنوان الكامل</label>
-        <textarea id="u-address" class="w-full border rounded-lg p-3" rows="3" placeholder="المدينة — المنطقة — الشارع — المبنى — رقم الهاتف"></textarea>
+        <textarea id="u-address" class="w-full border rounded-lg p-3" rows="3" placeholder="المدينة — المنطقة — الشارع — المبنى — رقم الشقة"></textarea>
       </div>
       <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">حفظ التغييرات</button>
     </form>
@@ -58,19 +56,22 @@
   </div>
   <div id="toast" class="toast"></div>
 </main>
-
 <script>
+// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
-  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-  authDomain: "varen-f7756.firebaseapp.com",
-  projectId: "varen-f7756",
-  storageBucket: "varen-f7756.firebasestorage.app",
-  messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b"
+  apiKey: "AIzaSyDQTvVXrLYgbkpNI_YfwdVpZrQFBIzzPmU",
+  authDomain: "varen-5dcfd.firebaseapp.com",
+  projectId: "varen-5dcfd",
+  storageBucket: "varen-5dcfd.firebasestorage.app",
+  messagingSenderId: "769663614271",
+  appId: "1:769663614271:web:4b2b843f99a8d7a071678a",
+  measurementId: "G-DNHBHJHDVX"
 };
+
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const ADMIN_EMAIL = 'y0892100@gmail.com';
 
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
@@ -86,7 +87,7 @@ function updateUserNav(user) {
     area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
     return;
   }
-  const isAdmin = user.email === 'y0892100@gmail.com';
+  const isAdmin = user.email === ADMIN_EMAIL;
   area.innerHTML = `
     <div class="relative group">
       <button class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200">
@@ -130,7 +131,7 @@ auth.onAuthStateChanged(async user => {
   document.getElementById('content').classList.remove('hidden');
   updateUserNav(user);
 
-  // تعبئة البيانات
+  // ✅ تعبئة البيانات
   document.getElementById('u-name').value = user.displayName || '';
   document.getElementById('u-email').value = user.email || '';
 
@@ -141,7 +142,7 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('u-address').value = data.address || '';
   }
 
-  // حفظ البيانات
+  // ✅ حفظ البيانات
   document.getElementById('profile-form').addEventListener('submit', async e => {
     e.preventDefault();
     const name = document.getElementById('u-name').value.trim();
