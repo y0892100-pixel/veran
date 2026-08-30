@@ -71,9 +71,14 @@ const firebaseConfig = {
 };
 
 // تهيئة Firebase
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// ✅ إيميل الأدمن — غيره لإيميلك الحقيقي
+const ADMIN_EMAIL = 'y0892100@gmail.com';
 
 // عرض رسائل تنبيه
 function showToast(msg, type='success') {
@@ -87,6 +92,17 @@ function showToast(msg, type='success') {
 function showStep(stepId) {
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
   document.getElementById(stepId).classList.add('active');
+}
+
+// توجيه بعد تسجيل الدخول
+function redirectAfterLogin(user) {
+  // لو كان إيميل الأدمن → يروح لوحة التحكم
+  if (user.email === ADMIN_EMAIL) {
+    window.location.href = 'admin.html';
+  } else {
+    // باقي المستخدمين → يروحوا للرئيسية
+    window.location.href = 'index.html';
+  }
 }
 
 // تسجيل حساب جديد
@@ -119,8 +135,8 @@ async function handleRegister() {
 
     showToast('✅ تم إنشاء الحساب! رابط التأكيد أُرسل إلى بريدك الإلكتروني.');
     
-    // توجيه للصفحة الرئيسية بعد ثانيتين
-    setTimeout(() => window.location.href = 'index.html', 2000);
+    // توجيه بناءً على صلاحية المستخدم
+    setTimeout(() => redirectAfterLogin(cred.user), 2000);
   } catch (err) {
     console.error(err);
     let msg = 'حدث خطأ';
@@ -141,9 +157,10 @@ async function handleLogin() {
   }
 
   try {
-    await auth.signInWithEmailAndPassword(email, password);
+    const cred = await auth.signInWithEmailAndPassword(email, password);
     showToast('✅ تم تسجيل الدخول بنجاح!');
-    setTimeout(() => window.location.href = 'index.html', 1500);
+    // توجيه بناءً على صلاحية المستخدم
+    setTimeout(() => redirectAfterLogin(cred.user), 1500);
   } catch (err) {
     console.error(err);
     let msg = 'خطأ في تسجيل الدخول';
@@ -154,11 +171,15 @@ async function handleLogin() {
   }
 }
 
-// التحقق من حالة تسجيل الدخول
+// ✅ تعديل: نمنع التوجيه المفاجئ قبل ما المستخدم يخلص
+let initialCheckDone = false;
 auth.onAuthStateChanged(user => {
-  // لو المستخدم مسجل دخول وفتح صفحة تسجيل الدخول → نحوله للرئيسية
-  if (user && window.location.pathname.includes('login')) {
-    window.location.href = 'index.html';
+  if (!initialCheckDone) {
+    initialCheckDone = true;
+    // لو المستخدم مسجّل دخول وفتح صفحة تسجيل الدخول → نوجّهه
+    if (user && window.location.pathname.includes('login')) {
+      redirectAfterLogin(user);
+    }
   }
 });
 </script>
