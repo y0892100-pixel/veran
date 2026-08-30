@@ -117,63 +117,7 @@ if (accountBtn) {
   accountMenu?.addEventListener('click', (e) => e.stopPropagation());
 }
 
-function updateUserUI(user) {
-  const loginBtn = document.getElementById('login-btn');
-  if (user) {
-    if (loginBtn) loginBtn.classList.add('hidden');
-    if (accountBtn) {
-      accountBtn.classList.remove('hidden');
-      accountBtn.classList.add('flex');
-    }
-  } else {
-    if (loginBtn) loginBtn.classList.remove('hidden');
-    if (accountBtn) accountBtn.classList.add('hidden');
-    if (accountMenu) accountMenu.classList.add('hidden');
-  }
-  // تحديث عداد السلة
-  if (window.Store?.updateCartCount) {
-    window.Store.updateCartCount();
-  }
-}
 
-async function logout() {
-  await window.app.signOut(window.app.auth);
-  window.location.href = 'index.html';
-}
-
-async function loadProducts() {
-  const grid = document.getElementById('products-grid');
-  try {
-    const snapshot = await window.app.getDocs(window.app.collection(window.app.db, 'products'));
-    if (snapshot.empty) {
-      grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات متاحة حالياً. أضف منتجات من لوحة التحكم.</p></div>';
-      return;
-    }
-    grid.innerHTML = '';
-    snapshot.forEach(doc => {
-      const p = { id: doc.id, ...doc.data() };
-      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} د.إ</span>` : '';
-      const img = p.images?.[0] || 'https://via.placeholder.com/400x500?text=لا+صورة';
-      grid.innerHTML += `
-        <a href="product.html?id=${p.id}" class="product-card bg-white rounded-xl overflow-hidden shadow-sm block">
-          <img src="${img}" alt="${p.name}" class="w-full h-64 object-cover">
-          <div class="p-4">
-            <h3 class="font-bold text-lg mb-1">${p.name}</h3>
-            <p class="text-gray-600 text-sm mb-2">${p.type || ''}</p>
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-lg">${p.price} د.إ</span>
-              ${priceTag}
-            </div>
-            <button class="mt-3 w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 text-sm">عرض التفاصيل</button>
-          </div>
-        </a>
-      `;
-    });
-  } catch (err) {
-    console.error(err);
-    grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
-  }
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   // تحديث واجهة المستخدم بناءً على حالة تسجيل الدخول
