@@ -6,6 +6,12 @@
   <title>VAREN — متجر الملابس</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- ✅ مكتبات Firebase موحّدة بصيغة compat فقط -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -16,20 +22,6 @@
     .product-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
     .product-card { transition: all 0.3s ease; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import firebaseConfig from './firebase-config.js';
-    import * as Store from './store.js';
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    window.app = { auth, db, onAuthStateChanged, signOut, collection, getDocs };
-    window.Store = Store;
-  </script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -98,67 +90,89 @@
 <div id="toast" class="toast"></div>
 
 <script>
-const accountBtn = document.getElementById('account-btn');
-const accountMenu = document.getElementById('account-menu');
-const toast = document.getElementById('toast');
+// ✅ إعدادات Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
+  authDomain: "varen-f7756.firebaseapp.com",
+  projectId: "varen-f7756",
+  storageBucket: "varen-f7756.firebasestorage.app",
+  messagingSenderId: "648684291842",
+  appId: "1:648684291842:web:f3e806fc76a6e119caa41b"
+};
 
+// ✅ تهيئة Firebase مرة واحدة فقط
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ✅ دوال مساعدة
 function showToast(msg, type='success') {
-  toast.textContent = msg;
-  toast.className = `toast show ${type}`;
-  setTimeout(() => toast.classList.remove('show'), 4000);
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
 }
 
-if (accountBtn) {
-  accountBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    accountMenu.classList.toggle('hidden');
-  });
-  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
-  accountMenu?.addEventListener('click', (e) => e.stopPropagation());
+// ✅ تحميل المنتجات من Firestore
+async function loadProducts() {
+  const grid = document.getElementById('products-grid');
+  try {
+    const snapshot = await db.collection('products').where('available', '==', true).orderBy('createdAt', 'desc').get();
+    
+    if (snapshot.empty) {
+      grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات متوفرة حالياً</p></div>';
+      return;
+    }
+
+    grid.innerHTML = '';
+    snapshot.forEach(doc => {
+      const p = doc.data();
+      const productId = doc.id;
+      const priceOriginal = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} درهم</span>` : '';
+      const imageUrl = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/300x400';
+
+      grid.innerHTML += `
+        <a href="product.html?id=${productId}" class="product-card block bg-white rounded-xl shadow-sm overflow-hidden border">
+          <img src="${imageUrl}" alt="${p.name}" class="w-full h-64 object-cover">
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">${p.name}</h3>
+            <p class="text-sm text-gray-500 mb-2">${p.type || ''} — ${p.gender === 'women' ? 'نسائي' : p.gender === 'men' ? 'رجالي' : p.gender === 'girls' ? 'بنات' : 'أولاد'}</p>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-lg">${p.price} درهم</span>
+              ${priceOriginal}
+            </div>
+          </div>
+        </a>
+      `;
+    });
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
+  }
 }
 
-
-
-document.addEventListener('DOMContentLoaded', () => {
-  // تحديث واجهة المستخدم بناءً على حالة تسجيل الدخول
-  window.app.onAuthStateChanged(window.app.auth, updateUserUI);
-  // تحميل المنتجات
-  loadProducts();
-});
-</script>
-<!-- ضع هذا قبل نهاية </body> في كل صفحة -->
-<script>
-// مراقبة حالة تسجيل الدخول
-auth.onAuthStateChanged(user => {
-  updateUserUI(user);
-});
-
+// ✅ تحديث واجهة المستخدم
 function updateUserUI(user) {
   const loginBtn = document.getElementById('login-btn');
   const accountBtn = document.getElementById('account-btn');
   const accountMenu = document.getElementById('account-menu');
-  
+
   if (user) {
-    // مسجّل دخول → أخفِ زر تسجيل الدخول، وأظهر زر الحساب
     if (loginBtn) loginBtn.classList.add('hidden');
     if (accountBtn) {
       accountBtn.classList.remove('hidden');
       accountBtn.classList.add('flex');
     }
   } else {
-    // مو مسجّل → أظهر زر تسجيل الدخول، وأخفِ زر الحساب
     if (loginBtn) loginBtn.classList.remove('hidden');
     if (accountBtn) accountBtn.classList.add('hidden');
     if (accountMenu) accountMenu.classList.add('hidden');
   }
-  
-  // تحديث عداد السلة إن وجد
-  if (window.Store?.updateCartCount) {
-    window.Store.updateCartCount();
-  }
 }
 
-// فتح وإغلاق قائمة الحساب
+// ✅ فتح وإغلاق قائمة الحساب — تعريف مرة واحدة
 const accountBtn = document.getElementById('account-btn');
 const accountMenu = document.getElementById('account-menu');
 
@@ -167,23 +181,23 @@ if (accountBtn && accountMenu) {
     e.stopPropagation();
     accountMenu.classList.toggle('hidden');
   });
-  
-  // إغلاق القائمة لما تضغط براها
-  document.addEventListener('click', () => {
-    accountMenu.classList.add('hidden');
-  });
-  
-  // منع إغلاق القائمة لما تضغط جواها
-  accountMenu.addEventListener('click', (e) => {
-    e.stopPropagation();
-  });
+  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
+  accountMenu.addEventListener('click', (e) => e.stopPropagation());
 }
 
-// تسجيل الخروج
-async function logout() {
+// ✅ تسجيل الخروج
+window.logout = async () => {
   await auth.signOut();
-  window.location.href = 'index.html';
-}
+  showToast('✅ تم تسجيل الخروج');
+  setTimeout(() => window.location.reload(), 1000);
+};
+
+// ✅ عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+  auth.onAuthStateChanged(updateUserUI);
+  loadProducts();
+});
 </script>
+
 </body>
 </html>
