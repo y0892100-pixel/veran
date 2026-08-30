@@ -11,6 +11,8 @@
     * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
     .modal.active { display: flex; }
   </style>
@@ -26,7 +28,24 @@
     const db = getFirestore(app);
     const googleProvider = new GoogleAuthProvider();
 
-    window.app = { auth, db, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile, collection, addDoc };
+    // ✅ إيميل الأدمن — تم وضعه هنا
+    const ADMIN_EMAIL = 'y0892100@gmail.com';
+
+    // ✅ التحقق من صلاحية الدخول
+    async function checkAdminAccess(user) {
+      if (!user) {
+        return false; // يبقى في صفحة تسجيل الدخول
+      }
+      if (user.email !== ADMIN_EMAIL) {
+        alert('❌ ليس لديك صلاحية للدخول إلى لوحة التحكم');
+        await signOut(auth);
+        window.location.href = 'index.html';
+        return false;
+      }
+      return true;
+    }
+
+    window.app = { auth, db, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile, collection, addDoc, checkAdminAccess };
     window.Store = Store;
   </script>
 </head>
@@ -66,7 +85,7 @@
         <input type="number" id="p-price-original" class="w-full border rounded-lg p-3" placeholder="اختياري">
       </div>
       <div>
-        <label class="block font-semibold mb-1">السعر الحالي</label>
+        <label class="block font-semibold mb-1">السعر الحالي (بالدرهم د.إ)</label>
         <input type="number" id="p-price" class="w-full border rounded-lg p-3" required>
       </div>
       <div>
@@ -164,8 +183,17 @@ window.showEmailLogin = () => { document.getElementById('login-options').classLi
 window.showRegister = () => { document.getElementById('login-options').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden'); };
 window.backToOptions = () => { document.getElementById('login-options').classList.remove('hidden'); document.getElementById('email-login').classList.add('hidden'); document.getElementById('register-form').classList.add('hidden'); };
 
+function showToast(msg, type='success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
 function updateUI(user) {
   const area = document.getElementById('user-area');
+  const form = document.getElementById('add-product-form');
+  
   if (user) {
     area.innerHTML = `
       <div class="flex items-center gap-2">
@@ -173,50 +201,65 @@ function updateUI(user) {
         <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700">تسجيل الخروج</button>
       </div>
     `;
+    form.style.display = 'block';
   } else {
     area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
+    form.style.display = 'none';
   }
-  window.Store.updateCartCount();
+  window.Store?.updateCartCount?.();
 }
 
 window.loginWithGoogle = async () => {
   try {
-    await window.app.signInWithPopup(window.app.auth, window.app.googleProvider);
+    const result = await window.app.signInWithPopup(window.app.auth, window.app.googleProvider);
+    const allowed = await window.app.checkAdminAccess(result.user);
+    if (!allowed) return;
     closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول ✅');
-  } catch (e) { window.Store.showToast(e.message, 'error'); }
+    showToast('تم تسجيل الدخول ✅');
+  } catch (e) { showToast(e.message, 'error'); }
 };
 
 window.registerUser = async () => {
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const pass = document.getElementById('reg-password').value;
-  if (!name || !email || pass.length < 6) return window.Store.showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
+  if (!name || !email || pass.length < 6) return showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
   try {
     const cred = await window.app.createUserWithEmailAndPassword(window.app.auth, email, pass);
     await window.app.updateProfile(cred.user, { displayName: name });
+    const allowed = await window.app.checkAdminAccess(cred.user);
+    if (!allowed) return;
     closeModal('login-modal');
-    window.Store.showToast('تم إنشاء الحساب ✅');
-  } catch (e) { window.Store.showToast(e.message, 'error'); }
+    showToast('تم إنشاء الحساب ✅');
+  } catch (e) { showToast(e.message, 'error'); }
 };
 
 window.loginWithEmail = async () => {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
   try {
-    await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
+    const cred = await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
+    const allowed = await window.app.checkAdminAccess(cred.user);
+    if (!allowed) return;
     closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول ✅');
-  } catch (e) { window.Store.showToast('إيميل أو كلمة مرور خاطئة', 'error'); }
+    showToast('تم تسجيل الدخول ✅');
+  } catch (e) { showToast('إيميل أو كلمة مرور خاطئة', 'error'); }
 };
 
 window.logout = async () => {
   await window.app.signOut(window.app.auth);
-  window.Store.showToast('تم تسجيل الخروج');
+  showToast('تم تسجيل الخروج');
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  window.app.onAuthStateChanged(window.app.auth, updateUI);
+  window.app.onAuthStateChanged(window.app.auth, async user => {
+    if (user) {
+      const allowed = await window.app.checkAdminAccess(user);
+      if (!allowed) return;
+    }
+    updateUI(user);
+  });
+
   const form = document.getElementById('add-product-form');
   form.addEventListener('submit', async e => {
     e.preventDefault();
@@ -235,9 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
         sizes: selectedSizes,
         images: images
       });
-      window.Store.showToast('تم إضافة المنتج بنجاح ✅');
+      showToast('تم إضافة المنتج بنجاح ✅');
       form.reset();
-    } catch (err) { window.Store.showToast('خطأ: ' + err.message, 'error'); }
+    } catch (err) { showToast('خطأ: ' + err.message, 'error'); }
   });
 });
 </script>
