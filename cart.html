@@ -11,9 +11,18 @@
     * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
+    .toast.success { background: #22c55e; }
+    .toast.error { background: #ef4444; }
   </style>
   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import firebaseConfig from './firebase-config.js';
     import * as Store from './store.js';
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    window.app = { auth, onAuthStateChanged, signOut };
     window.Store = Store;
   </script>
 </head>
@@ -26,27 +35,29 @@
       <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
       <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
       <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
+      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
+      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
     </div>
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
         <i class="fa-solid fa-cart-shopping"></i>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
-    <div id="user-area" class="relative">
-  <!-- زر حسابي يظهر فقط لما يكون مسجل دخول -->
-  <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
-    حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
-  </button>
-  <button id="login-btn" onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
-
-  <!-- القائمة المنسدلة -->
-  <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
-    <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
-    <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
-    <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
-    <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
+      <div id="user-area" class="relative">
+        <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
+          حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
+        </button>
+        <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
+        <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+          <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
+          <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
+          <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
+          <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+</nav>
 
 <main class="max-w-4xl mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-8 text-center">سلة التسوق</h1>
@@ -60,6 +71,43 @@
 <div id="toast" class="toast"></div>
 
 <script>
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+if (accountBtn) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
+  accountMenu?.addEventListener('click', (e) => e.stopPropagation());
+}
+
+function updateUserUI(user) {
+  const loginBtn = document.getElementById('login-btn');
+  if (user) {
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) { accountBtn.classList.remove('hidden'); accountBtn.classList.add('flex'); }
+  } else {
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
+  }
+  if (window.Store?.updateCartCount) window.Store.updateCartCount();
+}
+
+async function logout() {
+  await window.app.auth.signOut();
+  window.location.href = 'index.html';
+}
+
 function renderCart() {
   const content = document.getElementById('cart-content');
   const cart = window.Store.getCart();
@@ -80,14 +128,17 @@ function renderCart() {
   content.innerHTML = `
     <div class="space-y-4">
       ${cart.map((item, idx) => {
-        total += item.price * item.qty;
+        const price = Number(item.price) || 0;
+        const qty = Number(item.qty) || 1;
+        const subtotal = price * qty;
+        total += subtotal;
         return `
           <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4">
             <img src="${item.img || 'https://via.placeholder.com/100'}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg">
             <div class="flex-1">
               <h3 class="font-bold">${item.name}</h3>
-              <p class="text-sm text-gray-500">${item.color} - ${item.size}</p>
-              <p class="font-semibold">${item.price} درهم × ${item.qty} = ${item.price * item.qty}درهم</p>
+              <p class="text-sm text-gray-500">${item.color || 'بدون لون'} - ${item.size || 'بدون مقاس'}</p>
+              <p class="font-semibold">${price} درهم × ${qty} = ${subtotal} درهم</p>
             </div>
             <button onclick="removeItem(${idx})" class="text-red-500 hover:text-red-700">
               <i class="fa-solid fa-trash"></i>
@@ -99,7 +150,7 @@ function renderCart() {
     <div class="mt-8 bg-white p-6 rounded-xl shadow-sm">
       <div class="flex justify-between text-xl font-bold mb-4">
         <span>المجموع الكلي:</span>
-        <span>${total}درهم</span>
+        <span>${total} درهم</span>
       </div>
       <a href="checkout.html" class="block w-full text-center bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800">إتمام الطلب</a>
     </div>
@@ -111,10 +162,14 @@ function removeItem(index) {
   cart.splice(index, 1);
   window.Store.saveCart(cart);
   renderCart();
-  window.Store.showToast('تم الحذف');
+  showToast('تم الحذف من السلة');
 }
 
-document.addEventListener('DOMContentLoaded', renderCart);
+document.addEventListener('DOMContentLoaded', () => {
+  renderCart();
+  window.app.onAuthStateChanged(window.app.auth, updateUserUI);
+});
 </script>
+
 </body>
 </html>
