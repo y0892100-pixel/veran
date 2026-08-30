@@ -28,61 +28,64 @@
     let recaptchaVerifier = null;
     let confirmationResult = null;
 
-    window.app = { 
-      auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-      sendEmailVerification, updateProfile, PhoneAuthProvider, RecaptchaVerifier,
-      doc, setDoc, getDoc, query, collection, where, getDocs
-    };
+    // ✅ تصدير صحيح للدوال
+    window.auth = auth;
+    window.db = db;
+    window.PhoneAuthProvider = PhoneAuthProvider;
+    window.RecaptchaVerifier = RecaptchaVerifier;
+    window.onAuthStateChanged = onAuthStateChanged;
+    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+    window.signOut = signOut;
+    window.sendEmailVerification = sendEmailVerification;
+    window.updateProfile = updateProfile;
+    window.doc = doc;
+    window.setDoc = setDoc;
+    window.getDoc = getDoc;
+    window.query = query;
+    window.collection = collection;
+    window.where = where;
+    window.getDocs = getDocs;
   </script>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex items-center justify-center">
 
 <main class="w-full max-w-md px-4 py-8">
   <a href="index.html" class="block text-center text-2xl font-bold text-gray-900 mb-8">VAREN</a>
-
   <div id="toast" class="toast"></div>
 
-  <!-- الخطوة 1: اختيار نوع العملية -->
   <div id="step-auth-type" class="step active bg-white p-8 rounded-xl shadow-md">
     <h2 class="text-2xl font-bold text-center mb-6">أهلاً بك</h2>
     <button onclick="showStep('step-login')" class="w-full bg-black text-white py-3 rounded-lg mb-3 hover:bg-gray-800">تسجيل الدخول</button>
     <button onclick="showStep('step-register')" class="w-full border-2 border-black text-black py-3 rounded-lg hover:bg-gray-50">إنشاء حساب جديد</button>
   </div>
 
-  <!-- الخطوة 2: تسجيل الدخول -->
   <div id="step-login" class="step bg-white p-8 rounded-xl shadow-md">
     <button onclick="showStep('step-auth-type')" class="text-gray-500 mb-4">&larr; رجوع</button>
     <h2 class="text-2xl font-bold text-center mb-6">تسجيل الدخول</h2>
     <input type="email" id="login-email" placeholder="الإيميل" class="w-full border rounded-lg p-3 mb-3">
     <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border rounded-lg p-3 mb-4">
-    <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
+    <button onclick="handleLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
     <p class="text-center mt-4 text-sm">ليس لديك حساب؟ <button onclick="showStep('step-register')" class="text-black font-semibold">إنشاء حساب</button></p>
   </div>
 
-  <!-- الخطوة 3: إنشاء حساب جديد -->
   <div id="step-register" class="step bg-white p-8 rounded-xl shadow-md">
     <button onclick="showStep('step-auth-type')" class="text-gray-500 mb-4">&larr; رجوع</button>
     <h2 class="text-2xl font-bold text-center mb-6">إنشاء حساب جديد</h2>
-    
     <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border rounded-lg p-3 mb-3">
     <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border rounded-lg p-3 mb-3">
     <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف على الأقل)" class="w-full border rounded-lg p-3 mb-3">
     <input type="tel" id="reg-phone" placeholder="رقم الهاتف: +97150XXXXXXX أو 050XXXXXXX" class="w-full border rounded-lg p-3 mb-3">
-    
     <button onclick="sendVerificationCode()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 mb-2">إرسال رمز التحقق</button>
     <p class="text-xs text-gray-500 text-center">سيصلك كود مكون من 6 أرقام برسالة نصية على هاتفك 📱</p>
-    
-    <!-- قسم إدخال الكود -->
     <div id="otp-section" class="hidden mt-4">
       <input type="text" id="otp-code" placeholder="أدخل الكود من الرسالة" maxlength="6" class="w-full border rounded-lg p-3 mb-3 text-center tracking-widest text-xl">
       <button onclick="verifyCodeAndRegister()" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700">تأكيد وإنشاء الحساب</button>
     </div>
-    
     <p class="text-center mt-4 text-sm">لديك حساب؟ <button onclick="showStep('step-login')" class="text-black font-semibold">تسجيل الدخول</button></p>
   </div>
 </main>
 
-<!-- حاوية reCAPTCHA المخفية — لا تحذفها! -->
 <div id="recaptcha-container" class="hidden"></div>
 
 <script>
@@ -101,63 +104,43 @@ function showStep(stepId) {
   }
 }
 
-// التحقق من عدم تكرار الإيميل
 async function checkEmailExists(email) {
   try {
-    const q = window.app.query(
-      window.app.collection(window.app.db, 'users'),
-      window.app.where('email', '==', email)
-    );
-    const snap = await window.app.getDocs(q);
+    const q = window.query(window.collection(window.db, 'users'), window.where('email', '==', email));
+    const snap = await window.getDocs(q);
     return !snap.empty;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-// التحقق من عدم تكرار رقم الهاتف
 async function checkPhoneExists(phone) {
   try {
-    const q = window.app.query(
-      window.app.collection(window.app.db, 'users'),
-      window.app.where('phone', '==', phone)
-    );
-    const snap = await window.app.getDocs(q);
+    const q = window.query(window.collection(window.db, 'users'), window.where('phone', '==', phone));
+    const snap = await window.getDocs(q);
     return !snap.empty;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-// تهيئة reCAPTCHA
 function initRecaptcha() {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new window.app.RecaptchaVerifier(window.app.auth, 'recaptcha-container', {
-      size: 'invisible',
-      callback: (response) => { console.log('reCAPTCHA تم التحقق منه'); }
-    });
+  if (!recaptchaVerifier) {
+    recaptchaVerifier = new window.RecaptchaVerifier(window.auth, 'recaptcha-container', { size: 'invisible' });
   }
 }
 
-// إرسال الكود برسالة نصية
 async function sendVerificationCode() {
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const pass = document.getElementById('reg-password').value;
   let phone = document.getElementById('reg-phone').value.trim();
 
-  // التحقق من البيانات
   if (!name || !email || pass.length < 6 || !phone) {
     return showToast('املأ جميع الحقول (كلمة المرور 6 أحرف على الأقل)', 'error');
   }
 
-  // تحويل الصيغة المحلية لدولية
   if (phone.startsWith('05')) {
     phone = '+971' + phone.slice(1);
     document.getElementById('reg-phone').value = phone;
   }
 
-  // التحقق من عدم التكرار
   if (await checkEmailExists(email)) {
     return showToast('هذا الإيميل مسجل بالفعل! سجّل دخول.', 'error');
   }
@@ -165,28 +148,22 @@ async function sendVerificationCode() {
     return showToast('هذا الرقم مسجل بحساب آخر! استخدم رقماً مختلفاً.', 'error');
   }
 
-  // إرسال الكود
   try {
     initRecaptcha();
-    const appVerifier = window.recaptchaVerifier;
-    window.confirmationResult = await window.app.PhoneAuthProvider.signInWithPhoneNumber(
-      window.app.auth, phone, appVerifier
-    );
+    const appVerifier = recaptchaVerifier;
+    confirmationResult = await window.PhoneAuthProvider.signInWithPhoneNumber(window.auth, phone, appVerifier);
     showToast('✅ تم إرسال الكود إلى هاتفك!');
     document.getElementById('otp-section').classList.remove('hidden');
   } catch (err) {
     console.error(err);
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.render().then(w => w.clear());
-    }
-    let msg = 'خطأ في إرسال الكود';
+    if (recaptchaVerifier) recaptchaVerifier.render().then(w => w.clear());
+    let msg = 'خطأ في إرسال الكود: ' + (err.message || err.code);
     if (err.code === 'auth/invalid-phone-number') msg = 'رقم الهاتف غير صالح! استخدم الصيغة: +97150XXXXXXX';
-    if (err.code === 'auth/quota-exceeded') msg = 'تم تجاوز الحد اليومي للرسائل! جرب غداً أو أضف بطاقة في الفوترة.';
+    if (err.code === 'auth/quota-exceeded') msg = 'تم تجاوز الحد اليومي! جرب غداً أو أضف بطاقة في الفوترة.';
     showToast(msg, 'error');
   }
 }
 
-// التحقق من الكود وإنشاء الحساب
 async function verifyCodeAndRegister() {
   const code = document.getElementById('otp-code').value.trim();
   const name = document.getElementById('reg-name').value.trim();
@@ -199,44 +176,31 @@ async function verifyCodeAndRegister() {
   }
 
   try {
-    // التحقق من الكود المرسل
-    await window.confirmationResult.confirm(code);
-    
-    // إنشاء حساب بالإيميل وكلمة المرور
-    const cred = await window.app.createUserWithEmailAndPassword(window.app.auth, email, pass);
-    
-    // حفظ الاسم
-    await window.app.updateProfile(cred.user, { displayName: name });
-    
-    // حفظ البيانات في Firestore
-    await window.app.setDoc(window.app.doc(window.app.db, 'users', cred.user.uid), {
+    await confirmationResult.confirm(code);
+    const cred = await window.createUserWithEmailAndPassword(window.auth, email, pass);
+    await window.updateProfile(cred.user, { displayName: name });
+    await window.setDoc(window.doc(window.db, 'users', cred.user.uid), {
       name, email, phone, createdAt: new Date()
     });
-
-    // إرسال تأكيد الإيميل
-    await window.app.sendEmailVerification(cred.user);
-    
+    await window.sendEmailVerification(cred.user);
     showToast('✅ تم إنشاء الحساب! رابط التأكيد أُرسل إلى بريدك.');
     setTimeout(() => window.location.href = 'index.html', 2000);
   } catch (err) {
     console.error(err);
-    let msg = 'خطأ في إنشاء الحساب';
-    if (err.code === 'auth/invalid-verification-code') msg = '❌ الكود غير صحيح! أعد المحاولة.';
-    if (err.code === 'auth/code-expired') msg = '⏰ انتهت صلاحية الكود! أعد إرسال طلب جديد.';
+    let msg = 'خطأ: ' + err.message;
+    if (err.code === 'auth/invalid-verification-code') msg = '❌ الكود غير صحيح!';
+    if (err.code === 'auth/code-expired') msg = '⏰ انتهت صلاحية الكود! أعد الإرسال.';
     if (err.code === 'auth/email-already-in-use') msg = 'هذا الإيميل مسجل مسبقاً!';
     showToast(msg, 'error');
   }
 }
 
-// تسجيل الدخول بالإيميل
-async function loginWithEmail() {
+async function handleLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
-  
   if (!email || !pass) return showToast('أدخل الإيميل وكلمة المرور', 'error');
-
   try {
-    await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
+    await window.signInWithEmailAndPassword(window.auth, email, pass);
     showToast('✅ تم تسجيل الدخول!');
     setTimeout(() => window.location.href = 'index.html', 1500);
   } catch (err) {
@@ -248,13 +212,11 @@ async function loginWithEmail() {
   }
 }
 
-// توجيه لو مسجل دخول
-window.app.onAuthStateChanged(window.app.auth, user => {
+window.onAuthStateChanged(window.auth, user => {
   if (user && window.location.pathname.includes('login')) {
     window.location.href = 'index.html';
   }
 });
 </script>
-
 </body>
 </html>
