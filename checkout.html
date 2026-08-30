@@ -119,5 +119,65 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+<!-- EmailJS Library -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+<script>
+  // تهيئة EmailJS
+  (function(){
+    emailjs.init("3A0NspFA3vISd64jc");
+  })();
+
+  // إرسال إشعار بالطلب الجديد
+  async function sendOrderEmail(orderData) {
+    const serviceID = "service_pz0cxlr";
+    const templateID = "template_g6k71ll";
+
+    const templateParams = {
+      to_email: "y0892100@gmail.com",
+      customer_name: orderData.name,
+      customer_email: orderData.email,
+      customer_phone: orderData.phone,
+      customer_address: orderData.address,
+      order_items: orderData.itemsText,
+      order_total: orderData.total,
+      order_date: new Date().toLocaleString('ar-AE'),
+      order_id: orderData.orderId
+    };
+
+    try {
+      const response = await emailjs.send(serviceID, templateID, templateParams);
+      console.log("✅ تم إرسال الإيميل بنجاح", response.status, response.text);
+      return true;
+    } catch (error) {
+      console.error("❌ فشل إرسال الإيميل:", error);
+      return false;
+    }
+  }
+
+  // مثال: دالة تُستدعى عند إكمال الطلب
+  async function completeOrderAndNotify(orderData) {
+    try {
+      // 1. احفظ الطلب في Firestore أولاً
+      const orderRef = await db.collection('orders').add({
+        ...orderData,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        status: 'جديد'
+      });
+
+      // أضف رقم الطلب للبيانات
+      orderData.orderId = orderRef.id;
+
+      // 2. أرسل إيميل الإشعار
+      await sendOrderEmail(orderData);
+
+      alert("✅ تم استلام طلبك بنجاح! سنتواصل معك قريباً");
+      window.location.href = 'index.html';
+    } catch (err) {
+      console.error("❌ خطأ في إتمام الطلب:", err);
+      alert("حدث خطأ، يرجى المحاولة مرة أخرى");
+    }
+  }
+</script>
 </body>
 </html>
