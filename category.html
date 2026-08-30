@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إتمام الطلب - VAREN</title>
+  <title>الأقسام - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -11,20 +11,23 @@
     * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
-    .toast.success { background: #22c55e; }
-    .toast.error { background: #ef4444; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    .product-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .product-card { transition: all 0.3s ease; }
+    .filter-btn.active { background: black; color: white; }
   </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import firebaseConfig from './firebase-config.js';
     import * as Store from './store.js';
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    window.app = { auth, db, onAuthStateChanged, collection, addDoc, serverTimestamp };
+    window.app = { auth, db, onAuthStateChanged, signOut, collection, query, where, getDocs };
     window.Store = Store;
   </script>
 </head>
@@ -35,48 +38,51 @@
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
     <div class="hidden md:flex gap-8">
       <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
+      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
+      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
+      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
+      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
+      <a href="admin.html" class="font-medium text-sm text-gray-500 hover:text-black">لوحة التحكم</a>
     </div>
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
         <i class="fa-solid fa-cart-shopping"></i>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
+      <div id="user-area" class="relative">
+        <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
+          حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
+        </button>
+        <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
+        <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+          <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
+          <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
+          <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
+          <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
+        </div>
+      </div>
     </div>
   </div>
 </nav>
 
-<main class="max-w-2xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-8 text-center">إتمام الطلب</h1>
+<main class="max-w-7xl mx-auto px-4 py-8">
+  <h1 id="category-title" class="text-2xl md:text-3xl font-bold mb-8 text-center">جميع المنتجات</h1>
 
-  <!-- ملخص الطلب - يظهر تلقائيًا -->
-  <div class="bg-gray-50 p-6 rounded-xl shadow-md mb-6">
-    <h3 class="font-bold text-xl mb-4 text-center">ملخص طلبك</h3>
-    <div id="cart-items-summary" class="space-y-4"></div>
-    <div class="border-t pt-3 mt-4">
-      <p class="text-xl font-bold">المجموع الكلي: <span id="total-amount">0</span> درهم</p>
-    </div>
+  <!-- فلاتر -->
+  <div class="mb-8 flex flex-wrap justify-center gap-3">
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100 active" data-filter="all">الكل</button>
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="hoodies">هودي</button>
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="tshirts">تيشيرت</button>
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="winter">شتوي</button>
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="summer">صيفي</button>
   </div>
 
-  <!-- بيانات العميل فقط -->
-  <form id="checkout-form" class="bg-white p-6 rounded-xl shadow-md space-y-4">
-    <div>
-      <label for="full-name" class="block font-semibold mb-1">الاسم الكامل *</label>
-      <input type="text" id="full-name" class="w-full border rounded-lg p-3" placeholder="أدخل اسمك الكامل" required>
+  <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div class="col-span-full text-center py-12 text-gray-500">
+      <i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i>
+      <p>جاري تحميل المنتجات...</p>
     </div>
-    <div>
-      <label for="phone" class="block font-semibold mb-1">رقم الهاتف *</label>
-      <input type="tel" id="phone" class="w-full border rounded-lg p-3" placeholder="مثال: 0501234567" required>
-    </div>
-    <div>
-      <label for="address" class="block font-semibold mb-1">الموقع / العنوان بالكامل *</label>
-      <textarea id="address" class="w-full border rounded-lg p-3" rows="3" placeholder="المدينة، الحي، الشارع، رقم المنزل..." required></textarea>
-    </div>
-    <div>
-      <label for="notes" class="block font-semibold mb-1">ملاحظات إضافية (اختياري)</label>
-      <textarea id="notes" class="w-full border rounded-lg p-3" rows="2" placeholder="أي تعليمات خاصة للطلب..."></textarea>
-    </div>
-    <button type="submit" id="submit-btn" class="w-full bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800">تأكيد الطلب</button>
-  </form>
+  </div>
 </main>
 
 <footer class="bg-gray-900 text-white py-8 text-center">
@@ -85,175 +91,125 @@
 
 <div id="toast" class="toast"></div>
 
-<!-- EmailJS Library -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-
 <script>
-  // تهيئة EmailJS
-  (function(){
-    emailjs.init("3A0NspFA3vlSd64jc");
-  })();
+let currentGender = null;
+let currentFilter = 'all';
 
-  function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = `toast show ${type}`;
-    setTimeout(() => toast.classList.remove('show'), 4000);
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+const toast = document.getElementById('toast');
+
+function showToast(msg, type = 'success') {
+  toast.textContent = msg;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+if (accountBtn) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
+  accountMenu?.addEventListener('click', (e) => e.stopPropagation());
+}
+
+function updateUserUI(user) {
+  const loginBtn = document.getElementById('login-btn');
+  if (user) {
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) { accountBtn.classList.remove('hidden'); accountBtn.classList.add('flex'); }
+  } else {
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
   }
+  if (window.Store?.updateCartCount) window.Store.updateCartCount();
+}
 
-  // تنسيق المنتجات للإيميل - كل منتج لحاله بسطر منفصل
-  function formatCartItemsForEmail(cart) {
-    if (!cart || cart.length === 0) return 'لا توجد منتجات';
+async function logout() {
+  await window.app.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+function setCategoryTitle(gender) {
+  const titles = {
+    women: 'المنتجات النسائية',
+    men: 'المنتجات الرجالية',
+    girls: 'منتجات البنات',
+    boys: 'منتجات الأولاد'
+  };
+  document.getElementById('category-title').textContent = titles[gender] || 'جميع المنتجات';
+}
+
+function matchesFilter(product, filter) {
+  if (filter === 'all') return true;
+  if (filter === 'hoodies') return product.type === 'hoodies' || product.type === 'هودي';
+  if (filter === 'tshirts') return product.type === 'tshirts' || product.type === 'تيشيرت';
+  if (filter === 'winter') return product.season === 'winter' || product.season === 'شتوي';
+  if (filter === 'summer') return product.season === 'summer' || product.season === 'صيفي';
+  return false;
+}
+
+async function loadProducts() {
+  const grid = document.getElementById('products-grid');
+  grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i><p>جاري تحميل المنتجات...</p></div>';
+
+  try {
+    let q = window.app.collection(window.app.db, 'products');
+    if (currentGender) q = window.app.query(q, window.app.where('gender', '==', currentGender));
+
+    const snapshot = await window.app.getDocs(q);
+    let products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
-    return cart.map((item, index) => {
-      const itemNumber = index + 1;
-      const size = item.selectedSize || 'غير محدد';
-      const color = item.selectedColor || 'غير محدد';
-      const quantity = item.quantity || 1;
-      const priceEach = item.price || 0;
-      const totalPrice = priceEach * quantity;
-      
-      return `المنتج رقم ${itemNumber}:
-اسم المنتج: ${item.name}
-اللون: ${color}
-المقاس: ${size}
-الكمية: ${quantity}
-السعر: ${totalPrice} درهم`;
-    }).join('\n\n---\n\n');
-  }
+    if (currentFilter !== 'all') products = products.filter(p => matchesFilter(p, currentFilter));
 
-  // عرض ملخص الطلب في الصفحة
-  function renderCartSummary(cart) {
-    const container = document.getElementById('cart-items-summary');
-    if (!cart || cart.length === 0) {
-      container.innerHTML = '<p class="text-gray-500 text-center">السلة فارغة، أضف منتجات أولاً!</p>';
+    if (products.length === 0) {
+      grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات في هذا القسم حالياً</p></div>';
       return;
     }
-    container.innerHTML = cart.map((item, index) => {
-      const size = item.selectedSize || 'غير محدد';
-      const color = item.selectedColor || 'غير محدد';
-      const quantity = item.quantity || 1;
-      const totalPrice = (item.price || 0) * quantity;
-      return `
-        <div class="border-b pb-3">
-          <p class="font-bold text-lg">المنتج ${index + 1}: ${item.name}</p>
-          <p class="text-sm text-gray-700">اللون: ${color} | المقاس: ${size}</p>
-          <p class="text-sm text-gray-700">الكمية: ${quantity} | السعر: ${totalPrice} درهم</p>
-        </div>
+
+    grid.innerHTML = '';
+    products.forEach(p => {
+      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} د.إ</span>` : '';
+      const img = p.images?.[0] || 'https://via.placeholder.com/400x500?text=لا+صورة';
+      grid.innerHTML += `
+        <a href="product.html?id=${p.id}" class="product-card bg-white rounded-xl overflow-hidden shadow-sm block">
+          <img src="${img}" alt="${p.name}" class="w-full h-64 object-cover">
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-1">${p.name}</h3>
+            <p class="text-gray-600 text-sm mb-2">${p.type || ''}</p>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-lg">${p.price} د.إ</span>
+              ${priceTag}
+            </div>
+          </div>
+        </a>
       `;
-    }).join('');
+    });
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
   }
+}
 
-  async function sendOrderEmail(orderData) {
-    const serviceID = "service_3bs6onj";
-    const templateID = "template_om7zrjs";
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  currentGender = params.get('gender');
+  setCategoryTitle(currentGender);
 
-    const templateParams = {
-      to_email: "y0892100@gmail.com",
-      customer_name: orderData.userName,
-      customer_phone: orderData.phone,
-      customer_address: orderData.address,
-      customer_notes: orderData.notes || 'لا يوجد ملاحظات',
-      order_items: orderData.itemsText,
-      order_total: orderData.total,
-      order_date: new Date().toLocaleString('ar-AE'),
-      order_id: orderData.orderId
-    };
-
-    console.log("📧 بيانات الإيميل:", templateParams);
-
-    try {
-      const response = await emailjs.send("service_3bs6onj","template_om7zrjs");
-      console.log("✅ تم إرسال الإيميل بنجاح!", response.status);
-      return true;
-    } catch (error) {
-      console.error("❌ فشل إرسال الإيميل:", error);
-      return false;
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.Store && window.Store.updateCartCount) {
-      window.Store.updateCartCount();
-    }
-    const cart = window.Store && window.Store.getCart ? window.Store.getCart() : [];
-    const total = window.Store && window.Store.getCartTotal ? window.Store.getCartTotal() : '0';
-    document.getElementById('total-amount').textContent = total;
-    renderCartSummary(cart);
-
-    document.getElementById('checkout-form').addEventListener('submit', async e => {
-      e.preventDefault();
-      const submitBtn = document.getElementById('submit-btn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'جاري المعالجة...';
-
-      if (cart.length === 0) {
-        showToast('السلة فارغة! أضف منتجات أولاً', 'error');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'تأكيد الطلب';
-        return;
-      }
-
-      const user = window.app && window.app.auth ? window.app.auth.currentUser : null;
-      if (!user) {
-        showToast('سجّل دخول أولاً لإتمام الطلب', 'error');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'تأكيد الطلب';
-        window.location.href = 'login.html';
-        return;
-      }
-
-      const userName = document.getElementById('full-name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const address = document.getElementById('address').value.trim();
-      const notes = document.getElementById('notes').value.trim();
-
-      if (!userName || !phone || !address) {
-        showToast('املأ الاسم ورقم الهاتف والعنوان', 'error');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'تأكيد الطلب';
-        return;
-      }
-
-      const itemsText = formatCartItemsForEmail(cart);
-      const orderData = {
-        userId: user.uid,
-        userName,
-        phone,
-        address,
-        notes,
-        items: cart,
-        itemsText,
-        total,
-        status: 'جديد',
-        createdAt: window.app.serverTimestamp()
-      };
-
-      try {
-        console.log("💾 جاري حفظ الطلب...");
-        const orderRef = await window.app.addDoc(
-          window.app.collection(window.app.db, 'orders'),
-          orderData
-        );
-        orderData.orderId = orderRef.id;
-        console.log("✅ الطلب محفوظ، رقم الطلب:", orderRef.id);
-
-        console.log("📧 جاري إرسال الإيميل...");
-        await sendOrderEmail(orderData);
-
-        if (window.Store && window.Store.clearCart) {
-          window.Store.clearCart();
-        }
-        showToast('✅ تم استلام طلبك بنجاح! سنتواصل معك قريباً');
-        setTimeout(() => window.location.href = 'index.html', 2000);
-      } catch (err) {
-        console.error("❌ خطأ:", err);
-        showToast('حدث خطأ: ' + err.message, 'error');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'تأكيد الطلب';
-      }
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      loadProducts();
     });
   });
+
+  window.app.onAuthStateChanged(window.app.auth, updateUserUI);
+  loadProducts();
+});
 </script>
 
 </body>
