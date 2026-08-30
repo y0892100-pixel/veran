@@ -99,27 +99,35 @@
 
 <script>
 // تحديث زر المستخدم
+<script>
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+
+if (accountBtn) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
+  accountMenu?.addEventListener('click', (e) => e.stopPropagation());
+}
+
 function updateUserUI(user) {
-  const area = document.getElementById('user-area');
+  const loginBtn = document.getElementById('login-btn');
   if (user) {
-    area.innerHTML = `
-      <div class="flex items-center gap-2">
-        <span class="text-sm">أهلاً بك، ${user.displayName || 'العميل'}</span>
-        <button onclick="window.location.href='admin.html'" class="text-sm text-gray-600 hover:text-black">تحكم</button>
-        <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700">خروج</button>
-      </div>
-    `;
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) {
+      accountBtn.classList.remove('hidden');
+      accountBtn.classList.add('flex');
+    }
   } else {
-    area.innerHTML = `<button onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>`;
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
   }
-  window.Store.updateCartCount();
+  window.Store?.updateCartCount?.();
 }
-
-async function logout() {
-  await window.app.signOut(window.app.auth);
-  window.Store.showToast('تم تسجيل الخروج');
-}
-
+</script>
 // جلب وعرض المنتجات
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
