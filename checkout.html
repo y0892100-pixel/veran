@@ -1,275 +1,123 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VAREN - متجر الملابس</title>
-    <link rel="stylesheet" href="style.css">
-<link rel="icon" type="image/png" href="varen.jpeg">
-<link rel="icon" type="image/png" href="favicon.png">
-</head>
-<body>
-    <div id="app"></div>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إتمام الطلب - VAREN</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    * { font-family: 'Cairo', sans-serif; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast.show { display: block; }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import firebaseConfig from './firebase-config.js';
+    import * as Store from './store.js';
 
-    <!-- Firebase CDN -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <script>
-        // ✅ عدّل هذه البيانات ببيانات مشروعك من Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyCuyUkuNEVWNpah8xsPEmuVeXkGvgi4gfQ",
-            authDomain: "planning-with-ai-d6295.firebaseapp.com",
-            databaseURL: "https://planning-with-ai-d6295-default-rtdb.firebaseio.com",
-            projectId: "planning-with-ai-d6295",
-            storageBucket: "planning-with-ai-d6295.appspot.com",
-            messagingSenderId: "992008736188",
-            appId: "1:992008736188:web:9372a5fe172f60be066fb9"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-    </script>
-
-    <script src="store.js"></script>
-    <script>
-        window.onload = home;
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VAREN - متجر الملابس</title>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import firebaseConfig from './firebase-config.js';
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const googleProvider = new GoogleAuthProvider();
-
-        window.app = { auth, db, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile, doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp };
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
-        * { font-family: 'Cairo', sans-serif; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
-        .toast.show { display: block; }
-    </style>
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    window.app = { auth, db, onAuthStateChanged, collection, addDoc, serverTimestamp };
+    window.Store = Store;
+  </script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
 <nav class="bg-white shadow-md sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-        <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-        <div class="hidden md:flex gap-8">
-            <a href="index.html" class="hover:text-gray-600">الرئيسية</a>
-            <a href="category.html?gender=women" class="hover:text-gray-600">نسائي</a>
-            <a href="category.html?gender=men" class="hover:text-gray-600">رجالي</a>
-            <a href="category.html?gender=girls" class="hover:text-gray-600">بنات</a>
-            <a href="category.html?gender=boys" class="hover:text-gray-600">أولاد</a>
-        </div>
-        <div class="flex items-center gap-4">
-            <a href="cart.html" class="text-xl relative">
-                <i class="fa-solid fa-cart-shopping"></i>
-                <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-            </a>
-            <div id="user-area">
-                <button id="login-btn" onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>
-            </div>
-        </div>
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
+    <div class="hidden md:flex gap-8">
+      <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
     </div>
+    <div class="flex items-center gap-4">
+      <a href="cart.html" class="text-xl relative">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+      </a>
+    </div>
+  </div>
 </nav>
 
-<main id="page-content">
-    <section class="bg-gradient-to-r from-gray-900 to-gray-700 text-white py-20">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <h1 class="text-5xl font-bold mb-4">أحدث صيحات الموضة</h1>
-            <p class="text-xl mb-8">تسوق أفضل الملابس العصرية لجميع أفراد العائلة</p>
-            <a href="category.html?gender=women" class="inline-block bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-200">تسوق الآن</a>
-        </div>
-    </section>
-
-    <section class="py-16 max-w-7xl mx-auto px-4 grid md:grid-cols-3 gap-8 text-center">
-        <div><i class="fa-solid fa-truck text-4xl mb-4 text-black"></i><h3 class="font-bold text-lg">شحن سريع</h3><p>توصيل لباب بيتك بسرعة</p></div>
-        <div><i class="fa-solid fa-shield-halved text-4xl mb-4 text-black"></i><h3 class="font-bold text-lg">دفع آمن</h3><p>طرق دفع آمنة وموثوقة</p></div>
-        <div><i class="fa-solid fa-rotate-left text-4xl mb-4 text-black"></i><h3 class="font-bold text-lg">إرجاع سهل</h3><p>إذا ما أعجبك شيء رجعه بسهولة</p></div>
-    </section>
+<main class="max-w-2xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-8 text-center">إتمام الطلب</h1>
+  <form id="checkout-form" class="bg-white p-6 rounded-xl shadow-md space-y-4">
+    <div>
+      <label class="block font-semibold mb-1">الاسم الكامل</label>
+      <input type="text" id="full-name" class="w-full border rounded-lg p-3" required>
+    </div>
+    <div>
+      <label class="block font-semibold mb-1">رقم الهاتف</label>
+      <input type="tel" id="phone" class="w-full border rounded-lg p-3" required>
+    </div>
+    <div>
+      <label class="block font-semibold mb-1">العنوان بالكامل</label>
+      <textarea id="address" class="w-full border rounded-lg p-3" rows="3" required></textarea>
+    </div>
+    <div>
+      <label class="block font-semibold mb-1">ملاحظات (اختياري)</label>
+      <textarea id="notes" class="w-full border rounded-lg p-3" rows="2"></textarea>
+    </div>
+    <div class="bg-gray-50 p-4 rounded-lg">
+      <h3 class="font-bold text-lg mb-2">ملخص الطلب</h3>
+      <p class="text-xl font-bold">المجموع: <span id="total-amount">0</span> ر.س</p>
+    </div>
+    <button type="submit" class="w-full bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800">تأكيد الطلب</button>
+  </form>
 </main>
 
-<div id="login-modal" class="modal">
-    <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">تسجيل الدخول</h2>
-            <button onclick="closeModal('login-modal')" class="text-gray-500 text-2xl">&times;</button>
-        </div>
-        <div id="login-options">
-            <button onclick="loginWithGoogle()" class="w-full flex items-center justify-center gap-2 border border-gray-300 py-3 rounded-lg mb-4 hover:bg-gray-50">
-                <i class="fa-brands fa-google text-red-500"></i> الدخول بحساب قوقل
-            </button>
-            <div class="flex items-center gap-4 my-4"><hr class="flex-1"><span>أو</span><hr class="flex-1"></div>
-            <button onclick="showEmailLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">الدخول بالإيميل</button>
-            <p class="text-center mt-4">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب جديد</button></p>
-        </div>
-        <div id="email-login" class="hidden">
-            <input type="email" id="login-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-            <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border border-gray-300 rounded-lg p-3 mb-4">
-            <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
-            <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
-        </div>
-        <div id="register-form" class="hidden">
-            <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-            <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-            <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف على الأقل)" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-            <input type="tel" id="reg-phone" placeholder="رقم الهاتف" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-            <textarea id="reg-address" placeholder="العنوان بالتفصيل" class="w-full border border-gray-300 rounded-lg p-3 mb-4" rows="2"></textarea>
-            <button onclick="registerUser()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">إنشاء حساب</button>
-            <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
-        </div>
-    </div>
-</div>
+<footer class="bg-gray-900 text-white py-8 text-center">
+  <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
+</footer>
 
-<div id="toast" class="toast fixed bottom-5 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-50"></div>
+<div id="toast" class="toast"></div>
 
-<script type="module">
-    const { auth, db, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile, doc, setDoc, getDoc } = window.app;
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  window.Store.updateCartCount();
+  const total = window.Store.getCartTotal();
+  document.getElementById('total-amount').textContent = total;
 
-    window.openModal = id => document.getElementById(id).classList.add('active');
-    window.closeModal = id => document.getElementById(id).classList.remove('active');
-    window.showEmailLogin = () => {
-        document.getElementById('login-options').classList.add('hidden');
-        document.getElementById('email-login').classList.remove('hidden');
-    };
-    window.showRegister = () => {
-        document.getElementById('login-options').classList.add('hidden');
-        document.getElementById('register-form').classList.remove('hidden');
-    };
-    window.backToOptions = () => {
-        document.getElementById('login-options').classList.remove('hidden');
-        document.getElementById('email-login').classList.add('hidden');
-        document.getElementById('register-form').classList.add('hidden');
-    };
-    window.showToast = (msg, type='success') => {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.style.background = type === 'error' ? '#ef4444' : '#22c55e';
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 3000);
-    };
-
-    function updateUI(user) {
-        const area = document.getElementById('user-area');
-        if (user) {
-            area.innerHTML = `
-                <div class="relative group">
-                    <button class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
-                        <i class="fa-solid fa-user"></i>
-                        <span>${user.displayName || 'حسابي'}</span>
-                        <i class="fa-solid fa-chevron-down text-xs"></i>
-                    </button>
-                    <div class="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-lg p-2 hidden group-hover:block z-50">
-                        <a href="account.html" class="block px-4 py-2 hover:bg-gray-100">حسابي</a>
-                        <a href="orders.html" class="block px-4 py-2 hover:bg-gray-100">طلباتي</a>
-                        <a href="returns.html" class="block px-4 py-2 hover:bg-gray-100">الاسترجاعات</a>
-                        <hr>
-                        <button onclick="logout()" class="w-full text-right px-4 py-2 text-red-600 hover:bg-gray-100">تسجيل الخروج</button>
-                    </div>
-                </div>
-            `;
-        } else {
-            area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
-        }
-        updateCartCount();
+  document.getElementById('checkout-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const cart = window.Store.getCart();
+    if (cart.length === 0) {
+      window.Store.showToast('السلة فارغة!', 'error');
+      return;
     }
 
-    window.loginWithGoogle = async () => {
-        try {
-            const result = await signInWithPopup(auth, googleProvider);
-            const user = result.user;
-            const userRef = doc(db, 'users', user.uid);
-            const snap = await getDoc(userRef);
-            if (!snap.exists()) {
-                await setDoc(userRef, {
-                    name: user.displayName || '',
-                    email: user.email,
-                    phone: '',
-                    address: '',
-                    createdAt: new Date()
-                });
-            }
-            closeModal('login-modal');
-            showToast('تم تسجيل الدخول بنجاح!');
-        } catch (e) {
-            showToast(e.message, 'error');
-        }
-    };
-
-    window.registerUser = async () => {
-        const name = document.getElementById('reg-name').value.trim();
-        const email = document.getElementById('reg-email').value.trim();
-        const pass = document.getElementById('reg-password').value;
-        const phone = document.getElementById('reg-phone').value.trim();
-        const address = document.getElementById('reg-address').value.trim();
-
-        if (!name || !email || pass.length < 6) {
-            return showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
-        }
-
-        try {
-            const cred = await createUserWithEmailAndPassword(auth, email, pass);
-            await updateProfile(cred.user, { displayName: name });
-            await setDoc(doc(db, 'users', cred.user.uid), {
-                name, email, phone, address, createdAt: new Date()
-            });
-            closeModal('login-modal');
-            showToast('تم إنشاء الحساب بنجاح! ✅');
-        } catch (e) {
-            showToast(e.message, 'error');
-        }
-    };
-
-    window.loginWithEmail = async () => {
-        const email = document.getElementById('login-email').value.trim();
-        const pass = document.getElementById('login-password').value;
-        try {
-            await signInWithEmailAndPassword(auth, email, pass);
-            closeModal('login-modal');
-            showToast('تم تسجيل الدخول! ✅');
-        } catch (e) {
-            showToast('إيميل أو كلمة مرور خاطئة', 'error');
-        }
-    };
-
-    window.logout = async () => {
-        await signOut(auth);
-        showToast('تم تسجيل الخروج');
-    };
-
-    function updateCartCount() {
-        const cart = JSON.parse(localStorage.getItem('fl_cart_v4')) || [];
-        document.getElementById('cart-count').textContent = cart.length;
+    const user = window.app.auth.currentUser;
+    if (!user) {
+      window.Store.showToast('سجل دخول أولاً', 'error');
+      return;
     }
 
-    onAuthStateChanged(auth, user => updateUI(user));
-
-    window.requestLocation = () => {
-        return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) return reject('المتصفح لا يدعم تحديد الموقع');
-            navigator.geolocation.getCurrentPosition(
-                pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                err => reject('لم يتم تحديد الموقع: ' + err.message)
-            );
-        });
+    const orderData = {
+      userId: user.uid,
+      userName: document.getElementById('full-name').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      address: document.getElementById('address').value.trim(),
+      notes: document.getElementById('notes').value.trim(),
+      items: cart,
+      total: total,
+      status: 'جديد',
+      createdAt: window.app.serverTimestamp()
     };
+
+    try {
+      await window.app.addDoc(window.app.collection(window.app.db, 'orders'), orderData);
+      window.Store.clearCart();
+      window.Store.showToast('تم تأكيد طلبك ✅');
+      setTimeout(() => window.location.href = 'index.html', 1500);
+    } catch (err) {
+      window.Store.showToast('خطأ: ' + err.message, 'error');
+    }
+  });
+});
 </script>
 </body>
 </html>
