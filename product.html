@@ -11,22 +11,26 @@
     * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
-    .color-option { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
-    .color-option.selected { border-color: #000; }
-    .size-option { padding: 8px 16px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    .color-option { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+    .color-option.selected { border-color: #000; transform: scale(1.1); }
+    .size-option { padding: 8px 16px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
     .size-option.selected { border-color: #000; background: #000; color: white; }
+    .product-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .product-card { transition: all 0.3s ease; }
   </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import firebaseConfig from './firebase-config.js';
     import * as Store from './store.js';
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    window.app = { auth, db, onAuthStateChanged, signOut, doc, getDoc };
+    window.app = { auth, db, onAuthStateChanged, signOut, doc, getDoc, collection, query, where, getDocs, limit };
     window.Store = Store;
   </script>
 </head>
@@ -39,63 +43,93 @@
       <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
       <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
       <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
+      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
+      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
+      <a href="admin.html" class="font-medium text-sm text-gray-500 hover:text-black">لوحة التحكم</a>
     </div>
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
         <i class="fa-solid fa-cart-shopping"></i>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
-    <div id="user-area" class="relative">
-  <!-- زر حسابي يظهر فقط لما يكون مسجل دخول -->
-  <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
-    حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
-  </button>
-  <button id="login-btn" onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
-
-  <!-- القائمة المنسدلة -->
-  <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
-    <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
-    <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
-    <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
-    <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
+      <div id="user-area" class="relative">
+        <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
+          حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
+        </button>
+        <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
+        <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+          <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
+          <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
+          <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
+          <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+</nav>
 
 <main class="max-w-7xl mx-auto px-4 py-8">
+  <!-- زر الرجوع -->
+  <button onclick="history.back()" class="mb-6 flex items-center gap-2 text-gray-600 hover:text-black transition-colors">
+    <i class="fa-solid fa-arrow-right"></i>
+    <span>الرجوع للخلف</span>
+  </button>
+
   <div id="loading" class="text-center py-16 text-gray-500">
     <i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i>
     <p>جاري تحميل تفاصيل المنتج...</p>
   </div>
+
   <div id="product-content" class="hidden">
-    <div class="grid md:grid-cols-2 gap-8">
+    <!-- تفاصيل المنتج -->
+    <div class="grid md:grid-cols-2 gap-8 mb-16">
+      <!-- صور المنتج -->
       <div>
         <img id="main-img" src="" alt="" class="w-full h-96 object-cover rounded-xl mb-4">
-        <div id="thumbnails" class="flex gap-2 overflow-x-auto"></div>
+        <div id="thumbnails" class="flex gap-2 overflow-x-auto pb-2"></div>
       </div>
+
+      <!-- معلومات المنتج -->
       <div>
         <h1 id="p-name" class="text-3xl font-bold mb-2"></h1>
         <p id="p-type" class="text-gray-600 mb-4"></p>
+        
         <div class="flex items-center gap-3 mb-6">
           <span id="p-price" class="text-2xl font-bold"></span>
           <span id="p-price-original" class="text-lg text-gray-400 line-through"></span>
         </div>
+
         <p id="p-available" class="mb-6 font-medium"></p>
 
+        <!-- اختيار اللون -->
         <div class="mb-6">
           <h3 class="font-semibold mb-3">اللون:</h3>
           <div id="colors-list" class="flex gap-3 flex-wrap"></div>
         </div>
 
+        <!-- اختيار المقاس -->
         <div class="mb-6">
           <h3 class="font-semibold mb-3">المقاس:</h3>
           <div id="sizes-list" class="flex gap-3 flex-wrap"></div>
         </div>
 
-        <button id="add-to-cart-btn" class="w-full bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800">
+        <!-- زر الإضافة للسلة -->
+        <button id="add-to-cart-btn" class="w-full bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800 transition-colors">
           أضف للسلة
         </button>
       </div>
     </div>
+
+    <!-- قسم المنتجات المتشابهة -->
+    <section id="related-products" class="border-t pt-12">
+      <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center">منتجات قد تعجبك</h2>
+      <div id="related-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="col-span-full text-center py-8 text-gray-500">
+          <i class="fa-solid fa-spinner fa-spin fa-xl mb-2"></i>
+          <p>جاري التحميل...</p>
+        </div>
+      </div>
+    </section>
   </div>
 </main>
 
@@ -110,26 +144,61 @@ let productData = null;
 let selectedColor = null;
 let selectedSize = null;
 
-function updateUserUI(user) {
-  const area = document.getElementById('user-area');
-  if (user) {
-    area.innerHTML = `<div class="flex items-center gap-2"><span class="text-sm">أهلاً بك</span><button onclick="logout()" class="text-sm text-red-500">خروج</button></div>`;
-  } else {
-    area.innerHTML = `<button onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>`;
-  }
-  window.Store.updateCartCount();
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+const toast = document.getElementById('toast');
+
+function showToast(msg, type = 'success') {
+  toast.textContent = msg;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
-async function logout() { await window.app.signOut(window.app.auth); window.Store.showToast('تم الخروج'); }
+if (accountBtn) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
+  accountMenu?.addEventListener('click', (e) => e.stopPropagation());
+}
+
+function updateUserUI(user) {
+  const loginBtn = document.getElementById('login-btn');
+  if (user) {
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) {
+      accountBtn.classList.remove('hidden');
+      accountBtn.classList.add('flex');
+    }
+  } else {
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
+  }
+  if (window.Store?.updateCartCount) {
+    window.Store.updateCartCount();
+  }
+}
+
+async function logout() {
+  await window.app.signOut(window.app.auth);
+  window.location.href = 'index.html';
+}
 
 function renderColors(colors) {
   const list = document.getElementById('colors-list');
   list.innerHTML = '';
+  if (!colors || colors.length === 0) {
+    list.innerHTML = '<span class="text-gray-500">غير محدد</span>';
+    return;
+  }
   colors.forEach(c => {
     const btn = document.createElement('button');
     btn.className = 'color-option';
     btn.style.backgroundColor = window.Store.getColorBg(c);
     btn.title = c;
+    btn.setAttribute('aria-label', `اختر اللون ${c}`);
     btn.onclick = () => {
       document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
       btn.classList.add('selected');
@@ -142,10 +211,15 @@ function renderColors(colors) {
 function renderSizes(sizes) {
   const list = document.getElementById('sizes-list');
   list.innerHTML = '';
+  if (!sizes || sizes.length === 0) {
+    list.innerHTML = '<span class="text-gray-500">قياس موحد</span>';
+    return;
+  }
   sizes.forEach(s => {
     const btn = document.createElement('button');
     btn.className = 'size-option';
     btn.textContent = s;
+    btn.setAttribute('aria-label', `اختر المقاس ${s}`);
     btn.onclick = () => {
       document.querySelectorAll('.size-option').forEach(el => el.classList.remove('selected'));
       btn.classList.add('selected');
@@ -158,15 +232,67 @@ function renderSizes(sizes) {
 function renderImages(images) {
   const main = document.getElementById('main-img');
   const thumbs = document.getElementById('thumbnails');
-  main.src = images[0] || 'https://via.placeholder.com/600x600?text=لا+صورة';
+  const defaultImg = 'https://via.placeholder.com/600x600?text=لا+صورة+متاحة';
+  main.src = images?.[0] || defaultImg;
   thumbs.innerHTML = '';
+  if (!images || images.length <= 1) return;
   images.forEach(img => {
     const t = document.createElement('img');
     t.src = img;
-    t.className = 'w-20 h-20 object-cover rounded cursor-pointer border-2 border-transparent hover:border-black';
+    t.className = 'w-20 h-20 object-cover rounded cursor-pointer border-2 border-transparent hover:border-black transition-colors';
     t.onclick = () => main.src = img;
     thumbs.appendChild(t);
   });
+}
+
+async function loadRelatedProducts() {
+  const grid = document.getElementById('related-grid');
+  if (!productData) return;
+
+  try {
+    let q = window.app.collection(window.app.db, 'products');
+    const filters = [];
+    if (productData.gender) filters.push(window.app.where('gender', '==', productData.gender));
+    if (productData.type) filters.push(window.app.where('type', '==', productData.type));
+
+    if (filters.length > 0) {
+      q = window.app.query(q, ...filters, window.app.limit(8));
+    } else {
+      q = window.app.query(q, window.app.limit(8));
+    }
+
+    const snapshot = await window.app.getDocs(q);
+    grid.innerHTML = '';
+    let count = 0;
+
+    snapshot.forEach(doc => {
+      if (doc.id === productData.id) return;
+      count++;
+      const p = { id: doc.id, ...doc.data() };
+      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} د.إ</span>` : '';
+      const img = p.images?.[0] || 'https://via.placeholder.com/400x500?text=لا+صورة';
+      grid.innerHTML += `
+        <a href="product.html?id=${p.id}" class="product-card bg-white rounded-xl overflow-hidden shadow-sm block">
+          <img src="${img}" alt="${p.name}" class="w-full h-64 object-cover">
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-1">${p.name}</h3>
+            <p class="text-gray-600 text-sm mb-2">${p.type || ''}</p>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-lg">${p.price} د.إ</span>
+              ${priceTag}
+            </div>
+          </div>
+        </a>
+      `;
+    });
+
+    if (count === 0) {
+      grid.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500"><p>لا توجد منتجات متشابهة حالياً</p></div>';
+    }
+  } catch (err) {
+    console.error('خطأ في تحميل المنتجات المتشابهة:', err);
+    grid.innerHTML = '<div class="col-span-full text-center py-8 text-red-500"><p>تعذر تحميل المنتجات المتشابهة</p></div>';
+  }
 }
 
 async function loadProduct() {
@@ -176,28 +302,41 @@ async function loadProduct() {
     document.getElementById('loading').innerHTML = '<p class="text-red-500">معرف المنتج غير موجود</p>';
     return;
   }
+
   try {
     const docSnap = await window.app.getDoc(window.app.doc(window.app.db, 'products', id));
     if (!docSnap.exists()) {
       document.getElementById('loading').innerHTML = '<p class="text-red-500">المنتج غير موجود</p>';
       return;
     }
+
     productData = { id: docSnap.id, ...docSnap.data() };
     document.getElementById('loading').classList.add('hidden');
     const content = document.getElementById('product-content');
     content.classList.remove('hidden');
 
-    document.getElementById('p-name').textContent = productData.name;
-    document.getElementById('p-type').textContent = productData.type || '';
+    // ملء بيانات المنتج
+    document.getElementById('p-name').textContent = productData.name || 'منتج بدون اسم';
+    document.getElementById('p-type').textContent = [productData.gender, productData.type, productData.season].filter(Boolean).join(' - ');
     document.getElementById('p-price').textContent = `${productData.price} درهم`;
+    
     if (productData.priceOriginal) {
       document.getElementById('p-price-original').textContent = `${productData.priceOriginal} درهم`;
+    } else {
+      document.getElementById('p-price-original').textContent = '';
     }
-    document.getElementById('p-available').innerHTML = productData.available ? '<span class="text-green-600">متوفر ✅</span>' : '<span class="text-red-500">غير متوفر ❌</span>';
 
-    renderImages(productData.images || []);
-    renderColors(productData.colors || []);
-    renderSizes(productData.sizes || []);
+    document.getElementById('p-available').innerHTML = 
+      productData.available !== false 
+        ? '<span class="text-green-600 font-medium">متوفر ✅</span>' 
+        : '<span class="text-red-500 font-medium">غير متوفر ❌</span>';
+
+    renderImages(productData.images);
+    renderColors(productData.colors);
+    renderSizes(productData.sizes);
+
+    // تحميل المنتجات المتشابهة
+    loadRelatedProducts();
 
   } catch (err) {
     console.error(err);
@@ -208,9 +347,11 @@ async function loadProduct() {
 document.addEventListener('DOMContentLoaded', () => {
   window.app.onAuthStateChanged(window.app.auth, updateUserUI);
   loadProduct();
-  document.getElementById('add-to-cart-btn').onclick = () => {
+
+  const addBtn = document.getElementById('add-to-cart-btn');
+  addBtn.onclick = () => {
     if (!selectedColor || !selectedSize) {
-      window.Store.showToast('اختر اللون والمقاس أولاً', 'error');
+      showToast('اختر اللون والمقاس أولاً', 'error');
       return;
     }
     window.Store.addToCart(
@@ -219,8 +360,12 @@ document.addEventListener('DOMContentLoaded', () => {
       productData.price,
       productData.images?.[0] || '',
       selectedSize,
-      selectedColor
+      selectedColor,
+      productData.gender,
+      productData.type,
+      productData.season
     );
+    showToast('أضيف للسلة بنجاح ✅');
   };
 });
 </script>
