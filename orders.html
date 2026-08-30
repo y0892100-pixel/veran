@@ -41,6 +41,8 @@
       <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
       <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
       <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
+      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
+      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
     </div>
     <div id="user-area" class="relative flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
@@ -50,7 +52,7 @@
       <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
         حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
       </button>
-      <button id="login-btn" onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
+      <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
       <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
         <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
         <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
@@ -110,7 +112,7 @@ function updateUserUI(user) {
     if (accountBtn) accountBtn.classList.add('hidden');
     if (accountMenu) accountMenu.classList.add('hidden');
   }
-  window.Store?.updateCartCount?.();
+  if (window.Store?.updateCartCount) window.Store.updateCartCount();
 }
 
 async function logout() {
@@ -123,9 +125,13 @@ function getStatusLabel(status) {
     'جديد': 'طلب جديد',
     'new': 'طلب جديد',
     'processing': 'قيد التجهيز',
+    'قيد التجهيز': 'قيد التجهيز',
     'shipped': 'تم الشحن',
+    'تم الشحن': 'تم الشحن',
     'delivered': 'تم التوصيل',
-    'cancelled': 'ملغي'
+    'تم التوصيل': 'تم التوصيل',
+    'cancelled': 'ملغي',
+    'ملغي': 'ملغي'
   };
   return map[status] || status || 'جديد';
 }
@@ -141,9 +147,18 @@ function getStatusClass(status) {
 
 function formatDate(timestamp) {
   if (!timestamp) return '—';
-  if (timestamp.toDate) return timestamp.toDate().toLocaleDateString('ar-AE');
-  if (timestamp.seconds) return new Date(timestamp.seconds * 1000).toLocaleDateString('ar-AE');
+  if (typeof timestamp.toDate === 'function') {
+    return timestamp.toDate().toLocaleDateString('ar-AE');
+  }
+  if (timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000).toLocaleDateString('ar-AE');
+  }
   return new Date(timestamp).toLocaleDateString('ar-AE');
+}
+
+function formatPrice(amount) {
+  const num = Number(amount) || 0;
+  return num % 1 === 0 ? num + ' درهم' : num.toFixed(2) + ' درهم';
 }
 
 async function loadOrders(user) {
@@ -153,18 +168,19 @@ async function loadOrders(user) {
       <div class="text-center py-12 text-gray-500">
         <i class="fa-solid fa-user-lock text-4xl mb-4"></i>
         <p>سجل دخول أولاً لعرض طلباتك.</p>
-        <a href="admin.html" class="inline-block mt-3 bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</a>
+        <a href="login.html" class="inline-block mt-3 bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</a>
       </div>`;
     return;
   }
 
   try {
-    const q = window.app.query(
-      window.app.collection(window.app.db, 'orders'),
-      window.app.where('userId', '==', user.uid),
-      window.app.orderBy('createdAt', 'desc')
+    const ordersRef = window.app.collection(window.app.db, 'orders');
+    const q = query(
+      ordersRef,
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
     );
-    const snapshot = await window.app.getDocs(q);
+    const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
       list.innerHTML = `
@@ -180,6 +196,8 @@ async function loadOrders(user) {
     snapshot.forEach(doc => {
       const order = { id: doc.id, ...doc.data() };
       const date = formatDate(order.createdAt);
+      const items = Array.isArray(order.items) ? order.items : [];
+      const total = Number(order.total) || items.reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.qty) || 1)), 0);
       
       list.innerHTML += `
         <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
@@ -195,17 +213,22 @@ async function loadOrders(user) {
           
           <div class="border-t pt-3 space-y-2">
             <p class="text-sm font-semibold">المنتجات:</p>
-            ${(order.items || []).map(item => `
-              <div class="flex justify-between text-sm py-1 border-b border-gray-100">
-                <span>${item.name || 'منتج'} — ${item.size || '—'} / ${item.color || '—'} × ${item.qty || 1}</span>
-                <span class="font-medium">${(item.price * item.qty).toFixed(2)} د.إ</span>
-              </div>
-            `).join('')}
+            ${items.length > 0 ? items.map(item => {
+              const price = Number(item.price) || 0;
+              const qty = Number(item.qty) || 1;
+              const lineTotal = price * qty;
+              return `
+                <div class="flex justify-between text-sm py-1 border-b border-gray-100">
+                  <span>${item.name || 'منتج'} — ${item.size || '—'} / ${item.color || '—'} × ${qty}</span>
+                  <span class="font-medium">${formatPrice(lineTotal)}</span>
+                </div>
+              `;
+            }).join('') : '<p class="text-sm text-gray-500">لا توجد تفاصيل منتجات</p>'}
           </div>
           
           <div class="border-t mt-3 pt-3 flex justify-between font-bold text-lg">
             <span>المجموع:</span>
-            <span>${(order.total || 0).toFixed(2)} د.إ</span>
+            <span>${formatPrice(total)}</span>
           </div>
           
           <div class="mt-4 text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded-lg">
@@ -219,7 +242,7 @@ async function loadOrders(user) {
       `;
     });
   } catch (err) {
-    console.error(err);
+    console.error('خطأ في تحميل الطلبات:', err);
     list.innerHTML = `
       <div class="text-center py-12 text-red-500">
         <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
@@ -236,5 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
 </body>
 </html>
