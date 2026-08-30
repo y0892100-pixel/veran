@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طلباتي - VAREN</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    * { font-family: 'Cairo', sans-serif; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast.show { display: block; }
+    .status-new { background: #fef3c7; color: #92400e; }
+    .status-processing { background: #dbeafe; color: #1e40af; }
+    .status-shipped { background: #d1fae5; color: #065f46; }
+    .status-cancelled { background: #f3f4f6; color: #4b5563; }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import firebaseConfig from './firebase-config.js';
+    import * as Store from './store.js';
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    window.app = { auth, db, onAuthStateChanged, signOut, collection, query, where, getDocs, orderBy };
+    window.Store = Store;
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<nav class="bg-white shadow-md sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
+    <div class="hidden md:flex gap-8">
+      <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
+      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
+      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
+    </div>
+    <div id="user-area" class="relative flex items-center gap-4">
+      <a href="cart.html" class="text-xl relative">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+      </a>
+      <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
+        حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
+      </button>
+      <button id="login-btn" onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
+      <div id="account-menu" class="hidden absolute right-0 mt-8 w-48 bg-white rounded-lg shadow-lg border z-50">
+        <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
+        <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
+        <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
+        <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6 text-center">طلباتي</h1>
+  <div id="orders-list">
+    <div class="text-center py-12 text-gray-500">
+      <i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i>
+      <p>جاري تحميل الطلبات...</p>
+    </div>
+  </div>
+</main>
+
+<footer class="bg-gray-900 text-white py-8 text-center">
+  <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
+</footer>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+
+if (accountBtn) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
+  accountMenu?.addEventListener('click', (e) => e.stopPropagation());
+}
+
+function updateUserUI(user) {
+  const loginBtn = document.getElementById('login-btn');
+  if (user) {
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) {
+      accountBtn.classList.remove('hidden');
+      accountBtn.classList.add('flex');
+    }
+  } else {
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
+  }
+  window.Store?.updateCartCount?.();
+}
+
+async function logout() {
+  await window.app.signOut(window.app.auth);
+  window.location.href = 'index.html';
+}
+
+function getStatusLabel(status) {
+  const map = {
+    'جديد': 'طلب جديد',
+    'processing': 'قيد التجهيز',
+    'shipped': 'تم الشحن',
+    'delivered': 'تم التوصيل',
+    'cancelled': 'ملغي'
+  };
+  return map[status] || status;
+}
+
+function getStatusClass(status) {
+  const s = status?.toLowerCase() || '';
+  if (s.includes('جديد') || s.includes('new')) return 'status-new';
+  if (s.includes('تجهيز') || s.includes('process')) return 'status-processing';
+  if (s.includes('شحن') || s.includes('ship') || s.includes('توصيل') || s.includes('deliver')) return 'status-shipped';
+  if (s.includes('إلغاء') || s.includes('cancel')) return 'status-cancelled';
+  return '';
+}
+
+async function loadOrders(user) {
+  const list = document.getElementById('orders-list');
+  if (!user) {
+    list.innerHTML = '<div class="text-center py-12 text-gray-500"><p>سجل دخول أولاً لعرض طلباتك.</p><a href="admin.html" class="inline-block mt-3 bg-black text-white px-6 py-2 rounded-lg">تسجيل الدخول</a></div>';
+    return;
+  }
+
+  try {
+    const q = window.app.query(
+      window.app.collection(window.app.db, 'orders'),
+      window.app.where('userId', '==', user.uid),
+      window.app.orderBy('createdAt', 'desc')
+    );
+    const snapshot = await window.app.getDocs(q);
+
+    if (snapshot.empty) {
+      list.innerHTML = '<div class="text-center py-12 text-gray-500"><i class="fa-solid fa-box-open text-5xl mb-4"></i><p>لا يوجد طلبات حتى الآن.</p><a href="index.html" class="inline-block mt-3 bg-black text-white px-6 py-2 rounded-lg">ابدأ التسوق</a></div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    snapshot.forEach(doc => {
+      const order = { id: doc.id, ...doc.data() };
+      const date = order.createdAt?.toDate ? new Date(order.createdAt.toDate()).toLocaleDateString('ar-AE') : '—';
+      list.innerHTML += `
+        <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-sm text-gray-500">رقم الطلب: ${order.id.slice(0, 8).toUpperCase()}</p>
+              <p class="text-sm text-gray-500">التاريخ: ${date}</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(order.status)}">${getStatusLabel(order.status)}</span>
+          </div>
+          <div class="border-t pt-3 space-y-1">
+            <p class="text-sm font-medium">المنتجات:</p>
+            ${order.items.map(item => `
+              <div class="flex justify-between text-sm">
+                <span>${item.name} — ${item.size} / ${item.color} × ${item.qty}</span>
+                <span>${item.price * item.qty} د.إ</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="border-t mt-3 pt-3 flex justify-between font-bold text-lg">
+            <span>المجموع:</span>
+            <span>${order.total} د.إ</span>
+          </div>
+          <div class="mt-2 text-sm text-gray-600">
+            <p><strong>الاسم:</strong> ${order.userName || '—'}</p>
+            <p><strong>الهاتف:</strong> ${order.phone || '—'}</p>
+            <p><strong>العنوان:</strong> ${order.address || '—'}</p>
+            ${order.notes ? `<p><strong>ملاحظات:</strong> ${order.notes}</p>` : ''}
+          </div>
+        </div>
+      `;
+    });
+  } catch (err) {
+    console.error(err);
+    list.innerHTML = `<div class="text-center py-12 text-red-500"><p>خطأ في تحميل الطلبات: ${err.message}</p></div>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  window.app.onAuthStateChanged(window.app.auth, user => {
+    updateUserUI(user);
+    loadOrders(user);
+  });
+});
+</script>
+</body>
+</html>
