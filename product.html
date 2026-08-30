@@ -178,9 +178,9 @@ async function loadProduct() {
 
     document.getElementById('p-name').textContent = productData.name;
     document.getElementById('p-type').textContent = productData.type || '';
-    document.getElementById('p-price').textContent = `${productData.price} ر.س`;
+    document.getElementById('p-price').textContent = `${productData.price} درهم`;
     if (productData.priceOriginal) {
-      document.getElementById('p-price-original').textContent = `${productData.priceOriginal} ر.س`;
+      document.getElementById('p-price-original').textContent = `${productData.priceOriginal} درهم`;
     }
     document.getElementById('p-available').innerHTML = productData.available ? '<span class="text-green-600">متوفر ✅</span>' : '<span class="text-red-500">غير متوفر ❌</span>';
 
