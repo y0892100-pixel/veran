@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة الطلبات - VAREN</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    * { font-family: 'Cairo', sans-serif; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast.show { display: block; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+<nav class="bg-white shadow-md sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <a href="admin.html" class="text-2xl font-bold text-gray-900">VAREN - لوحة التحكم</a>
+    <div>
+      <button onclick="logout()" class="text-red-500 hover:text-red-700 font-medium">
+        <i class="fa-solid fa-right-from-bracket ml-1"></i> تسجيل الخروج
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-5xl mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">إدارة الطلبات</h1>
+    <button onclick="location.reload()" class="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">
+      <i class="fa-solid fa-rotate-right ml-1"></i> تحديث
+    </button>
+  </div>
+
+  <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
+  <div id="content" class="hidden">
+    <div id="orders-list"></div>
+  </div>
+  <div id="no-orders" class="hidden text-center py-16">
+    <i class="fa-solid fa-inbox text-6xl text-gray-300 mb-4"></i>
+    <p class="text-xl text-gray-500">لا يوجد طلبات حتى الآن</p>
+  </div>
+  <div id="no-access" class="hidden text-center py-16">
+    <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
+    <p class="text-xl text-gray-500 mb-4">غير مصرح لك بالدخول</p>
+    <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block">تسجيل الدخول</a>
+  </div>
+  <div id="toast" class="toast"></div>
+</main>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
+  authDomain: "varen-f7756.firebaseapp.com",
+  projectId: "varen-f7756",
+  storageBucket: "varen-f7756.firebasestorage.app",
+  messagingSenderId: "648684291842",
+  appId: "1:648684291842:web:f3e806fc76a6e119caa41b"
+};
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const ADMIN_EMAIL = 'y0892100@gmail.com';
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+window.logout = async () => {
+  await auth.signOut();
+  window.location.href = 'login.html';
+};
+
+// تغيير حالة الطلب
+window.updateOrderStatus = async (orderId, newStatus) => {
+  try {
+    await db.collection('orders').doc(orderId).update({ status: newStatus });
+    showToast('✅ تم تحديث الحالة');
+    loadOrders();
+  } catch (err) {
+    showToast('❌ خطأ: ' + err.message, 'error');
+  }
+};
+
+// تحميل كل الطلبات
+async function loadOrders() {
+  const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').get();
+  const list = document.getElementById('orders-list');
+  list.innerHTML = '';
+
+  if (snapshot.empty) {
+    document.getElementById('no-orders').classList.remove('hidden');
+    return;
+  }
+
+  snapshot.forEach(doc => {
+    const order = doc.data();
+    const orderId = doc.id;
+    const date = order.createdAt?.toDate ? new Date(order.createdAt.toDate()).toLocaleString('ar-AE') : 'غير محدد';
+    const status = order.status || 'جديد';
+
+    const statusColors = {
+      'جديد': 'bg-blue-100 text-blue-700',
+      'تم التأكيد': 'bg-green-100 text-green-700',
+      'قيد التوصيل': 'bg-yellow-100 text-yellow-700',
+      'مُسلّم': 'bg-emerald-100 text-emerald-700',
+      'ملغي': 'bg-red-100 text-red-700'
+    };
+
+    list.innerHTML += `
+      <div class="bg-white p-5 rounded-xl shadow-sm mb-4 border">
+        <!-- رأس الطلب -->
+        <div class="flex flex-wrap justify-between items-center gap-2 mb-4 pb-3 border-b">
+          <div>
+            <span class="font-bold text-lg">طلب: ${orderId.substring(0, 8)}</span>
+            <span class="text-sm text-gray-500 mr-2">${date}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-1 rounded-full text-sm font-medium ${statusColors[status] || 'bg-gray-100 text-gray-700'}">${status}</span>
+            <select onchange="updateOrderStatus('${orderId}', this.value)" class="border rounded px-2 py-1 text-sm">
+              <option value="جديد" ${status==='جديد'?'selected':''}>جديد</option>
+              <option value="تم التأكيد" ${status==='تم التأكيد'?'selected':''}>تم التأكيد</option>
+              <option value="قيد التوصيل" ${status==='قيد التوصيل'?'selected':''}>قيد التوصيل</option>
+              <option value="مُسلّم" ${status==='مُسلّم'?'selected':''}>مُسلّم</option>
+              <option value="ملغي" ${status==='ملغي'?'selected':''}>ملغي</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- بيانات العميل -->
+        <div class="grid md:grid-cols-2 gap-3 mb-4 text-sm">
+          <div><strong>الاسم:</strong> ${order.name || 'غير مذكور'}</div>
+          <div><strong>الهاتف:</strong> ${order.phone || 'غير مذكور'}</div>
+          <div><strong>الإيميل:</strong> ${order.email || 'غير مذكور'}</div>
+          <div><strong>العنوان:</strong> ${order.address || 'غير مذكور'}</div>
+        </div>
+
+        <!-- المشتريات -->
+        <div class="border-t pt-3">
+          <p class="font-semibold mb-2">المشتريات:</p>
+          ${(order.items || []).map(item => `
+            <div class="flex justify-between items-center py-1 text-sm border-b">
+              <span>${item.name} — ${item.size} / ${item.color} × ${item.quantity}</span>
+              <span class="font-medium">${(item.price * item.quantity).toFixed(2)} درهم</span>
+            </div>
+          `).join('')}
+          <div class="flex justify-between font-bold text-lg mt-2 pt-2">
+            <span>المجموع الكلي</span>
+            <span>${(order.total || 0).toFixed(2)} درهم</span>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// التحقق من صلاحية الدخول
+auth.onAuthStateChanged(async user => {
+  document.getElementById('loading').classList.add('hidden');
+  
+  if (!user || user.email !== ADMIN_EMAIL) {
+    document.getElementById('no-access').classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('content').classList.remove('hidden');
+  loadOrders();
+});
+</script>
+
+</body>
+</html>
