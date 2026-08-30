@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طلب استرجاع - VAREN</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    * { font-family: 'Cairo', sans-serif; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast.show { display: block; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import firebaseConfig from './firebase-config.js';
+    import * as Store from './store.js';
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    window.app = { auth, db, onAuthStateChanged, signOut, collection, addDoc, query, where, getDocs, serverTimestamp };
+    window.Store = Store;
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<nav class="bg-white shadow-md sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
+    <div class="hidden md:flex gap-8">
+      <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
+      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
+      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
+    </div>
+    <div id="user-area" class="relative flex items-center gap-4">
+      <a href="cart.html" class="text-xl relative">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+      </a>
+      <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
+        حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
+      </button>
+      <button id="login-btn" onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
+      <div id="account-menu" class="hidden absolute right-0 mt-8 w-48 bg-white rounded-lg shadow-lg border z-50">
+        <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
+        <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
+        <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
+        <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-lg mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6 text-center">طلب استرجاع</h1>
+
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+    <h3 class="font-bold text-blue-800 mb-2">سياسة الاسترجاع</h3>
+    <ul class="text-sm text-blue-700 space-y-1">
+      <li>• يمكن الاسترجاع خلال 7 أيام من استلام الطلب</li>
+      <li>• أن يكون المنتج بحالته الأصلية مع التغليف والملصقات</li>
+      <li>• تكلفة الشحن على العميل إلا إذا كان المنتج معيباً</li>
+    </ul>
+  </div>
+
+  <form id="return-form" class="bg-white p-6 rounded-xl shadow-md space-y-4">
+    <div>
+      <label class="block font-semibold mb-1">رقم الطلب *</label>
+      <select id="order-select" class="w-full border rounded-lg p-3" required>
+        <option value="">اختر من طلباتك السابقة...</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block font-semibold mb-1">المنتج المراد استرجاعه *</label>
+      <input type="text" id="product-name" class="w-full border rounded-lg p-3" placeholder="اسم المنتج" required>
+    </div>
+
+    <div>
+      <label class="block font-semibold mb-1">السبب *</label>
+      <select id="return-reason" class="w-full border rounded-lg p-3" required>
+        <option value="">اختر السبب...</option>
+        <option value="wrong-size">المقاس غير مناسب</option>
+        <option value="wrong-item">تم استلام منتج خطأ</option>
+        <option value="defective">المنتج معيب أو تالف</option>
+        <option value="not-as-described">غير مطابق للوصف</option>
+        <option value="other">سبب آخر</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block font-semibold mb-1">تفاصيل إضافية</label>
+      <textarea id="return-details" class="w-full border rounded-lg p-3" rows="3" placeholder="اكتب أي تفاصيل إضافية أو ملاحظات..."></textarea>
+    </div>
+
+    <div>
+      <label class="block font-semibold mb-1">طريقة الاسترداد المطلوبة</label>
+      <select id="refund-method" class="w-full border rounded-lg p-3">
+        <option value="original">استرداد إلى نفس طريقة الدفع</option>
+        <option value="credit">رصيد في المتجر</option>
+      </select>
+    </div>
+
+    <button type="submit" class="w-full bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800">
+      تقديم الطلب
+    </button>
+  </form>
+</main>
+
+<footer class="bg-gray-900 text-white py-8 text-center">
+  <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
+</footer>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+const toast = document.getElementById('toast');
+
+function showToast(msg, type='success') {
+  toast.textContent = msg;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+if (accountBtn) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
+  accountMenu?.addEventListener('click', (e) => e.stopPropagation());
+}
+
+function updateUserUI(user) {
+  const loginBtn = document.getElementById('login-btn');
+  if (user) {
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) {
+      accountBtn.classList.remove('hidden');
+      accountBtn.classList.add('flex');
+    }
+  } else {
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
+  }
+  window.Store?.updateCartCount?.();
+}
+
+async function logout() {
+  await window.app.signOut(window.app.auth);
+  window.location.href = 'index.html';
+}
+
+async function loadUserOrders(user) {
+  const select = document.getElementById('order-select');
+  if (!user) return;
+
+  try {
+    const q = window.app.query(
+      window.app.collection(window.app.db, 'orders'),
+      window.app.where('userId', '==', user.uid),
+      window.app.orderBy('createdAt', 'desc')
+    );
+    const snapshot = await window.app.getDocs(q);
+
+    snapshot.forEach(doc => {
+      const order = { id: doc.id, ...doc.data() };
+      const date = order.createdAt?.toDate ? new Date(order.createdAt.toDate()).toLocaleDateString('ar-AE') : '';
+      const option = document.createElement('option');
+      option.value = order.id;
+      option.textContent = `طلب رقم ${order.id.slice(0,8).toUpperCase()} — ${date}`;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  window.app.onAuthStateChanged(window.app.auth, async user => {
+    updateUserUI(user);
+    if (!user) {
+      showToast('سجل دخول أولاً', 'error');
+      setTimeout(() => window.location.href='admin.html', 1500);
+      return;
+    }
+    loadUserOrders(user);
+  });
+
+  document.getElementById('return-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const user = window.app.auth.currentUser;
+    if (!user) return;
+
+    const orderId = document.getElementById('order-select').value;
+    const productName = document.getElementById('product-name').value.trim();
+    const reason = document.getElementById('return-reason').value;
+    const details = document.getElementById('return-details').value.trim();
+    const refundMethod = document.getElementById('refund-method').value;
+
+    if (!orderId || !productName || !reason) {
+      showToast('املأ الحقول المطلوبة', 'error');
+      return;
+    }
+
+    try {
+      await window.app.addDoc(window.app.collection(window.app.db, 'returns'), {
+        userId: user.uid,
+        userEmail: user.email,
+        orderId,
+        productName,
+        reason,
+        details,
+        refundMethod,
+        status: 'جديد',
+        createdAt: window.app.serverTimestamp()
+      });
+
+      showToast('تم تقديم طلب الاسترجاع بنجاح ✅');
+      document.getElementById('return-form').reset();
+    } catch (err) {
+      console.error(err);
+      showToast('خطأ: ' + err.message, 'error');
+    }
+  });
+});
+</script>
+</body>
+</html>
