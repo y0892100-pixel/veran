@@ -81,7 +81,7 @@ const db = firebase.firestore();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-let isProcessing = false; // ✅ نمنع تكرار العملية
+let isProcessing = false;
 
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
@@ -198,6 +198,7 @@ async function handleLogin() {
     isProcessing = false;
   }
 }
+</script>
 
-// ✅ نحذف التحقق التلقائي المزعج!
-// auth.onAuthStateChanged مش هنستخدمه هنا عشان ما يوجّهك من تلقاء نفسه
+</body>
+</html>
