@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إتمام الطلب - VAREN</title>
+  <title>إدارة الطلبات - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- EmailJS -->
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -17,279 +16,179 @@
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
     .toast.error { background: #dc2626; }
+    .status-new { background: #fef3c7; color: #92400e; }
+    .status-confirmed { background: #d1fae5; color: #065f46; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen">
-
+<body class="bg-gray-50">
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <a href="cart.html" class="text-sm text-gray-600 hover:text-black">
-      <i class="fa-solid fa-arrow-right ml-1"></i> الرجوع للسلة
+    <a href="admin.html" class="text-2xl font-bold text-gray-900">VAREN</a>
+    <a href="admin.html" class="text-sm text-gray-600 hover:text-black">
+      <i class="fa-solid fa-arrow-right ml-1"></i> العودة للوحة التحكم
     </a>
   </div>
 </nav>
-
-<main class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center">إتمام الطلب</h1>
+<main class="max-w-7xl mx-auto px-4 py-8">
+  <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center">إدارة الطلبات</h1>
   <div id="toast" class="toast"></div>
-
-  <!-- ملخص الطلب -->
-  <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-    <h2 class="text-xl font-bold mb-4">ملخص الطلب</h2>
-    <div id="order-items" class="space-y-3"></div>
-    <hr class="my-4">
-    <div class="flex justify-between text-lg font-bold">
-      <span>المجموع الكلي:</span>
-      <span id="order-total">0.00 درهم</span>
-    </div>
+  <div id="loading" class="text-center py-16">
+    <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
+    <p class="mt-2">جاري تحميل الطلبات...</p>
   </div>
-
-  <!-- بيانات العميل -->
-  <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-    <h2 class="text-xl font-bold mb-4">بيانات التوصيل</h2>
-    <form id="checkout-form" class="space-y-4">
-      <div>
-        <label class="block font-medium mb-1">الاسم الكامل *</label>
-        <input type="text" id="full_name" required class="w-full border rounded-lg p-3" placeholder="أدخل اسمك الكامل">
-      </div>
-      <div>
-        <label class="block font-medium mb-1">رقم الهاتف *</label>
-        <input type="tel" id="phone" required class="w-full border rounded-lg p-3" placeholder="مثال: 0501234567">
-      </div>
-      <div>
-        <label class="block font-medium mb-1">البريد الإلكتروني *</label>
-        <input type="email" id="customer_email" required class="w-full border rounded-lg p-3" placeholder="example@email.com">
-      </div>
-      <div>
-        <label class="block font-medium mb-1">العنوان بالتفصيل *</label>
-        <textarea id="address" required rows="3" class="w-full border rounded-lg p-3" placeholder="المدينة، المنطقة، الشارع، رقم المبنى والشقة"></textarea>
-      </div>
-      <div>
-        <label class="block font-medium mb-1">ملاحظات إضافية (اختياري)</label>
-        <textarea id="notes" rows="2" class="w-full border rounded-lg p-3" placeholder="أي تعليمات خاصة بالتوصيل أو الطلب"></textarea>
-      </div>
-      <button type="submit" id="submit-btn" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 mt-2">
-        <span>تأكيد الطلب</span>
-        <i class="fa-solid fa-check ml-1"></i>
+  <div id="content" class="hidden">
+    <div class="mb-4 flex justify-between items-center">
+      <h2 class="text-lg font-semibold">جميع الطلبات</h2>
+      <button onclick="loadOrders()" class="text-sm text-gray-600 hover:text-black">
+        <i class="fa-solid fa-rotate-right ml-1"></i> تحديث
       </button>
-    </form>
+    </div>
+    <div id="orders-list" class="space-y-4"></div>
   </div>
-
-  <!-- حالة الطلب -->
-  <div id="success-section" class="hidden bg-green-50 border border-green-200 rounded-xl p-8 text-center">
-    <i class="fa-solid fa-circle-check text-green-500 text-5xl mb-4"></i>
-    <h2 class="text-2xl font-bold text-green-700 mb-2">تم استلام طلبك!</h2>
-    <p class="text-green-600 mb-4">رقم الطلب: <span id="order-number" class="font-bold"></span></p>
-    <p class="text-gray-600 mb-6">سنتواصل معك قريباً لتأكيد التوصيل، وتم إرسال تفاصيل الطلب إلى بريدك الإلكتروني.</p>
-    <a href="index.html" class="inline-block bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">العودة للرئيسية</a>
+  <div id="no-orders" class="hidden text-center py-16">
+    <i class="fa-solid fa-inbox text-gray-300 text-6xl mb-4"></i>
+    <p class="text-xl text-gray-500">لا توجد طلبات حتى الآن</p>
+  </div>
+  <div id="no-permission" class="hidden text-center py-16">
+    <i class="fa-solid fa-lock text-gray-300 text-6xl mb-4"></i>
+    <p class="text-xl text-gray-500">غير مسموح لك بالوصول لهذه الصفحة</p>
+    <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block mt-2">العودة للرئيسية</a>
   </div>
 </main>
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-
 <script>
+// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
-  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-  authDomain: "varen-f7756.firebaseapp.com",
-  projectId: "varen-f7756",
-  storageBucket: "varen-f7756.firebasestorage.app",
-  messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
-  measurementId: "G-SV7DKGPH2M"
+  apiKey: "AIzaSyDQTvVXrLYgbkpNI_YfwdVpZrQFBIzzPmU",
+  authDomain: "varen-5dcfd.firebaseapp.com",
+  projectId: "varen-5dcfd",
+  storageBucket: "varen-5dcfd.firebasestorage.app",
+  messagingSenderId: "769663614271",
+  appId: "1:769663614271:web:4b2b843f99a8d7a071678a",
+  measurementId: "G-DNHBHJHDVX"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const db = firebase.firestore();
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-
-// ✅ إعدادات EmailJS
-const EMAILJS_SERVICE_ID = 'service_3bs6onj';
-const EMAILJS_TEMPLATE_ID = 'template_om7zrjs';
-const EMAILJS_PUBLIC_KEY = '3A0NspFA3vlSd64jc';
+const db = firebase.firestore();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
-// تهيئة EmailJS
-emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-
-let cart = [];
-let total = 0;
-
 function showToast(msg, type='success') {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.className = `toast ${type} show`;
-  setTimeout(() => toast.classList.remove('show'), 4000);
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
 }
 
-function loadCart() {
-  const saved = localStorage.getItem('varen_cart');
-  if (!saved || saved === '[]') {
-    document.querySelector('main').innerHTML = `
-      <div class="text-center py-16">
-        <i class="fa-solid fa-cart-shopping text-gray-300 text-6xl mb-4"></i>
-        <h2 class="text-xl font-bold text-gray-500 mb-2">السلة فارغة</h2>
-        <p class="text-gray-400 mb-6">أضف منتجات أولاً لإتمام الطلب</p>
-        <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block hover:bg-gray-800">التصفح</a>
-      </div>
-    `;
-    return;
-  }
-  cart = JSON.parse(saved);
-  renderCart();
+function formatDate(timestamp) {
+  if (!timestamp) return '';
+  const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  return d.toLocaleString('ar-AE');
 }
 
-function renderCart() {
-  const container = document.getElementById('order-items');
-  container.innerHTML = '';
-  total = 0;
-
-  cart.forEach((item, idx) => {
-    const subtotal = item.price * item.quantity;
-    total += subtotal;
-    container.innerHTML += `
-      <div class="flex items-center gap-3 border-b pb-3">
-        <img src="${item.image || 'https://via.placeholder.com/80x80'}" alt="${item.name}" class="w-16 h-16 object-cover rounded-lg">
-        <div class="flex-1">
-          <h3 class="font-semibold">${item.name}</h3>
-          <p class="text-sm text-gray-500">
-            المقاس: ${item.size || 'غير محدد'} | اللون: ${item.color || 'غير محدد'}
-          </p>
-          <p class="text-sm">${item.price} درهم × ${item.quantity} = ${subtotal.toFixed(2)} درهم</p>
-        </div>
-      </div>
-    `;
-  });
-
-  document.getElementById('order-total').textContent = `${total.toFixed(2)} درهم`;
+function getStatusClass(status) {
+  if (status === 'جديد') return 'status-new';
+  if (status === 'مؤكد') return 'status-confirmed';
+  if (status === 'ملغي') return 'status-cancelled';
+  return 'bg-gray-100 text-gray-700';
 }
 
-function generateOrderNumber() {
-  const date = new Date();
-  const yy = date.getFullYear().toString().slice(-2);
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  const rand = Math.floor(Math.random() * 9000) + 1000;
-  return `VA-${yy}${mm}${dd}-${rand}`;
-}
-
-function buildOrderItemsText() {
-  return cart.map((item, i) => 
-    `${i+1}. ${item.name}
-   المقاس: ${item.size || '-'} | اللون: ${item.color || '-'}
-   الكمية: ${item.quantity} | السعر: ${item.price} درهم
-   المجموع: ${(item.price * item.quantity).toFixed(2)} درهم`
-  ).join('\n\n');
-}
-
-async function sendEmail(orderData) {
-  const orderItemsText = buildOrderItemsText();
-  const orderDate = new Date().toLocaleString('ar-AE');
-
-  // ✅ أسماء المتغيرات مطابقة تماماً لقالبك
-  const templateParams = {
-    order_id: orderData.orderNumber,
-    order_date: orderDate,
-    customer_name: orderData.fullName,
-    customer_email: orderData.customerEmail,
-    customer_phone: orderData.phone,
-    customer_address: orderData.address,
-    customer_notes: orderData.notes || 'لا يوجد',
-    order_items: orderItemsText,
-    order_total: `${total.toFixed(2)} درهم`
-  };
-
+async function loadOrders() {
+  const list = document.getElementById('orders-list');
+  list.innerHTML = '';
+  
   try {
-    const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
-    console.log('✅ تم إرسال الإيميل بنجاح:', response);
-    return true;
-  } catch (err) {
-    console.error('❌ خطأ في إرسال الإيميل:', err);
-    showToast('خطأ في إرسال الإيميل: ' + err.message, 'error');
-    return false;
-  }
-}
-
-async function saveOrderToFirebase(orderData) {
-  const user = auth.currentUser;
-  const orderRef = db.collection('orders').doc(orderData.orderNumber);
-  await orderRef.set({
-    orderNumber: orderData.orderNumber,
-    userId: user?.uid || 'guest',
-    userEmail: orderData.customerEmail,
-    fullName: orderData.fullName,
-    phone: orderData.phone,
-    address: orderData.address,
-    notes: orderData.notes || '',
-    items: cart,
-    total: total,
-    status: 'جديد',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-  console.log('✅ تم حفظ الطلب في Firestore');
-}
-
-async function handleSubmit(e) {
-  e.preventDefault();
-  const btn = document.getElementById('submit-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جاري المعالجة...';
-
-  const orderData = {
-    orderNumber: generateOrderNumber(),
-    fullName: document.getElementById('full_name').value.trim(),
-    phone: document.getElementById('phone').value.trim(),
-    customerEmail: document.getElementById('customer_email').value.trim(),
-    address: document.getElementById('address').value.trim(),
-    notes: document.getElementById('notes').value.trim()
-  };
-
-  // التحقق من الحقول
-  if (!orderData.fullName || !orderData.phone || !orderData.customerEmail || !orderData.address) {
-    showToast('املأ جميع الحقول المطلوبة (*)', 'error');
-    btn.disabled = false;
-    btn.innerHTML = '<span>تأكيد الطلب</span><i class="fa-solid fa-check ml-1"></i>';
-    return;
-  }
-
-  try {
-    // حفظ في قاعدة البيانات
-    await saveOrderToFirebase(orderData);
+    const snap = await db.collection('orders').orderBy('createdAt', 'desc').limit(50).get();
     
-    // إرسال الإيميل
-    const emailSent = await sendEmail(orderData);
-    if (!emailSent) {
-      showToast('تم حفظ الطلب لكن فشل إرسال الإيميل! راجع إعدادات EmailJS', 'error');
-    } else {
-      showToast('✅ تم تأكيد الطلب وإرسال التفاصيل');
+    if (snap.empty) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('no-orders').classList.remove('hidden');
+      return;
     }
 
-    // تفريغ السلة
-    localStorage.removeItem('varen_cart');
+    snap.forEach(doc => {
+      const o = { id: doc.id, ...doc.data() };
+      
+      list.innerHTML += `
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+          <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
+            <div>
+              <h3 class="font-bold text-lg">${o.orderNumber || o.id}</h3>
+              <p class="text-sm text-gray-500">${formatDate(o.createdAt)}</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(o.status || 'جديد')}">
+              ${o.status || 'جديد'}
+            </span>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
+            <div>
+              <p class="font-semibold mb-1">العميل:</p>
+              <p>${o.fullName || 'غير مذكور'}</p>
+              <p>${o.phone || ''}</p>
+              <p class="text-gray-500">${o.userEmail || ''}</p>
+            </div>
+            <div>
+              <p class="font-semibold mb-1">العنوان:</p>
+              <p>${o.address || 'غير مذكور'}</p>
+              ${o.notes ? `<p class="text-orange-600 mt-1">ملاحظات: ${o.notes}</p>` : ''}
+            </div>
+          </div>
+          
+          <div class="border-t pt-3 mb-3">
+            <p class="font-semibold mb-2">المنتجات:</p>
+            <div class="text-sm space-y-1">
+              ${(o.items || []).map(i => `
+                <p>• ${i.name} — المقاس: ${i.size || '-'} — اللون: ${i.color || '-'} — الكمية: ${i.quantity} — ${i.price} درهم</p>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div class="flex flex-wrap justify-between items-center gap-3 pt-2 border-t">
+            <p class="font-bold text-lg">المجموع: ${o.total?.toFixed(2) || '0.00'} درهم</p>
+            <div class="flex gap-2">
+              <select onchange="changeStatus('${o.id}', this.value)" class="border rounded-lg px-3 py-2 text-sm">
+                <option value="جديد" ${o.status === 'جديد' ? 'selected' : ''}>جديد</option>
+                <option value="مؤكد" ${o.status === 'مؤكد' ? 'selected' : ''}>مؤكد</option>
+                <option value="ملغي" ${o.status === 'ملغي' ? 'selected' : ''}>ملغي</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      `;
+    });
 
-    // عرض صفحة النجاح
-    document.getElementById('checkout-form').parentElement.classList.add('hidden');
-    document.getElementById('order-items').parentElement.classList.add('hidden');
-    document.getElementById('success-section').classList.remove('hidden');
-    document.getElementById('order-number').textContent = orderData.orderNumber;
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('content').classList.remove('hidden');
 
   } catch (err) {
     console.error(err);
-    showToast('حدث خطأ: ' + err.message, 'error');
-    btn.disabled = false;
-    btn.innerHTML = '<span>تأكيد الطلب</span><i class="fa-solid fa-check ml-1"></i>';
+    document.getElementById('loading').innerHTML = `<p class="text-red-500">خطأ في تحميل الطلبات: ${err.message}</p>`;
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadCart();
-  document.getElementById('checkout-form').addEventListener('submit', handleSubmit);
+window.changeStatus = async function(orderId, newStatus) {
+  try {
+    await db.collection('orders').doc(orderId).update({ status: newStatus });
+    showToast('✅ تم تحديث حالة الطلب');
+  } catch (err) {
+    console.error(err);
+    showToast('❌ خطأ في التحديث', 'error');
+  }
+};
+
+auth.onAuthStateChanged(user => {
+  document.getElementById('loading').classList.add('hidden');
+  
+  if (!user || user.email !== ADMIN_EMAIL) {
+    document.getElementById('no-permission').classList.remove('hidden');
+    return;
+  }
+  
+  document.getElementById('content').classList.remove('hidden');
+  loadOrders();
 });
 </script>
-
 </body>
 </html>
