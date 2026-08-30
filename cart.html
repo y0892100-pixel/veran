@@ -76,7 +76,7 @@ function renderCart() {
             <div class="flex-1">
               <h3 class="font-bold">${item.name}</h3>
               <p class="text-sm text-gray-500">${item.color} - ${item.size}</p>
-              <p class="font-semibold">${item.price} ر.س × ${item.qty} = ${item.price * item.qty}درهم</p>
+              <p class="font-semibold">${item.price} درهم × ${item.qty} = ${item.price * item.qty}درهم</p>
             </div>
             <button onclick="removeItem(${idx})" class="text-red-500 hover:text-red-700">
               <i class="fa-solid fa-trash"></i>
