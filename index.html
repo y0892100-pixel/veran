@@ -130,7 +130,10 @@ function updateUserUI(user) {
     if (accountBtn) accountBtn.classList.add('hidden');
     if (accountMenu) accountMenu.classList.add('hidden');
   }
-  window.Store?.updateCartCount?.();
+  // تحديث عداد السلة
+  if (window.Store?.updateCartCount) {
+    window.Store.updateCartCount();
+  }
 }
 
 async function logout() {
@@ -173,7 +176,9 @@ async function loadProducts() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // تحديث واجهة المستخدم بناءً على حالة تسجيل الدخول
   window.app.onAuthStateChanged(window.app.auth, updateUserUI);
+  // تحميل المنتجات
   loadProducts();
 });
 </script>
