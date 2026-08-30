@@ -13,7 +13,7 @@ export function saveCart(cart) {
 }
 
 // إضافة للسلة
-export function addToCart(id, name, price, img, size, color) {
+export function addToCart(id, name, price, img, size, color, category = '', type = '', season = '') {
   const cart = getCart();
   const existing = cart.find(item => 
     item.id === id && item.size === size && item.color === color
@@ -21,7 +21,18 @@ export function addToCart(id, name, price, img, size, color) {
   if (existing) {
     existing.qty++;
   } else {
-    cart.push({ id, name, price, img, size, color, qty: 1 });
+    cart.push({ 
+      id, 
+      name, 
+      price, 
+      img, 
+      size,        // المقاس
+      color,       // اللون
+      qty: 1,      // الكمية
+      category,    // تصنيف إضافي (رجالي/نسائي)
+      type,        // النوع (هودي/تيشيرت...)
+      season       // الموسم (صيفي/شتوي)
+    });
   }
   saveCart(cart);
   showToast('أضيف للسلة ✅');
@@ -71,7 +82,33 @@ export function getColorBg(color) {
     'أحمر': '#ef4444', 'أسود': '#000000', 'أبيض': '#ffffff',
     'بيج': '#f5f0dc', 'رمادي': '#9ca3af', 'أزرق': '#3b82f6',
     'أخضر': '#22c55e', 'وردي': '#f472b6', 'بني': '#92400e',
-    'برتقالي': '#f97316'
+    'برتقالي': '#f97316', 'أصفر': '#eab308', 'بنفسجي': '#a855f7'
   };
   return map[color] || '#ddd';
+}
+
+// ✅ دوال مساعدة للتوافق مع checkout.html
+// تحويل بيانات السلة لنص منظم للإيميل
+export function formatCartItemsForEmail(cart) {
+  if (!cart || cart.length === 0) return 'لا توجد منتجات';
+  
+  return cart.map((item, index) => {
+    const itemNumber = index + 1;
+    const size = item.size || 'غير محدد';
+    const color = item.color || 'غير محدد';
+    const quantity = item.qty || 1;
+    const totalPrice = (item.price || 0) * quantity;
+    const category = item.category || '';
+    const type = item.type || '';
+    const season = item.season || '';
+    const classification = [category, type, season].filter(Boolean).join(' - ');
+    
+    return `المنتج رقم ${itemNumber}:
+اسم المنتج: ${item.name}
+${classification ? `التصنيف: ${classification}` : ''}
+اللون: ${color}
+المقاس: ${size}
+الكمية: ${quantity}
+السعر: ${totalPrice} درهم`;
+  }).join('\n\n---\n\n');
 }
