@@ -1,111 +1,109 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سلة المشتريات - VAREN</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سلة التسوق - VAREN</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    * { font-family: 'Cairo', sans-serif; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast.show { display: block; }
+  </style>
+  <script type="module">
+    import * as Store from './store.js';
+    window.Store = Store;
+  </script>
 </head>
-<body>
-    <div id="app"></div>
+<body class="bg-gray-50 text-gray-800">
 
-    <!-- Firebase CDN -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <script>
-        // ✅ عدّل بيانات Firebase ببيانات مشروعك
-        const firebaseConfig = {
-            apiKey: "AIzaSyCuyUkuNEVWNpah8xsPEmuVeXkGvgi4gfQ",
-            authDomain: "planning-with-ai-d6295.firebaseapp.com",
-            databaseURL: "https://planning-with-ai-d6295-default-rtdb.firebaseio.com",
-            projectId: "planning-with-ai-d6295",
-            storageBucket: "planning-with-ai-d6295.appspot.com",
-            messagingSenderId: "992008736188",
-            appId: "1:992008736188:web:9372a5fe172f60be066fb9"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-    </script>
-
-    <script src="store.js"></script>
-    <script>
-        window.onload = cartPage;
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سلة المشتريات - VAREN</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap'); * { font-family: 'Cairo', sans-serif; }</style>
-</head>
-<body class="bg-gray-50">
 <nav class="bg-white shadow-md sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-        <a href="index.html" class="text-2xl font-bold">VAREN</a>
-        <a href="index.html" class="text-gray-600 hover:text-black">العودة للمتجر</a>
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
+    <div class="hidden md:flex gap-8">
+      <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
+      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
+      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
     </div>
+    <div class="flex items-center gap-4">
+      <a href="cart.html" class="text-xl relative">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+      </a>
+      <div id="user-area"></div>
+    </div>
+  </div>
 </nav>
 
-<main class="max-w-4xl mx-auto px-4 py-10">
-    <h1 class="text-3xl font-bold mb-8">سلة المشتريات</h1>
-    <div id="cart-items" class="space-y-4"></div>
-    <div id="cart-empty" class="text-center py-16 hidden">
-        <i class="fa-solid fa-cart-shopping text-6xl text-gray-300 mb-4"></i>
-        <p class="text-xl text-gray-500">السلة فارغة حالياً</p>
-        <a href="index.html" class="inline-block mt-4 bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">ابدأ التسوق</a>
-    </div>
-    <div id="cart-summary" class="mt-8 pt-6 border-t hidden">
-        <div class="flex justify-between text-xl font-bold mb-4">
-            <span>المجموع الكلي:</span>
-            <span id="cart-total">0 درهم</span>
-        </div>
-        <a href="checkout.html" class="block w-full text-center bg-black text-white py-3 rounded-lg hover:bg-gray-800">إتمام الطلب</a>
-    </div>
+<main class="max-w-4xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-8 text-center">سلة التسوق</h1>
+  <div id="cart-content"></div>
 </main>
 
+<footer class="bg-gray-900 text-white py-8 text-center">
+  <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
+</footer>
+
+<div id="toast" class="toast"></div>
+
 <script>
-const CART_KEY = 'fl_cart_v4';
-function getCart() { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); }
-function saveCart(cart) { localStorage.setItem(CART_KEY, JSON.stringify(cart)); renderCart(); }
-function removeItem(index) { const c = getCart(); c.splice(index,1); saveCart(c); }
-
 function renderCart() {
-    const cart = getCart();
-    const itemsEl = document.getElementById('cart-items');
-    const emptyEl = document.getElementById('cart-empty');
-    const summaryEl = document.getElementById('cart-summary');
-    itemsEl.innerHTML = '';
+  const content = document.getElementById('cart-content');
+  const cart = window.Store.getCart();
+  window.Store.updateCartCount();
 
-    if (!cart.length) {
-        emptyEl.classList.remove('hidden');
-        summaryEl.classList.add('hidden');
-        return;
-    }
+  if (cart.length === 0) {
+    content.innerHTML = `
+      <div class="text-center py-16">
+        <i class="fa-solid fa-cart-shopping text-6xl text-gray-300 mb-4"></i>
+        <p class="text-xl text-gray-500">السلة فارغة حالياً</p>
+        <a href="index.html" class="inline-block mt-4 bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">الذهاب للتسوق</a>
+      </div>
+    `;
+    return;
+  }
 
-    emptyEl.classList.add('hidden');
-    summaryEl.classList.remove('hidden');
-    let total = 0;
-    cart.forEach((item, i) => {
-        total += (item.price || 0) * (item.quantity || 1);
-        itemsEl.innerHTML += `
-            <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4">
-                <img src="${item.img || ''}" class="w-20 h-20 object-cover rounded-lg">
-                <div class="flex-1">
-                    <h3 class="font-bold">${item.name || 'منتج'}</h3>
-                    <p class="text-gray-500">${item.price || 0} درهم - الكمية: ${item.quantity || 1}</p>
-                </div>
-                <button onclick="removeItem(${i})" class="text-red-500"><i class="fa-solid fa-trash"></i></button>
+  let total = 0;
+  content.innerHTML = `
+    <div class="space-y-4">
+      ${cart.map((item, idx) => {
+        total += item.price * item.qty;
+        return `
+          <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4">
+            <img src="${item.img || 'https://via.placeholder.com/100'}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg">
+            <div class="flex-1">
+              <h3 class="font-bold">${item.name}</h3>
+              <p class="text-sm text-gray-500">${item.color} - ${item.size}</p>
+              <p class="font-semibold">${item.price} ر.س × ${item.qty} = ${item.price * item.qty} ر.س</p>
             </div>
+            <button onclick="removeItem(${idx})" class="text-red-500 hover:text-red-700">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
         `;
-    });
-    document.getElementById('cart-total').textContent = total + ' درهم';
+      }).join('')}
+    </div>
+    <div class="mt-8 bg-white p-6 rounded-xl shadow-sm">
+      <div class="flex justify-between text-xl font-bold mb-4">
+        <span>المجموع الكلي:</span>
+        <span>${total} ر.س</span>
+      </div>
+      <a href="checkout.html" class="block w-full text-center bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800">إتمام الطلب</a>
+    </div>
+  `;
 }
-renderCart();
+
+function removeItem(index) {
+  const cart = window.Store.getCart();
+  cart.splice(index, 1);
+  window.Store.saveCart(cart);
+  renderCart();
+  window.Store.showToast('تم الحذف');
+}
+
+document.addEventListener('DOMContentLoaded', renderCart);
 </script>
 </body>
 </html>
