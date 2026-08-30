@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>طلب استرجاع - VAREN</title>
+  <title>طلبات الاسترجاع - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -14,224 +17,161 @@
     .toast.success { background: #16a34a; }
     .toast.error { background: #dc2626; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import firebaseConfig from './firebase-config.js';
-    import * as Store from './store.js';
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    window.app = { auth, db, onAuthStateChanged, signOut, collection, addDoc, query, where, getDocs, serverTimestamp };
-    window.Store = Store;
-  </script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50">
 
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <div class="hidden md:flex gap-8">
-      <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
-      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
-      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
-    </div>
-    <div id="user-area" class="relative flex items-center gap-4">
-      <a href="cart.html" class="text-xl relative">
-        <i class="fa-solid fa-cart-shopping"></i>
-        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-      </a>
-      <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
-        حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
-      </button>
-      <button id="login-btn" onclick="location.href='admin.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
-      <div id="account-menu" class="hidden absolute right-0 mt-8 w-48 bg-white rounded-lg shadow-lg border z-50">
-        <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
-        <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
-        <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
-        <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
-      </div>
-    </div>
+    <div id="user-area"></div>
   </div>
 </nav>
 
 <main class="max-w-lg mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-6 text-center">طلب استرجاع</h1>
+  <h1 class="text-2xl font-bold mb-6">طلبات الاسترجاع</h1>
+  <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
+  <div id="content" class="hidden">
+    <form id="return-form" class="bg-white p-6 rounded-xl shadow-md space-y-4 mb-8">
+      <h2 class="text-lg font-bold">تقديم طلب استرجاع جديد</h2>
+      <div>
+        <label class="block font-semibold mb-1">رقم الطلب</label>
+        <input type="text" id="r-order-id" class="w-full border rounded-lg p-3" placeholder="أدخل رقم أو معرف الطلب">
+      </div>
+      <div>
+        <label class="block font-semibold mb-1">سبب الاسترجاع</label>
+        <textarea id="r-reason" class="w-full border rounded-lg p-3" rows="3" placeholder="اشرح سبب استرجاع المنتج"></textarea>
+      </div>
+      <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">إرسال الطلب</button>
+    </form>
 
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-    <h3 class="font-bold text-blue-800 mb-2">سياسة الاسترجاع</h3>
-    <ul class="text-sm text-blue-700 space-y-1">
-      <li>• يمكن الاسترجاع خلال 7 أيام من استلام الطلب</li>
-      <li>• أن يكون المنتج بحالته الأصلية مع التغليف والملصقات</li>
-      <li>• تكلفة الشحن على العميل إلا إذا كان المنتج معيباً</li>
-    </ul>
+    <h2 class="text-lg font-bold mb-4">طلباتي السابقة</h2>
+    <div id="returns-list"></div>
   </div>
-
-  <form id="return-form" class="bg-white p-6 rounded-xl shadow-md space-y-4">
-    <div>
-      <label class="block font-semibold mb-1">رقم الطلب *</label>
-      <select id="order-select" class="w-full border rounded-lg p-3" required>
-        <option value="">اختر من طلباتك السابقة...</option>
-      </select>
-    </div>
-
-    <div>
-      <label class="block font-semibold mb-1">المنتج المراد استرجاعه *</label>
-      <input type="text" id="product-name" class="w-full border rounded-lg p-3" placeholder="اسم المنتج" required>
-    </div>
-
-    <div>
-      <label class="block font-semibold mb-1">السبب *</label>
-      <select id="return-reason" class="w-full border rounded-lg p-3" required>
-        <option value="">اختر السبب...</option>
-        <option value="wrong-size">المقاس غير مناسب</option>
-        <option value="wrong-item">تم استلام منتج خطأ</option>
-        <option value="defective">المنتج معيب أو تالف</option>
-        <option value="not-as-described">غير مطابق للوصف</option>
-        <option value="other">سبب آخر</option>
-      </select>
-    </div>
-
-    <div>
-      <label class="block font-semibold mb-1">تفاصيل إضافية</label>
-      <textarea id="return-details" class="w-full border rounded-lg p-3" rows="3" placeholder="اكتب أي تفاصيل إضافية أو ملاحظات..."></textarea>
-    </div>
-
-    <div>
-      <label class="block font-semibold mb-1">طريقة الاسترداد المطلوبة</label>
-      <select id="refund-method" class="w-full border rounded-lg p-3">
-        <option value="original">استرداد إلى نفس طريقة الدفع</option>
-        <option value="credit">رصيد في المتجر</option>
-      </select>
-    </div>
-
-    <button type="submit" class="w-full bg-black text-white py-3 rounded-lg text-lg hover:bg-gray-800">
-      تقديم الطلب
-    </button>
-  </form>
+  <div id="no-returns" class="hidden text-center py-12">
+    <i class="fa-solid fa-rotate-left text-5xl text-gray-300 mb-4"></i>
+    <p class="text-gray-500">لا يوجد طلبات استرجاع سابقة</p>
+  </div>
+  <div id="no-login" class="hidden text-center py-16">
+    <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
+    <p class="text-xl text-gray-500 mb-4">سجّل الدخول أولاً</p>
+    <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block">تسجيل الدخول</a>
+  </div>
+  <div id="toast" class="toast"></div>
 </main>
 
-<footer class="bg-gray-900 text-white py-8 text-center">
-  <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
-</footer>
-
-<div id="toast" class="toast"></div>
-
 <script>
-const accountBtn = document.getElementById('account-btn');
-const accountMenu = document.getElementById('account-menu');
-const toast = document.getElementById('toast');
+const firebaseConfig = {
+  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
+  authDomain: "varen-f7756.firebaseapp.com",
+  projectId: "varen-f7756",
+  storageBucket: "varen-f7756.firebasestorage.app",
+  messagingSenderId: "648684291842",
+  appId: "1:648684291842:web:f3e806fc76a6e119caa41b"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 function showToast(msg, type='success') {
-  toast.textContent = msg;
-  toast.className = `toast show ${type}`;
-  setTimeout(() => toast.classList.remove('show'), 4000);
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
 }
 
-if (accountBtn) {
-  accountBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    accountMenu.classList.toggle('hidden');
-  });
-  document.addEventListener('click', () => accountMenu?.classList.add('hidden'));
-  accountMenu?.addEventListener('click', (e) => e.stopPropagation());
-}
-
-function updateUserUI(user) {
-  const loginBtn = document.getElementById('login-btn');
-  if (user) {
-    if (loginBtn) loginBtn.classList.add('hidden');
-    if (accountBtn) {
-      accountBtn.classList.remove('hidden');
-      accountBtn.classList.add('flex');
-    }
-  } else {
-    if (loginBtn) loginBtn.classList.remove('hidden');
-    if (accountBtn) accountBtn.classList.add('hidden');
-    if (accountMenu) accountMenu.classList.add('hidden');
+// ✅ نفس القائمة المنسدلة في كل الصفحات
+function updateUserNav(user) {
+  const area = document.getElementById('user-area');
+  if (!user) {
+    area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg">تسجيل الدخول</button>`;
+    return;
   }
-  window.Store?.updateCartCount?.();
+  const isAdmin = user.email === 'y0892100@gmail.com';
+  area.innerHTML = `
+    <div class="relative group">
+      <button class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
+        <i class="fa-solid fa-user-circle"></i>
+        <span>${user.displayName || 'حسابي'}</span>
+        <i class="fa-solid fa-chevron-down text-xs mr-1 transition-transform group-hover:rotate-180"></i>
+      </button>
+      <div class="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-50">
+        <a href="account.html" class="block px-4 py-3 hover:bg-gray-50 border-b">بيانات الحساب</a>
+        <a href="orders.html" class="block px-4 py-3 hover:bg-gray-50 border-b">طلباتي</a>
+        <a href="returns.html" class="block px-4 py-3 hover:bg-gray-50 border-b">طلبات الاسترجاع</a>
+        ${isAdmin ? `<a href="admin.html" class="block px-4 py-3 hover:bg-gray-50 border-b text-red-600">لوحة التحكم</a>` : ''}
+        <button onclick="logout()" class="w-full text-right px-4 py-3 hover:bg-gray-50 text-red-500">تسجيل الخروج</button>
+      </div>
+    </div>
+  `;
 }
 
-async function logout() {
-  await window.app.signOut(window.app.auth);
+window.logout = async () => {
+  await auth.signOut();
   window.location.href = 'index.html';
-}
+};
 
-async function loadUserOrders(user) {
-  const select = document.getElementById('order-select');
-  if (!user) return;
-
-  try {
-    const q = window.app.query(
-      window.app.collection(window.app.db, 'orders'),
-      window.app.where('userId', '==', user.uid),
-      window.app.orderBy('createdAt', 'desc')
-    );
-    const snapshot = await window.app.getDocs(q);
-
-    snapshot.forEach(doc => {
-      const order = { id: doc.id, ...doc.data() };
-      const date = order.createdAt?.toDate ? new Date(order.createdAt.toDate()).toLocaleDateString('ar-AE') : '';
-      const option = document.createElement('option');
-      option.value = order.id;
-      option.textContent = `طلب رقم ${order.id.slice(0,8).toUpperCase()} — ${date}`;
-      select.appendChild(option);
-    });
-  } catch (err) {
-    console.error(err);
+auth.onAuthStateChanged(async user => {
+  document.getElementById('loading').classList.add('hidden');
+  if (!user) {
+    document.getElementById('no-login').classList.remove('hidden');
+    return;
   }
-}
+  document.getElementById('content').classList.remove('hidden');
+  updateUserNav(user);
 
-document.addEventListener('DOMContentLoaded', () => {
-  window.app.onAuthStateChanged(window.app.auth, async user => {
-    updateUserUI(user);
-    if (!user) {
-      showToast('سجل دخول أولاً', 'error');
-      setTimeout(() => window.location.href='admin.html', 1500);
-      return;
-    }
-    loadUserOrders(user);
-  });
-
+  // إرسال طلب استرجاع
   document.getElementById('return-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const user = window.app.auth.currentUser;
-    if (!user) return;
+    const orderId = document.getElementById('r-order-id').value.trim();
+    const reason = document.getElementById('r-reason').value.trim();
+    if (!orderId || !reason) return showToast('املأ جميع الحقول', 'error');
 
-    const orderId = document.getElementById('order-select').value;
-    const productName = document.getElementById('product-name').value.trim();
-    const reason = document.getElementById('return-reason').value;
-    const details = document.getElementById('return-details').value.trim();
-    const refundMethod = document.getElementById('refund-method').value;
+    await db.collection('returns').add({
+      userId: user.uid,
+      userEmail: user.email,
+      orderId,
+      reason,
+      status: 'قيد المراجعة',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
 
-    if (!orderId || !productName || !reason) {
-      showToast('املأ الحقول المطلوبة', 'error');
+    showToast('✅ تم إرسال طلب الاسترجاع');
+    document.getElementById('return-form').reset();
+    loadReturns();
+  });
+
+  // تحميل طلبات الاسترجاع
+  async function loadReturns() {
+    const snapshot = await db.collection('returns').where('userId', '==', user.uid).orderBy('createdAt', 'desc').get();
+    const list = document.getElementById('returns-list');
+    list.innerHTML = '';
+    
+    if (snapshot.empty) {
+      document.getElementById('no-returns').classList.remove('hidden');
       return;
     }
+    document.getElementById('no-returns').classList.add('hidden');
 
-    try {
-      await window.app.addDoc(window.app.collection(window.app.db, 'returns'), {
-        userId: user.uid,
-        userEmail: user.email,
-        orderId,
-        productName,
-        reason,
-        details,
-        refundMethod,
-        status: 'جديد',
-        createdAt: window.app.serverTimestamp()
-      });
+    snapshot.forEach(doc => {
+      const r = doc.data();
+      const date = r.createdAt?.toDate ? new Date(r.createdAt.toDate()).toLocaleDateString('ar-AE') : 'غير محدد';
+      list.innerHTML += `
+        <div class="bg-white p-4 rounded-lg shadow-sm mb-3 border">
+          <div class="flex justify-between items-center mb-2">
+            <span class="font-semibold">طلب: ${r.orderId}</span>
+            <span class="px-2 py-1 rounded text-xs font-medium ${
+              r.status === 'قيد المراجعة' ? 'bg-yellow-100 text-yellow-700' :
+              r.status === 'مقبول' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }">${r.status}</span>
+          </div>
+          <p class="text-sm text-gray-600 mb-1">التاريخ: ${date}</p>
+          <p class="text-sm">السبب: ${r.reason}</p>
+        </div>
+      `;
+    });
+  }
 
-      showToast('تم تقديم طلب الاسترجاع بنجاح ✅');
-      document.getElementById('return-form').reset();
-    } catch (err) {
-      console.error(err);
-      showToast('خطأ: ' + err.message, 'error');
-    }
-  });
+  loadReturns();
 });
 </script>
 </body>
