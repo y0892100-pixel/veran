@@ -16,12 +16,22 @@
     .toast.success { background: #16a34a; }
     .toast.error { background: #dc2626; }
     .size-btn.selected { background: black; color: white; }
-    .color-btn.selected { border: 3px solid black; }
+    .color-btn.selected { border: 3px solid black; transform: scale(1.15); }
     .related-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
     .related-card { transition: all 0.3s ease; }
+    /* نافذة تكبير الصور */
+    .image-lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; align-items: center; justify-content: center; }
+    .image-lightbox.active { display: flex; }
+    .image-lightbox img { max-width: 90%; max-height: 80%; object-fit: contain; border-radius: 8px; }
+    .image-lightbox .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .image-lightbox .prev-btn { right: 20px; }
+    .image-lightbox .next-btn { left: 20px; }
+    .image-lightbox .close-btn { position: absolute; top: 20px; right: 20px; background: transparent; color: white; border: none; font-size: 30px; cursor: pointer; }
+    .main-image-container { cursor: zoom-in; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
@@ -30,42 +40,52 @@
     </a>
   </div>
 </nav>
+
 <main class="max-w-7xl mx-auto px-4 py-8">
   <div id="loading" class="text-center py-16">
     <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
     <p class="mt-2">جاري التحميل...</p>
   </div>
+
   <div id="product-content" class="hidden">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
       <!-- صور المنتج -->
       <div>
-        <div id="main-image" class="w-full aspect-square bg-gray-100 rounded-xl overflow-hidden mb-4">
+        <div id="main-image" class="main-image-container w-full aspect-square bg-gray-100 rounded-xl overflow-hidden mb-4" onclick="openLightbox(0)">
           <img src="" alt="" class="w-full h-full object-cover" id="main-img-el">
         </div>
         <div id="thumbnails" class="grid grid-cols-5 gap-2"></div>
       </div>
+
       <!-- معلومات المنتج -->
       <div>
         <h1 id="prod-name" class="text-3xl font-bold mb-2"></h1>
         <p id="prod-meta" class="text-gray-600 mb-4"></p>
         
-        <div class="flex items-center gap-3 mb-6">
+        <div class="flex items-center gap-3 mb-3">
           <span id="prod-price" class="text-2xl font-bold"></span>
           <span id="prod-original-price" class="text-lg text-gray-400 line-through hidden"></span>
         </div>
+        
+        <!-- عرض المخزون -->
+        <div id="stock-display" class="mb-4 font-medium"></div>
+        
         <div id="unavailable-msg" class="hidden text-red-500 font-medium mb-4">
           <i class="fa-solid fa-circle-xmark ml-1"></i> المنتج غير متوفر حالياً
         </div>
+
         <!-- اختيار المقاس -->
         <div class="mb-4">
           <p class="font-medium mb-2">المقاس:</p>
           <div id="sizes-container" class="flex flex-wrap gap-2"></div>
         </div>
+
         <!-- اختيار اللون -->
         <div class="mb-4">
           <p class="font-medium mb-2">اللون:</p>
-          <div id="colors-container" class="flex flex-wrap gap-2"></div>
+          <div id="colors-container" class="flex flex-wrap gap-3"></div>
         </div>
+
         <!-- الكمية -->
         <div class="mb-6">
           <p class="font-medium mb-2">الكمية:</p>
@@ -74,29 +94,41 @@
             <span id="qty-val" class="text-lg font-medium w-10 text-center">1</span>
             <button onclick="changeQty(1)" class="w-10 h-10 border rounded-lg flex items-center justify-center hover:bg-gray-100">+</button>
           </div>
+          <p id="max-stock-msg" class="text-sm text-gray-500 mt-1"></p>
         </div>
+
         <!-- زر الإضافة -->
         <button id="add-cart-btn" onclick="addToCart()" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">
           <i class="fa-solid fa-cart-plus ml-1"></i> أضف للسلة
         </button>
       </div>
     </div>
+
     <!-- منتجات مشابهة -->
     <div id="related-section" class="border-t pt-10">
       <h2 class="text-2xl font-bold mb-6">منتجات مشابهة</h2>
       <div id="related-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
     </div>
   </div>
+
   <div id="not-found" class="hidden text-center py-16">
     <i class="fa-solid fa-circle-exclamation text-gray-300 text-6xl mb-4"></i>
     <h2 class="text-xl font-bold text-gray-500 mb-2">المنتج غير موجود</h2>
     <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block mt-2">العودة للرئيسية</a>
   </div>
 </main>
+
+<!-- نافذة تكبير الصور -->
+<div id="lightbox" class="image-lightbox" onclick="closeLightbox(event)">
+  <button class="close-btn" onclick="closeLightbox(event)">&times;</button>
+  <button class="nav-btn prev-btn" onclick="prevImage(event)">&#8592;</button>
+  <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()">
+  <button class="nav-btn next-btn" onclick="nextImage(event)">&#8594;</button>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
-// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -107,23 +139,35 @@ const firebaseConfig = {
   measurementId: "G-SV7DKGPH2M"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const COLOR_HEX = {
-  Black: '#111111', White: '#ffffff', Gray: '#9ca3af', Beige: '#d6c2a1',
-  Red: '#ef4444', Blue: '#3b82f6', Green: '#22c55e', Pink: '#ec4899',
-  Brown: '#8b5e3c', Purple: '#8b5cf6', Yellow: '#facc15', Orange: '#f97316'
+// 🎨 أسماء الألوان و أكوادها الحقيقية
+const COLOR_MAP = {
+  'أسود': '#000000',
+  'أبيض': '#ffffff',
+  'رمادي': '#9ca3af',
+  'بيج': '#d9c7b8',
+  'أحمر': '#ef4444',
+  'أزرق': '#3b82f6',
+  'أخضر': '#22c55e',
+  'وردي': '#f472b6',
+  'بني': '#a16207',
+  'برتقالي': '#f97316',
+  'ذهبي': '#f59e0b',
+  'فضي': '#d1d5db',
+  'بنفسجي': '#8b5cf6',
+  'أصفر': '#facc15'
 };
 
 let product = null;
 let selectedSize = null;
 let selectedColor = null;
 let quantity = 1;
+let currentImageIndex = 0;
+let productImages = [];
+
 const DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const DEFAULT_COLORS = Object.keys(COLOR_HEX);
 
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
@@ -133,8 +177,7 @@ function showToast(msg, type='success') {
 }
 
 function getProductId() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('id');
+  return new URLSearchParams(window.location.search).get('id');
 }
 
 async function loadProduct() {
@@ -143,8 +186,8 @@ async function loadProduct() {
   try {
     const doc = await db.collection('products').doc(id).get();
     if (!doc.exists) return showNotFound();
-    
     product = { id: doc.id, ...doc.data() };
+    productImages = product.images?.length ? [...product.images] : ['https://via.placeholder.com/600x600?text=لا+صورة'];
     renderProduct();
     loadRelated();
   } catch (err) {
@@ -175,33 +218,44 @@ function renderProduct() {
     product.season || ''
   ].filter(Boolean);
   document.getElementById('prod-meta').textContent = parts.join(' • ');
-  
+
   // السعر
   const price = Number(product.price) || 0;
   const origPrice = product.priceOriginal ? Number(product.priceOriginal) : null;
-  document.getElementById('prod-price').textContent = `${price} درهم`;
+  document.getElementById('prod-price').textContent = `${price.toFixed(2)} درهم`;
   if (origPrice && origPrice > price) {
-    document.getElementById('prod-original-price').textContent = `${origPrice} درهم`;
+    document.getElementById('prod-original-price').textContent = `${origPrice.toFixed(2)} درهم`;
     document.getElementById('prod-original-price').classList.remove('hidden');
   }
-  
+
+  // 📦 عرض المخزون
+  const stock = product.stock || 0;
+  const stockEl = document.getElementById('stock-display');
+  if (stock === 0) {
+    stockEl.innerHTML = '<span class="text-red-500">❌ نفذ من المخزون</span>';
+  } else if (stock <= 3) {
+    stockEl.innerHTML = `<span class="text-orange-500">⚠️ تبقى فقط ${stock} قطع!</span>`;
+  } else {
+    stockEl.innerHTML = `<span class="text-green-600">✅ متوفر: ${stock} قطعة</span>`;
+  }
+
   // التوفر
-  const isAvailable = product.available !== false;
+  const isAvailable = product.available !== false && stock > 0;
   if (!isAvailable) {
     document.getElementById('unavailable-msg').classList.remove('hidden');
     document.getElementById('add-cart-btn').disabled = true;
     document.getElementById('add-cart-btn').classList.add('opacity-50', 'cursor-not-allowed');
   }
-  
-  // الصور
-  const images = product.images?.length ? product.images : ['https://via.placeholder.com/600x600?text=لا+صورة'];
-  document.getElementById('main-img-el').src = images[0];
+
+  // 🖼️ الصور والمعرض
+  currentImageIndex = 0;
+  document.getElementById('main-img-el').src = productImages[0];
   const thumbs = document.getElementById('thumbnails');
   thumbs.innerHTML = '';
-  images.forEach((img, i) => {
-    thumbs.innerHTML += `<button onclick="changeMainImg('${img}')" class="aspect-square overflow-hidden rounded-lg border-2 ${i===0?'border-black':'border-transparent'} hover:border-gray-400"><img src="${img}" alt="" class="w-full h-full object-cover"></button>`;
+  productImages.forEach((img, i) => {
+    thumbs.innerHTML += `<button onclick="changeMainImg(${i})" class="aspect-square overflow-hidden rounded-lg border-2 ${i===0?'border-black':'border-transparent'} hover:border-gray-400"><img src="${img}" alt="" class="w-full h-full object-cover"></button>`;
   });
-  
+
   // المقاسات
   const sizes = product.sizes?.length ? product.sizes : DEFAULT_SIZES;
   const sizesCont = document.getElementById('sizes-container');
@@ -209,20 +263,52 @@ function renderProduct() {
   sizes.forEach(s => {
     sizesCont.innerHTML += `<button class="size-btn border px-4 py-2 rounded-lg hover:bg-gray-100" onclick="selectSize('${s}', this)">${s}</button>`;
   });
-  
-  // الألوان
-  const colors = product.colors?.length ? product.colors : DEFAULT_COLORS;
+
+  // 🎨 الألوان — نعرض اللون الحقيقي
+  const colors = product.colors?.length ? product.colors : Object.keys(COLOR_MAP);
   const colorsCont = document.getElementById('colors-container');
   colorsCont.innerHTML = '';
   colors.forEach(c => {
-    const bg = COLOR_HEX[c] || c;
-    const border = c === 'White' ? 'border border-gray-300' : '';
-    colorsCont.innerHTML += `<button class="color-btn w-10 h-10 rounded-full ${border} hover:scale-110 transition-transform" style="background:${bg}" title="${c}" onclick="selectColor('${c}', this)"></button>`;
+    const bgColor = COLOR_MAP[c] || c;
+    const isLight = (bgColor.startsWith('#') && parseInt(bgColor.slice(1), 16) > 0x888888);
+    const borderStyle = isLight ? 'border border-gray-400' : '';
+    colorsCont.innerHTML += `<button class="color-btn w-10 h-10 rounded-full ${borderStyle} hover:scale-110 transition-transform" style="background:${bgColor}" title="${c}" onclick="selectColor('${c}', this)"></button>`;
   });
 }
 
-function changeMainImg(src) {
-  document.getElementById('main-img-el').src = src;
+function changeMainImg(index) {
+  currentImageIndex = index;
+  document.getElementById('main-img-el').src = productImages[index];
+  // تحديث تحديد الصورة المصغرة
+  document.querySelectorAll('#thumbnails button').forEach((btn, i) => {
+    btn.classList.toggle('border-black', i === index);
+    btn.classList.toggle('border-transparent', i !== index);
+  });
+}
+
+// 🖼️ نافذة تكبير الصور
+function openLightbox(index) {
+  currentImageIndex = index;
+  document.getElementById('lightbox-img').src = productImages[index];
+  document.getElementById('lightbox').classList.add('active');
+}
+
+function closeLightbox(event) {
+  if (!event || event.target === event.currentTarget) {
+    document.getElementById('lightbox').classList.remove('active');
+  }
+}
+
+function prevImage(event) {
+  event.stopPropagation();
+  currentImageIndex = (currentImageIndex - 1 + productImages.length) % productImages.length;
+  document.getElementById('lightbox-img').src = productImages[currentImageIndex];
+}
+
+function nextImage(event) {
+  event.stopPropagation();
+  currentImageIndex = (currentImageIndex + 1) % productImages.length;
+  document.getElementById('lightbox-img').src = productImages[currentImageIndex];
 }
 
 function selectSize(size, btn) {
@@ -237,45 +323,66 @@ function selectColor(color, btn) {
   btn.classList.add('selected');
 }
 
+// ⚠️ منع تجاوز المخزون
 function changeQty(delta) {
-  quantity = Math.max(1, quantity + delta);
+  const maxStock = product.stock || 0;
+  const newQty = quantity + delta;
+  
+  if (newQty < 1) return;
+  if (newQty > maxStock) {
+    showToast(`⚠️ المتوفر فقط: ${maxStock} قطعة`, 'error');
+    return;
+  }
+  
+  quantity = newQty;
   document.getElementById('qty-val').textContent = quantity;
+  
+  const msgEl = document.getElementById('max-stock-msg');
+  msgEl.textContent = maxStock <= 5 ? `الكمية المتاحة: ${maxStock} قطعة` : '';
 }
 
 function addToCart() {
-  const isAvailable = product.available !== false;
-  if (!isAvailable) return showToast('المنتج غير متوفر', 'error');
+  const stock = product.stock || 0;
+  const isAvailable = product.available !== false && stock > 0;
+  
+  if (!isAvailable) return showToast('❌ المنتج غير متوفر أو نفذ من المخزون', 'error');
   if (!selectedSize) return showToast('اختر المقاس أولاً', 'error');
   if (!selectedColor) return showToast('اختر اللون أولاً', 'error');
-  
-  const cart = JSON.parse(localStorage.getItem('varen_cart') || '[]');
+  if (quantity > stock) return showToast(`⚠️ الكمية المطلوبة (${quantity}) أكثر من المتوفر (${stock})`, 'error');
+
+  const cart = JSON.parse(localStorage.getItem('varen_cart_v1') || '[]');
   const existingIdx = cart.findIndex(item => 
     item.id === product.id && item.size === selectedSize && item.color === selectedColor
   );
-  
+
   const itemData = {
     id: product.id,
     name: product.name,
     price: Number(product.price),
-    image: product.images?.[0] || '',
+    image: productImages[0],
     size: selectedSize,
     color: selectedColor,
-    quantity: quantity
+    qty: quantity,
+    stock: stock // نحفظ المخزون وقت الإضافة للتحقق لاحقاً
   };
-  
+
   if (existingIdx !== -1) {
-    cart[existingIdx].quantity += quantity;
+    const newTotalQty = cart[existingIdx].qty + quantity;
+    if (newTotalQty > stock) {
+      return showToast(`⚠️ الكمية الإجمالية في السلة ستتجاوز المخزون المتاح (${stock})`, 'error');
+    }
+    cart[existingIdx].qty = newTotalQty;
   } else {
     cart.push(itemData);
   }
-  
-  localStorage.setItem('varen_cart', JSON.stringify(cart));
+
+  localStorage.setItem('varen_cart_v1', JSON.stringify(cart));
   showToast('✅ أضيف للسلة بنجاح!');
   quantity = 1;
   document.getElementById('qty-val').textContent = '1';
 }
 
-// ✅ تحميل منتجات مشابهة
+// تحميل منتجات مشابهة
 async function loadRelated() {
   const grid = document.getElementById('related-grid');
   try {
@@ -283,12 +390,10 @@ async function loadRelated() {
     let products = [];
     snapshot.forEach(doc => {
       const p = { id: doc.id, ...doc.data() };
-      if (p.available !== false && p.id !== product.id) {
+      if (p.available !== false && (p.stock || 0) > 0 && p.id !== product.id) {
         products.push(p);
       }
     });
-    
-    // نعرض حتى 4 منتجات مشابهة
     products = products.slice(0, 4);
     
     if (products.length === 0) {
@@ -314,8 +419,8 @@ async function loadRelated() {
   }
 }
 
-// ✅ عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', loadProduct);
 </script>
+
 </body>
 </html>
