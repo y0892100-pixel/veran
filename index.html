@@ -7,7 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- ✅ مكتبات Firebase موحّدة بصيغة compat فقط -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -20,10 +19,14 @@
     .toast.success { background: #16a34a; }
     .toast.error { background: #dc2626; }
     .product-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-    .product-card { transition: all 0.3s ease; }
+    .product-card { transition: all 0.3s ease; min-width: 160px; max-width: 200px; }
+    .scroll-container { scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+    .scroll-container::-webkit-scrollbar { height: 6px; }
+    .scroll-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
@@ -55,6 +58,7 @@
     </div>
   </div>
 </nav>
+
 <section class="bg-gradient-to-r from-gray-900 to-gray-700 text-white py-16 md:py-24">
   <div class="max-w-7xl mx-auto px-4 text-center md:text-right">
     <h1 class="text-4xl md:text-5xl font-bold mb-4">أحدث صيحات الموضة</h1>
@@ -62,15 +66,17 @@
     <a href="#products" class="inline-block bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-100">تصفّح المنتجات</a>
   </div>
 </section>
+
 <section id="products" class="max-w-7xl mx-auto px-4 py-12">
   <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center">منتجاتنا</h2>
-  <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-    <div class="col-span-full text-center py-12 text-gray-500">
+  <div id="categories-container">
+    <div class="text-center py-12 text-gray-500">
       <i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i>
       <p>جاري تحميل المنتجات...</p>
     </div>
   </div>
 </section>
+
 <section class="bg-white py-12 border-t">
   <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
     <div><i class="fa-solid fa-truck-fast text-3xl mb-3 text-black"></i><h3 class="font-bold text-lg">شحن سريع</h3><p class="text-gray-600">توصيل لباب بيتك</p></div>
@@ -78,13 +84,14 @@
     <div><i class="fa-solid fa-rotate-left text-3xl mb-3 text-black"></i><h3 class="font-bold text-lg">إرجاع سهل</h3><p class="text-gray-600">إرجاع خلال 7 أيام</p></div>
   </div>
 </section>
+
 <footer class="bg-gray-900 text-white py-8 text-center">
   <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
 </footer>
+
 <div id="toast" class="toast"></div>
 
 <script>
-// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -94,24 +101,34 @@ const firebaseConfig = {
   appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
   measurementId: "G-SV7DKGPH2M"
 };
-// ✅ تهيئة Firebase مرة واحدة فقط
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ✅ تحديث عداد السلة
+const CART_KEY = 'varen_cart_v1';
+
+// ✅ أسماء التصنيفات بالترتيب اللي تبيه
+const CATEGORIES = [
+  { key: 'هودي', label: 'هوديات' },
+  { key: 'فستان', label: 'فساتين' },
+  { key: 'قميص', label: 'قمصان' },
+  { key: 'بس كامل', label: 'لبس كامل' },
+  { key: 'بنطلون', label: 'بناطيل' },
+  { key: 'بلوزة', label: 'بلوزات' },
+  { key: 'جاكيت', label: 'جاكيتات' },
+  { key: 'ملابس رياضية', label: 'ملابس رياضية' }
+];
+
 function updateCartCount() {
-  const cart = JSON.parse(localStorage.getItem('varen_cart') || '[]');
+  const cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
   const countEl = document.getElementById('cart-count');
   if (countEl) {
-    const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    const total = cart.reduce((sum, item) => sum + (item.qty || item.quantity || 1), 0);
     countEl.textContent = total;
   }
 }
 
-// ✅ دوال مساعدة
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -119,58 +136,108 @@ function showToast(msg, type='success') {
   setTimeout(() => t.classList.remove('show'), 4000);
 }
 
-// ✅ تحميل المنتجات من Firestore
+function renderProductCard(p) {
+  const priceOriginal = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-1">${p.priceOriginal}</span>` : '';
+  const imageUrl = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/200x250';
+  return `
+    <a href="product.html?id=${p.id}" class="product-card block bg-white rounded-xl shadow-sm overflow-hidden border flex-shrink-0">
+      <img src="${imageUrl}" alt="${p.name}" class="w-full h-48 object-cover">
+      <div class="p-3">
+        <h3 class="font-bold text-sm mb-1 truncate">${p.name}</h3>
+        <p class="text-xs text-gray-500 mb-2">${p.gender === 'women' ? 'نسائي' : p.gender === 'men' ? 'رجالي' : ''}</p>
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-sm">${p.price} درهم</span>
+          ${priceOriginal}
+        </div>
+      </div>
+    </a>
+  `;
+}
+
+function renderCategoryRow(categoryKey, categoryLabel, products) {
+  if (!products || products.length === 0) return '';
+  
+  const productsHtml = products.map(p => renderProductCard(p)).join('');
+  const rowId = `row-${categoryKey.replace(/\s+/g, '-')}`;
+  
+  return `
+    <div class="mb-12">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold">${categoryLabel}</h3>
+        <button onclick="scrollRow('${rowId}', 250)" class="text-sm text-gray-500 hover:text-black">
+          التالي <i class="fa-solid fa-chevron-left mr-1 text-xs"></i>
+        </button>
+      </div>
+      <div id="${rowId}" class="scroll-container flex gap-4 overflow-x-auto pb-2">
+        ${productsHtml}
+        <!-- مساحة إضافية في النهاية -->
+        <div class="flex-shrink-0 w-4"></div>
+      </div>
+    </div>
+  `;
+}
+
+window.scrollRow = function(rowId, distance) {
+  const row = document.getElementById(rowId);
+  if (row) row.scrollBy({ left: -distance, behavior: 'smooth' });
+};
+
 async function loadProducts() {
-  const grid = document.getElementById('products-grid');
+  const container = document.getElementById('categories-container');
   try {
-    // نجلب المتوفر فقط من الأحدث للأقدم
     const snapshot = await db.collection('products')
       .where('available', '==', true)
       .get();
     
-    // نرتب في الكود لأن الفهارس قد لا تكون موجودة
-    let products = [];
+    // تجميع المنتجات حسب التصنيف
+    const productsByCategory = {};
     snapshot.forEach(doc => {
-      products.push({ id: doc.id, ...doc.data() });
+      const p = { id: doc.id, ...doc.data() };
+      const cat = p.category || p.type || 'غير مصنف';
+      if (!productsByCategory[cat]) productsByCategory[cat] = [];
+      productsByCategory[cat].push(p);
     });
     
-    // ترتيب من الأحدث للأقدم
-    products.sort((a, b) => {
-      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
-      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
-      return dateB - dateA;
+    // ترتيب كل مجموعة من الأحدث للأقدم
+    Object.keys(productsByCategory).forEach(cat => {
+      productsByCategory[cat].sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+        return dateB - dateA;
+      });
     });
 
-    if (products.length === 0) {
-      grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات متوفرة حالياً</p></div>';
-      return;
+    container.innerHTML = '';
+    
+    // عرض التصنيفات بالترتيب المحدد
+    CATEGORIES.forEach(cat => {
+      const products = productsByCategory[cat.key];
+      if (products && products.length > 0) {
+        // نعرض حتى 20 منتج في كل صف
+        const toShow = products.slice(0, 20);
+        container.innerHTML += renderCategoryRow(cat.key, cat.label, toShow);
+      }
+    });
+
+    // أي تصنيفات أخرى غير مذكورة نعرضها في النهاية
+    const knownKeys = CATEGORIES.map(c => c.key);
+    Object.keys(productsByCategory).forEach(catKey => {
+      if (!knownKeys.includes(catKey)) {
+        const products = productsByCategory[catKey].slice(0, 20);
+        container.innerHTML += renderCategoryRow(catKey, catKey, products);
+      }
+    });
+
+    if (container.innerHTML.trim() === '') {
+      container.innerHTML = '<div class="text-center py-12 text-gray-500"><p>لا توجد منتجات متوفرة حالياً</p></div>';
     }
 
-    grid.innerHTML = '';
-    products.forEach(p => {
-      const priceOriginal = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} درهم</span>` : '';
-      const imageUrl = (p.images && p.images.length > 0) ? p.images[0] : 'https://via.placeholder.com/300x400';
-      grid.innerHTML += `
-        <a href="product.html?id=${p.id}" class="product-card block bg-white rounded-xl shadow-sm overflow-hidden border">
-          <img src="${imageUrl}" alt="${p.name}" class="w-full h-64 object-cover">
-          <div class="p-4">
-            <h3 class="font-bold text-lg mb-2">${p.name}</h3>
-            <p class="text-sm text-gray-500 mb-2">${p.type || ''} — ${p.gender === 'women' ? 'نسائي' : p.gender === 'men' ? 'رجالي' : p.gender === 'girls' ? 'بنات' : 'أولاد'}</p>
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-lg">${p.price} درهم</span>
-              ${priceOriginal}
-            </div>
-          </div>
-        </a>
-      `;
-    });
   } catch (err) {
     console.error(err);
-    grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
+    container.innerHTML = `<div class="text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
   }
 }
 
-// ✅ تحديث واجهة المستخدم
 function updateUserUI(user) {
   const loginBtn = document.getElementById('login-btn');
   const accountBtn = document.getElementById('account-btn');
@@ -190,7 +257,6 @@ function updateUserUI(user) {
   updateCartCount();
 }
 
-// ✅ فتح وإغلاق قائمة الحساب
 const accountBtn = document.getElementById('account-btn');
 const accountMenu = document.getElementById('account-menu');
 if (accountBtn && accountMenu) {
@@ -202,18 +268,17 @@ if (accountBtn && accountMenu) {
   accountMenu.addEventListener('click', (e) => e.stopPropagation());
 }
 
-// ✅ تسجيل الخروج
 window.logout = async () => {
   await auth.signOut();
   showToast('✅ تم تسجيل الخروج');
   setTimeout(() => window.location.reload(), 1000);
 };
 
-// ✅ عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(updateUserUI);
   loadProducts();
 });
 </script>
+
 </body>
 </html>
