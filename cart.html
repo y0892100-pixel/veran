@@ -39,7 +39,7 @@
   </div>
 
   <!-- محتوى السلة -->
-  <div id="cart-content">
+  <div id="cart-content" class="hidden">
     <div id="cart-items" class="space-y-4 mb-8"></div>
     <div class="bg-white rounded-xl shadow-sm p-6">
       <div class="flex justify-between text-lg mb-2">
@@ -60,7 +60,6 @@
 <script>
 const CART_KEY = 'varen_cart_v1';
 
-// عرض رسالة
 function showToast(msg, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
@@ -68,54 +67,44 @@ function showToast(msg, type = 'success') {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// جلب السلة
 function getCart() {
   const data = localStorage.getItem(CART_KEY);
+  console.log('📦 بيانات السلة من المتصفح:', data); // للتأكد
   return data ? JSON.parse(data) : [];
 }
 
-// حفظ السلة
 function saveCart(cart) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
   renderCart();
 }
 
-// حذف منتج
 window.removeItem = function(index) {
   const cart = getCart();
   cart.splice(index, 1);
   saveCart(cart);
   showToast('✅ تم حذف المنتج');
-};
+}
 
-// تغيير الكمية
 window.changeQty = function(index, delta) {
   const cart = getCart();
-  cart[index].qty = Math.max(1, (cart[index].qty || 1) + delta);
+  const key = cart[index].qty !== undefined ? 'qty' : 'quantity';
+  cart[index][key] = Math.max(1, (cart[index][key] || 1) + delta);
   saveCart(cart);
-};
+}
 
-// عرض السلة
 function renderCart() {
   const cart = getCart();
   const emptyState = document.getElementById('empty-cart');
   const content = document.getElementById('cart-content');
   const itemsCont = document.getElementById('cart-items');
 
+  console.log('🛒 عدد العناصر في السلة:', cart.length); // للتأكد
+
   if (cart.length === 0) {
     emptyState.classList.remove('hidden');
     content.classList.add('hidden');
     return;
   }
-   const firebaseConfig = {
-    apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-    authDomain: "varen-f7756.firebaseapp.com",
-    projectId: "varen-f7756",
-    storageBucket: "varen-f7756.firebasestorage.app",
-    messagingSenderId: "648684291842",
-    appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
-    measurementId: "G-SV7DKGPH2M"
-  };
 
   emptyState.classList.add('hidden');
   content.classList.remove('hidden');
@@ -123,14 +112,14 @@ function renderCart() {
 
   let total = 0;
   cart.forEach((item, index) => {
-    const qty = item.qty || 1;
+    const qty = item.qty || item.quantity || 1;
     const price = Number(item.price);
     const subtotal = price * qty;
     total += subtotal;
 
     itemsCont.innerHTML += `
       <div class="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
-        <img src="${item.image || 'https://via.placeholder.com/100x100'}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg">
+        <img src="${item.image || item.img || 'https://via.placeholder.com/100x100'}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg">
         <div class="flex-1">
           <h3 class="font-bold text-lg">${item.name}</h3>
           <p class="text-sm text-gray-600">المقاس: ${item.size || 'غير محدد'} | اللون: ${item.color || 'غير محدد'}</p>
@@ -155,7 +144,6 @@ function renderCart() {
   document.getElementById('total').textContent = `${total.toFixed(2)} درهم`;
 }
 
-// تشغيل عند التحميل
 document.addEventListener('DOMContentLoaded', renderCart);
 </script>
 
