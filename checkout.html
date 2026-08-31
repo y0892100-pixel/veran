@@ -19,6 +19,7 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
@@ -27,9 +28,11 @@
     </a>
   </div>
 </nav>
+
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center">إتمام الطلب</h1>
   <div id="toast" class="toast"></div>
+
   <!-- ملخص الطلب -->
   <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
     <h2 class="text-xl font-bold mb-4">ملخص الطلب</h2>
@@ -40,6 +43,7 @@
       <span id="order-total">0.00 درهم</span>
     </div>
   </div>
+
   <!-- بيانات العميل -->
   <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
     <h2 class="text-xl font-bold mb-4">بيانات التوصيل</h2>
@@ -70,6 +74,7 @@
       </button>
     </form>
   </div>
+
   <!-- حالة الطلب -->
   <div id="success-section" class="hidden bg-green-50 border border-green-200 rounded-xl p-8 text-center">
     <i class="fa-solid fa-circle-check text-green-500 text-5xl mb-4"></i>
@@ -83,8 +88,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
 <script>
-// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -95,20 +100,20 @@ const firebaseConfig = {
   measurementId: "G-SV7DKGPH2M"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// ✅ إعدادات EmailJS — خليتها زي ما كانت شغالة
+// إعدادات EmailJS
 const EMAILJS_SERVICE_ID = 'service_3bs6onj';
 const EMAILJS_TEMPLATE_ID = 'template_om7zrjs';
 const EMAILJS_PUBLIC_KEY = '3A0NspFA3vlSd64jc';
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
-// تهيئة EmailJS
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+// ⚠️ مهم: توحيد اسم مفتاح السلة زي باقي الملفات
+const CART_KEY = 'varen_cart_v1';
 
 let cart = [];
 let total = 0;
@@ -121,7 +126,7 @@ function showToast(msg, type='success') {
 }
 
 function loadCart() {
-  const saved = localStorage.getItem('varen_cart');
+  const saved = localStorage.getItem(CART_KEY);
   if (!saved || saved === '[]') {
     document.querySelector('main').innerHTML = `
       <div class="text-center py-16">
@@ -142,7 +147,8 @@ function renderCart() {
   container.innerHTML = '';
   total = 0;
   cart.forEach((item, idx) => {
-    const subtotal = item.price * item.quantity;
+    const qty = item.qty || item.quantity || 1;
+    const subtotal = item.price * qty;
     total += subtotal;
     container.innerHTML += `
       <div class="flex items-center gap-3 border-b pb-3">
@@ -152,7 +158,7 @@ function renderCart() {
           <p class="text-sm text-gray-500">
             المقاس: ${item.size || 'غير محدد'} | اللون: ${item.color || 'غير محدد'}
           </p>
-          <p class="text-sm">${item.price} درهم × ${item.quantity} = ${subtotal.toFixed(2)} درهم</p>
+          <p class="text-sm">${item.price} درهم × ${qty} = ${subtotal.toFixed(2)} درهم</p>
         </div>
       </div>
     `;
@@ -170,12 +176,13 @@ function generateOrderNumber() {
 }
 
 function buildOrderItemsText() {
-  return cart.map((item, i) => 
-    `${i+1}. ${item.name}
+  return cart.map((item, i) => {
+    const qty = item.qty || item.quantity || 1;
+    return `${i+1}. ${item.name}
    المقاس: ${item.size || '-'} | اللون: ${item.color || '-'}
-   الكمية: ${item.quantity} | السعر: ${item.price} درهم
-   المجموع: ${(item.price * item.quantity).toFixed(2)} درهم`
-  ).join('\n\n');
+   الكمية: ${qty} | السعر: ${item.price} درهم
+   المجموع: ${(item.price * qty).toFixed(2)} درهم`;
+  }).join('\n\n');
 }
 
 async function sendEmail(orderData) {
@@ -198,9 +205,61 @@ async function sendEmail(orderData) {
     return true;
   } catch (err) {
     console.error('❌ خطأ في إرسال الإيميل:', err);
-    showToast('خطأ في إرسال الإيميل: ' + err.message, 'error');
+    showToast('تنبيه: لم يتم إرسال الإيميل، لكن الطلب مسجل لدينا', 'error');
     return false;
   }
+}
+
+async function validateStockBeforeOrder() {
+  for (const item of cart) {
+    const qtyNeeded = item.qty || item.quantity || 1;
+    const productRef = db.collection('products').doc(item.id);
+    const productDoc = await productRef.get();
+    
+    if (!productDoc.exists) {
+      showToast(`❌ المنتج "${item.name}" غير متوفر حالياً`, 'error');
+      return false;
+    }
+    
+    const productData = productDoc.data();
+    const availableStock = productData.stock || 0;
+    
+    if (availableStock === 0) {
+      showToast(`❌ المنتج "${item.name}" نفذ من المخزون`, 'error');
+      return false;
+    }
+    
+    if (qtyNeeded > availableStock) {
+      showToast(`⚠️ الكمية المطلوبة من "${item.name}" غير متوفرة. المتوفر: ${availableStock} قطعة فقط`, 'error');
+      return false;
+    }
+  }
+  return true;
+}
+
+async function reduceStockAfterOrder() {
+  const batch = db.batch();
+  
+  for (const item of cart) {
+    const qtyNeeded = item.qty || item.quantity || 1;
+    const productRef = db.collection('products').doc(item.id);
+    const productDoc = await productRef.get();
+    
+    if (productDoc.exists) {
+      const currentStock = productDoc.data().stock || 0;
+      const newStock = Math.max(0, currentStock - qtyNeeded);
+      
+      batch.update(productRef, {
+        stock: newStock,
+        available: newStock > 0
+      });
+      
+      console.log(`📦 ${item.name}: ${currentStock} → ${newStock}`);
+    }
+  }
+  
+  await batch.commit();
+  console.log('✅ تم تحديث المخزون في قاعدة البيانات');
 }
 
 async function saveOrderToFirebase(orderData) {
@@ -245,20 +304,33 @@ async function handleSubmit(e) {
   }
 
   try {
-    await saveOrderToFirebase(orderData);
-    const emailSent = await sendEmail(orderData);
-    
-    if (!emailSent) {
-      showToast('تم حفظ الطلب لكن فشل إرسال الإيميل! راجع إعدادات EmailJS', 'error');
-    } else {
-      showToast('✅ تم تأكيد الطلب وإرسال التفاصيل');
+    // ✅ أولاً: نتحقق من المخزون
+    const stockValid = await validateStockBeforeOrder();
+    if (!stockValid) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>تأكيد الطلب</span><i class="fa-solid fa-check ml-1"></i>';
+      return;
     }
 
-    localStorage.removeItem('varen_cart');
+    // ✅ ثانياً: نحفظ الطلب
+    await saveOrderToFirebase(orderData);
+
+    // ✅ ثالثاً: ننقص الكمية من المخزون
+    await reduceStockAfterOrder();
+
+    // ✅ رابعاً: نرسل الإيميل
+    await sendEmail(orderData);
+
+    // ✅ خامساً: نفرغ السلة
+    localStorage.removeItem(CART_KEY);
+
+    // ✅ عرض رسالة النجاح
     document.getElementById('checkout-form').parentElement.classList.add('hidden');
     document.getElementById('order-items').parentElement.classList.add('hidden');
     document.getElementById('success-section').classList.remove('hidden');
     document.getElementById('order-number').textContent = orderData.orderNumber;
+
+    showToast('✅ تم تأكيد طلبك بنجاح!');
 
   } catch (err) {
     console.error(err);
@@ -273,5 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('checkout-form').addEventListener('submit', handleSubmit);
 });
 </script>
+
 </body>
 </html>
