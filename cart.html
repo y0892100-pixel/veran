@@ -6,6 +6,8 @@
   <title>سلة التسوق - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
@@ -58,6 +60,21 @@
 </main>
 
 <script>
+// ✅ إعدادات Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
+  authDomain: "varen-f7756.firebaseapp.com",
+  projectId: "varen-f7756",
+  storageBucket: "varen-f7756.firebasestorage.app",
+  messagingSenderId: "648684291842",
+  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
+  measurementId: "G-SV7DKGPH2M"
+};
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ✅ توحيد اسم السلة
 const CART_KEY = 'varen_cart_v1';
 
 function showToast(msg, type = 'success') {
@@ -69,7 +86,6 @@ function showToast(msg, type = 'success') {
 
 function getCart() {
   const data = localStorage.getItem(CART_KEY);
-  console.log('📦 بيانات السلة من المتصفح:', data); // للتأكد
   return data ? JSON.parse(data) : [];
 }
 
@@ -85,20 +101,45 @@ window.removeItem = function(index) {
   showToast('✅ تم حذف المنتج');
 }
 
-window.changeQty = function(index, delta) {
+// ⚠️ تغيير الكمية مع التحقق من المخزون
+window.changeQty = async function(index, delta) {
   const cart = getCart();
-  const key = cart[index].qty !== undefined ? 'qty' : 'quantity';
-  cart[index][key] = Math.max(1, (cart[index][key] || 1) + delta);
-  saveCart(cart);
+  const item = cart[index];
+  const key = item.qty !== undefined ? 'qty' : 'quantity';
+  const currentQty = item[key] || 1;
+  const newQty = currentQty + delta;
+
+  // لا نسمح بأن تصبح أقل من 1
+  if (newQty < 1) return;
+
+  // نجلب أحدث بيانات المخزون من قاعدة البيانات
+  try {
+    const productDoc = await db.collection('products').doc(item.id).get();
+    if (!productDoc.exists) {
+      showToast(`❌ المنتج "${item.name}" غير متوفر حالياً`, 'error');
+      return;
+    }
+
+    const stock = productDoc.data().stock || 0;
+
+    if (newQty > stock) {
+      showToast(`⚠️ المتوفر فقط: ${stock} قطعة — لا يمكن زيادة الكمية`, 'error');
+      return;
+    }
+
+    cart[index][key] = newQty;
+    saveCart(cart);
+  } catch (err) {
+    console.error(err);
+    showToast('❌ خطأ في التحقق من المخزون', 'error');
+  }
 }
 
-function renderCart() {
+async function renderCart() {
   const cart = getCart();
   const emptyState = document.getElementById('empty-cart');
   const content = document.getElementById('cart-content');
   const itemsCont = document.getElementById('cart-items');
-
-  console.log('🛒 عدد العناصر في السلة:', cart.length); // للتأكد
 
   if (cart.length === 0) {
     emptyState.classList.remove('hidden');
@@ -111,11 +152,28 @@ function renderCart() {
   itemsCont.innerHTML = '';
 
   let total = 0;
-  cart.forEach((item, index) => {
+  for (let index = 0; index < cart.length; index++) {
+    const item = cart[index];
     const qty = item.qty || item.quantity || 1;
     const price = Number(item.price);
     const subtotal = price * qty;
     total += subtotal;
+
+    // نتحقق من المخزون ونعرض تنبيه لو محدود
+    let stockWarning = '';
+    try {
+      const productDoc = await db.collection('products').doc(item.id).get();
+      if (productDoc.exists) {
+        const stock = productDoc.data().stock || 0;
+        if (qty > stock) {
+          stockWarning = `<p class="text-red-500 text-xs mt-1">⚠️ الكمية المطلوبة (${qty}) أكثر من المتوفر (${stock})</p>`;
+        } else if (stock <= 3) {
+          stockWarning = `<p class="text-orange-500 text-xs mt-1">⚠️ تبقى فقط ${stock} قطع متوفرة</p>`;
+        }
+      }
+    } catch (e) {
+      // تجاهل أخطاء التحقق هنا
+    }
 
     itemsCont.innerHTML += `
       <div class="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
@@ -124,6 +182,7 @@ function renderCart() {
           <h3 class="font-bold text-lg">${item.name}</h3>
           <p class="text-sm text-gray-600">المقاس: ${item.size || 'غير محدد'} | اللون: ${item.color || 'غير محدد'}</p>
           <p class="font-semibold mt-1">${price.toFixed(2)} درهم</p>
+          ${stockWarning}
         </div>
         <div class="flex flex-col items-center gap-1">
           <button onclick="changeQty(${index}, 1)" class="w-8 h-8 border rounded flex items-center justify-center hover:bg-gray-100">+</button>
@@ -138,7 +197,7 @@ function renderCart() {
         </div>
       </div>
     `;
-  });
+  }
 
   document.getElementById('subtotal').textContent = `${total.toFixed(2)} درهم`;
   document.getElementById('total').textContent = `${total.toFixed(2)} درهم`;
