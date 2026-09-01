@@ -44,6 +44,21 @@
     </div>
   </div>
 
+  <!-- ⚠️ تنبيهات مهمة -->
+  <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+    <div class="flex items-start gap-3">
+      <i class="fa-solid fa-circle-info text-amber-500 text-xl mt-0.5"></i>
+      <div class="text-sm text-amber-800">
+        <p class="font-semibold mb-1">معلومات مهمة:</p>
+        <ul class="list-disc list-inside space-y-1">
+          <li>⏱️ يمكنك <strong>إلغاء الطلب</strong> خلال <strong>6 ساعات</strong> فقط من تأكيده</li>
+          <li>📦 يمكنك طلب <strong>استرجاع</strong> خلال <strong>7 أيام</strong> من تاريخ إنشاء الطلب</li>
+          <li>بعد انتهاء الفترات المذكورة، لا يمكن الإلغاء أو الاسترجاع</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <!-- بيانات العميل -->
   <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
     <h2 class="text-xl font-bold mb-4">بيانات التوصيل</h2>
@@ -353,6 +368,7 @@ async function handleSubmit(e) {
     // ✅ عرض رسالة النجاح
     document.getElementById('checkout-form').parentElement.classList.add('hidden');
     document.getElementById('order-items').parentElement.classList.add('hidden');
+    document.querySelector('.bg-amber-50').classList.add('hidden');
     document.getElementById('success-section').classList.remove('hidden');
     document.getElementById('order-number').textContent = orderData.orderNumber;
 
