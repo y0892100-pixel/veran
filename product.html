@@ -3,14 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تفاصيل المنتج - VAREN</title>
+  <title data-i18n="page_title">تفاصيل المنتج - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    html[lang="en"] { direction: ltr; }
+    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
@@ -29,25 +34,177 @@
     .image-lightbox .next-btn { left: 20px; }
     .image-lightbox .close-btn { position: absolute; top: 20px; right: 20px; background: transparent; color: white; border: none; font-size: 30px; cursor: pointer; }
     .main-image-container { cursor: zoom-in; }
+    .lang-option:hover { background: #f3f4f6; }
+    .lang-option.active { background: #e5e7eb; font-weight: bold; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
+<script>
+const translations = {
+  ar: {
+    page_title: "تفاصيل المنتج - VAREN",
+    back: "الرجوع",
+    loading: "جاري التحميل...",
+    choose_color_size: "اختر اللون والمقاس لمعرفة التوفر",
+    unavailable_option: "هذا الخيار غير متوفر حالياً",
+    color: "اللون:",
+    size: "المقاس:",
+    choose_color_first: "اختر اللون أولاً",
+    quantity: "الكمية:",
+    add_to_cart: "أضف للسلة",
+    similar_products: "منتجات مشابهة",
+    product_not_found: "المنتج غير موجود",
+    back_home: "العودة للرئيسية",
+    available_stock: "متوفر: {stock} قطعة ({color} - {size})",
+    low_stock: "⚠️ تبقى فقط {stock} قطع ({color} - {size})",
+    out_of_stock: "❌ غير متوفر",
+    no_options: "لا توجد خيارات متاحة حالياً",
+    no_sizes_for_color: "لا مقاسات متاحة لهذا اللون",
+    choose_color_and_size: "اختر اللون والمقاس أولاً",
+    color_required: "اختر اللون أولاً",
+    size_required: "اختر المقاس أولاً",
+    option_unavailable: "❌ هذا الخيار غير متوفر أو نفذ من المخزون",
+    quantity_exceeds_stock: "⚠️ الكمية المطلوبة ({qty}) أكثر من المتوفر ({stock})",
+    total_exceeds_stock: "⚠️ الكمية الإجمالية في السلة ستتجاوز المخزون المتاح ({stock})",
+    added_to_cart: "✅ أضيف للسلة بنجاح!",
+    loading_error: "خطأ في تحميل المنتج",
+    no_similar_products: "لا توجد منتجات مشابهة حالياً",
+    sold_out: "نفذ",
+    language: "اللغة",
+    my_info: "معلوماتي",
+    my_orders: "طلباتي",
+    returns: "الاسترجاع",
+    logout: "تسجيل الخروج",
+    account: "حسابي",
+    login: "تسجيل الدخول"
+  },
+  en: {
+    page_title: "Product Details - VAREN",
+    back: "Back",
+    loading: "Loading...",
+    choose_color_size: "Choose color and size to check availability",
+    unavailable_option: "This option is currently unavailable",
+    color: "Color:",
+    size: "Size:",
+    choose_color_first: "Choose color first",
+    quantity: "Quantity:",
+    add_to_cart: "Add to Cart",
+    similar_products: "Similar Products",
+    product_not_found: "Product Not Found",
+    back_home: "Back to Home",
+    available_stock: "✅ Available: {stock} pcs ({color} - {size})",
+    low_stock: "⚠️ Only {stock} left ({color} - {size})",
+    out_of_stock: "❌ Not Available",
+    no_options: "No options available at the moment",
+    no_sizes_for_color: "No sizes available for this color",
+    choose_color_and_size: "Choose color and size first",
+    color_required: "Choose color first",
+    size_required: "Choose size first",
+    option_unavailable: "❌ This option is unavailable or out of stock",
+    quantity_exceeds_stock: "⚠️ Requested quantity ({qty}) exceeds available stock ({stock})",
+    total_exceeds_stock: "⚠️ Total quantity in cart will exceed available stock ({stock})",
+    added_to_cart: "✅ Added to cart successfully!",
+    loading_error: "Error loading product",
+    no_similar_products: "No similar products available",
+    sold_out: "Sold Out",
+    language: "Language",
+    my_info: "My Information",
+    my_orders: "My Orders",
+    returns: "Returns",
+    logout: "Sign Out",
+    account: "My Account",
+    login: "Sign In"
+  }
+};
+
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+  
+  updateLangUI(lang);
+}
+
+function updateLangUI(lang) {
+  document.querySelectorAll('.lang-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+}
+
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+
+function t(key, params = {}) {
+  const lang = getCurrentLanguage();
+  let text = translations[lang][key] || key;
+  Object.keys(params).forEach(p => {
+    text = text.replace(`{${p}}`, params[p]);
+  });
+  return text;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+});
+</script>
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <a href="javascript:history.back()" class="text-sm text-gray-600 hover:text-black">
-      <i class="fa-solid fa-arrow-right ml-1"></i> الرجوع
+    
+    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
     </a>
+
+    <div class="flex items-center gap-4">
+      <a href="javascript:history.back()" class="text-sm text-gray-600 hover:text-black">
+        <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="back">الرجوع</span>
+      </a>
+      <a href="cart.html" class="text-xl relative">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+      </a>
+      <div id="user-area" class="relative">
+        <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
+          <span data-i18n="account">حسابي</span> <i class="fa-solid fa-chevron-down text-xs"></i>
+        </button>
+        <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800" data-i18n="login">تسجيل الدخول</button>
+        
+        <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+          <a href="account.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_info">معلوماتي</a>
+          <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_orders">طلباتي</a>
+          <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="returns">الاسترجاع</a>
+          
+          <hr class="mx-3">
+          <div class="px-4 py-2">
+            <p class="text-sm font-semibold text-gray-500 mb-2" data-i18n="language">اللغة</p>
+            <button onclick="setLanguage('ar')" class="lang-option w-full text-right px-3 py-2 rounded text-sm" data-lang="ar">العربية</button>
+            <button onclick="setLanguage('en')" class="lang-option w-full text-right px-3 py-2 rounded text-sm mt-1" data-lang="en">English</button>
+          </div>
+          
+          <hr class="mx-3 mt-2">
+          <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100" data-i18n="logout">تسجيل الخروج</button>
+        </div>
+      </div>
+    </div>
   </div>
 </nav>
 
 <main class="max-w-7xl mx-auto px-4 py-8">
   <div id="loading" class="text-center py-16">
     <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
-    <p class="mt-2">جاري التحميل...</p>
+    <p class="mt-2" data-i18n="loading">جاري التحميل...</p>
   </div>
-
+  
   <div id="product-content" class="hidden">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
       <!-- صور المنتج -->
@@ -57,7 +214,7 @@
         </div>
         <div id="thumbnails" class="grid grid-cols-5 gap-2"></div>
       </div>
-
+      
       <!-- معلومات المنتج -->
       <div>
         <h1 id="prod-name" class="text-3xl font-bold mb-2"></h1>
@@ -69,57 +226,56 @@
         </div>
         
         <!-- عرض المخزون حسب الاختيار -->
-        <div id="stock-display" class="mb-4 font-medium text-gray-500">
+        <div id="stock-display" class="mb-4 font-medium text-gray-500" data-i18n="choose_color_size">
           اختر اللون والمقاس لمعرفة التوفر
         </div>
         
         <div id="unavailable-msg" class="hidden text-red-500 font-medium mb-4">
-          <i class="fa-solid fa-circle-xmark ml-1"></i> هذا الخيار غير متوفر حالياً
+          <i class="fa-solid fa-circle-xmark ml-1"></i> <span data-i18n="unavailable_option">هذا الخيار غير متوفر حالياً</span>
         </div>
-
+        
         <!-- اختيار اللون أولاً -->
         <div class="mb-4">
-          <p class="font-medium mb-2">اللون:</p>
+          <p class="font-medium mb-2" data-i18n="color">اللون:</p>
           <div id="colors-container" class="flex flex-wrap gap-3"></div>
         </div>
-
+        
         <!-- اختيار المقاس بناءً على اللون المختار -->
         <div class="mb-4">
-          <p class="font-medium mb-2">المقاس:</p>
+          <p class="font-medium mb-2" data-i18n="size">المقاس:</p>
           <div id="sizes-container" class="flex flex-wrap gap-2">
-            <span class="text-gray-400 text-sm">اختر اللون أولاً</span>
+            <span class="text-gray-400 text-sm" data-i18n="choose_color_first">اختر اللون أولاً</span>
           </div>
         </div>
-
+        
         <!-- الكمية -->
         <div class="mb-6">
-          <p class="font-medium mb-2">الكمية:</p>
+          <p class="font-medium mb-2" data-i18n="quantity">الكمية:</p>
           <div class="flex items-center gap-3">
             <button onclick="changeQty(-1)" class="w-10 h-10 border rounded-lg flex items-center justify-center hover:bg-gray-100">-</button>
             <span id="qty-val" class="text-lg font-medium w-10 text-center">1</span>
             <button onclick="changeQty(1)" class="w-10 h-10 border rounded-lg flex items-center justify-center hover:bg-gray-100">+</button>
           </div>
-          <p id="max-stock-msg" class="text-sm text-gray-500 mt-1"></p>
         </div>
-
+        
         <!-- زر الإضافة -->
         <button id="add-cart-btn" onclick="addToCart()" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">
-          <i class="fa-solid fa-cart-plus ml-1"></i> أضف للسلة
+          <i class="fa-solid fa-cart-plus ml-1"></i> <span data-i18n="add_to_cart">أضف للسلة</span>
         </button>
       </div>
     </div>
-
+    
     <!-- منتجات مشابهة -->
     <div id="related-section" class="border-t pt-10">
-      <h2 class="text-2xl font-bold mb-6">منتجات مشابهة</h2>
+      <h2 class="text-2xl font-bold mb-6" data-i18n="similar_products">منتجات مشابهة</h2>
       <div id="related-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
     </div>
   </div>
-
+  
   <div id="not-found" class="hidden text-center py-16">
     <i class="fa-solid fa-circle-exclamation text-gray-300 text-6xl mb-4"></i>
-    <h2 class="text-xl font-bold text-gray-500 mb-2">المنتج غير موجود</h2>
-    <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block mt-2">العودة للرئيسية</a>
+    <h2 class="text-xl font-bold text-gray-500 mb-2" data-i18n="product_not_found">المنتج غير موجود</h2>
+    <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block mt-2" data-i18n="back_home">العودة للرئيسية</a>
   </div>
 </main>
 
@@ -143,9 +299,10 @@ const firebaseConfig = {
   appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
   measurementId: "G-SV7DKGPH2M"
 };
-
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 const db = firebase.firestore();
+const ADMIN_EMAIL = 'y0892100@gmail.com';
 
 // 🎨 أسماء الألوان وأكوادها
 const COLOR_MAP = {
@@ -162,6 +319,15 @@ let selectedVariant = null;
 let quantity = 1;
 let currentImageIndex = 0;
 let productImages = [];
+
+function updateCartCount() {
+  const cart = JSON.parse(localStorage.getItem('varen_cart_v1') || '[]');
+  const countEl = document.getElementById('cart-count');
+  if (countEl) {
+    const total = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+    countEl.textContent = total;
+  }
+}
 
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
@@ -181,12 +347,12 @@ async function loadProduct() {
     const doc = await db.collection('products').doc(id).get();
     if (!doc.exists) return showNotFound();
     product = { id: doc.id, ...doc.data() };
-    productImages = product.images?.length ? [...product.images] : ['https://via.placeholder.com/600x600?text=لا+صورة'];
+    productImages = product.images?.length ? [...product.images] : ['https://via.placeholder.com/600x600?text=No+Image'];
     renderProduct();
     loadRelated();
   } catch (err) {
     console.error(err);
-    showToast('خطأ في تحميل المنتج', 'error');
+    showToast(t('loading_error'), 'error');
   }
 }
 
@@ -201,23 +367,27 @@ function renderProduct() {
   
   // الاسم والمعلومات
   document.getElementById('prod-name').textContent = product.name || 'منتج بدون اسم';
+  const lang = getCurrentLanguage();
   const parts = [
-    product.gender === 'women' ? 'نسائي' : product.gender === 'men' ? 'رجالي' : 
-    product.gender === 'girls' ? 'بنات' : product.gender === 'boys' ? 'أولاد' : null,
+    product.gender === 'women' ? (lang === 'ar' ? 'نسائي' : 'Women') : 
+    product.gender === 'men' ? (lang === 'ar' ? 'رجالي' : 'Men') : 
+    product.gender === 'girls' ? (lang === 'ar' ? 'بنات' : 'Girls') : 
+    product.gender === 'boys' ? (lang === 'ar' ? 'أولاد' : 'Boys') : null,
     product.type || '',
-    product.season === 'winter' ? 'شتوي' : product.season === 'summer' ? 'صيفي' : product.season || ''
+    product.season === 'winter' ? (lang === 'ar' ? 'شتوي' : 'Winter') : 
+    product.season === 'summer' ? (lang === 'ar' ? 'صيفي' : 'Summer') : product.season || ''
   ].filter(Boolean);
   document.getElementById('prod-meta').textContent = parts.join(' • ');
-
+  
   // السعر
   const price = Number(product.price) || 0;
   const origPrice = product.priceOriginal ? Number(product.priceOriginal) : null;
-  document.getElementById('prod-price').textContent = `${price.toFixed(2)} درهم`;
+  document.getElementById('prod-price').textContent = `${price.toFixed(2)} ${lang === 'ar' ? 'درهم' : 'AED'}`;
   if (origPrice && origPrice > price) {
-    document.getElementById('prod-original-price').textContent = `${origPrice.toFixed(2)} درهم`;
+    document.getElementById('prod-original-price').textContent = `${origPrice.toFixed(2)} ${lang === 'ar' ? 'درهم' : 'AED'}`;
     document.getElementById('prod-original-price').classList.remove('hidden');
   }
-
+  
   // الصور
   document.getElementById('main-img-el').src = productImages[0];
   const thumbs = document.getElementById('thumbnails');
@@ -225,7 +395,7 @@ function renderProduct() {
   productImages.forEach((img, i) => {
     thumbs.innerHTML += `<button onclick="changeMainImg(${i})" class="aspect-square overflow-hidden rounded-lg border-2 ${i===0?'border-black':'border-transparent'} hover:border-gray-400"><img src="${img}" alt="" class="w-full h-full object-cover"></button>`;
   });
-
+  
   // 🎨 تحميل الألوان الفريدة من الـ variants
   const variants = product.variants || [];
   const uniqueColors = [...new Set(variants.map(v => v.color))];
@@ -233,26 +403,26 @@ function renderProduct() {
   colorsCont.innerHTML = '';
   
   if (variants.length === 0) {
-    colorsCont.innerHTML = '<span class="text-gray-400 text-sm">لا توجد خيارات متاحة حالياً</span>';
-    document.getElementById('sizes-container').innerHTML = '<span class="text-gray-400 text-sm">اختر اللون أولاً</span>';
+    colorsCont.innerHTML = `<span class="text-gray-400 text-sm">${t('no_options')}</span>`;
+    document.getElementById('sizes-container').innerHTML = `<span class="text-gray-400 text-sm">${t('choose_color_first')}</span>`;
     return;
   }
-
+  
   uniqueColors.forEach(c => {
     const bgColor = COLOR_MAP[c] || c;
     const isLight = (bgColor.startsWith('#') && parseInt(bgColor.slice(1), 16) > 0x888888);
     colorsCont.innerHTML += `<button class="color-btn w-10 h-10 rounded-full ${isLight?'border border-gray-400':''} hover:scale-110 transition-transform" style="background:${bgColor}" title="${c}" onclick="selectColor('${c}', this)"></button>`;
   });
-
+  
   // إعادة تعيين الحالة
   selectedColor = null;
   selectedSize = null;
   selectedVariant = null;
   quantity = 1;
   document.getElementById('qty-val').textContent = '1';
-  document.getElementById('stock-display').innerHTML = 'اختر اللون والمقاس لمعرفة التوفر';
+  document.getElementById('stock-display').innerHTML = `<span data-i18n="choose_color_size">${t('choose_color_size')}</span>`;
   document.getElementById('unavailable-msg').classList.add('hidden');
-  document.getElementById('sizes-container').innerHTML = '<span class="text-gray-400 text-sm">اختر اللون أولاً</span>';
+  document.getElementById('sizes-container').innerHTML = `<span class="text-gray-400 text-sm" data-i18n="choose_color_first">${t('choose_color_first')}</span>`;
 }
 
 function changeMainImg(index) {
@@ -299,19 +469,19 @@ function selectColor(color, btn) {
   // تحديث تحديد اللون
   document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
-
+  
   // جلب المقاسات المتاحة لهذا اللون فقط
   const variants = product.variants || [];
   const sizesForColor = variants.filter(v => v.color === color);
   const sizesCont = document.getElementById('sizes-container');
   sizesCont.innerHTML = '';
-
+  
   if (sizesForColor.length === 0) {
-    sizesCont.innerHTML = '<span class="text-gray-400 text-sm">لا مقاسات متاحة لهذا اللون</span>';
+    sizesCont.innerHTML = `<span class="text-gray-400 text-sm">${t('no_sizes_for_color')}</span>`;
     document.getElementById('stock-display').innerHTML = '';
     return;
   }
-
+  
   // عرض المقاسات مع حالة المخزون
   sizesForColor.forEach(v => {
     const isOutOfStock = v.stock <= 0;
@@ -320,12 +490,12 @@ function selectColor(color, btn) {
               ${isOutOfStock?'disabled':''} 
               onclick="${isOutOfStock?'':'selectSize(\'' + v.size + '\', this)'}">
         ${v.size}
-        ${isOutOfStock?'<span class="block text-xs text-red-500">نفذ</span>':''}
+        ${isOutOfStock?`<span class="block text-xs text-red-500" data-i18n="sold_out">${t('sold_out')}</span>`:''}
       </button>
     `;
   });
-
-  document.getElementById('stock-display').innerHTML = 'الآن اختر المقاس';
+  
+  document.getElementById('stock-display').innerHTML = t('choose_color_and_size');
   document.getElementById('unavailable-msg').classList.add('hidden');
 }
 
@@ -336,34 +506,34 @@ function selectSize(size, btn) {
   // تحديث تحديد المقاس
   document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
-
+  
   // جلب الـ variant المحدد
   const variants = product.variants || [];
   selectedVariant = variants.find(v => v.color === selectedColor && v.size === size);
-
+  
   if (!selectedVariant || selectedVariant.stock <= 0) {
-    document.getElementById('stock-display').innerHTML = '<span class="text-red-500">❌ غير متوفر</span>';
+    document.getElementById('stock-display').innerHTML = `<span class="text-red-500" data-i18n="out_of_stock">${t('out_of_stock')}</span>`;
     document.getElementById('unavailable-msg').classList.remove('hidden');
     selectedVariant = null;
     return;
   }
-
+  
   // عرض المخزون
   const stock = selectedVariant.stock;
   const stockEl = document.getElementById('stock-display');
   document.getElementById('unavailable-msg').classList.add('hidden');
   
   if (stock <= 3) {
-    stockEl.innerHTML = `<span class="text-orange-500">⚠️ تبقى فقط ${stock} قطع (${selectedColor} - ${size})</span>`;
+    stockEl.innerHTML = `<span class="text-orange-500">⚠️ ${t('low_stock', {stock, color: selectedColor, size: selectedSize})}</span>`;
   } else {
-    stockEl.innerHTML = `<span class="text-green-600">✅ متوفر: ${stock} قطعة (${selectedColor} - ${size})</span>`;
+    stockEl.innerHTML = `<span class="text-green-600">✅ ${t('available_stock', {stock, color: selectedColor, size: selectedSize})}</span>`;
   }
 }
 
 // ⚠️ التحكم في الكمية بناءً على مخزون الـ variant المحدد
 function changeQty(delta) {
   if (!selectedVariant) {
-    showToast('اختر اللون والمقاس أولاً', 'error');
+    showToast(t('choose_color_and_size'), 'error');
     return;
   }
   const maxStock = selectedVariant.stock || 0;
@@ -371,7 +541,7 @@ function changeQty(delta) {
   
   if (newQty < 1) return;
   if (newQty > maxStock) {
-    showToast(`⚠️ المتوفر فقط: ${maxStock} قطعة`, 'error');
+    showToast(`⚠️ ${t('quantity_exceeds_stock', {qty: newQty, stock: maxStock})}`, 'error');
     return;
   }
   
@@ -382,20 +552,20 @@ function changeQty(delta) {
 function addToCart() {
   const variants = product.variants || [];
   
-  if (!selectedColor) return showToast('اختر اللون أولاً', 'error');
-  if (!selectedSize) return showToast('اختر المقاس أولاً', 'error');
+  if (!selectedColor) return showToast(t('color_required'), 'error');
+  if (!selectedSize) return showToast(t('size_required'), 'error');
   if (!selectedVariant || selectedVariant.stock <= 0) {
-    return showToast('❌ هذا الخيار غير متوفر أو نفذ من المخزون', 'error');
+    return showToast(t('option_unavailable'), 'error');
   }
   if (quantity > selectedVariant.stock) {
-    return showToast(`⚠️ الكمية المطلوبة (${quantity}) أكثر من المتوفر (${selectedVariant.stock})`, 'error');
+    return showToast(`⚠️ ${t('quantity_exceeds_stock', {qty: quantity, stock: selectedVariant.stock})}`, 'error');
   }
-
+  
   const cart = JSON.parse(localStorage.getItem('varen_cart_v1') || '[]');
   const existingIdx = cart.findIndex(item => 
     item.id === product.id && item.size === selectedSize && item.color === selectedColor
   );
-
+  
   const itemData = {
     id: product.id,
     name: product.name,
@@ -404,34 +574,35 @@ function addToCart() {
     size: selectedSize,
     color: selectedColor,
     qty: quantity,
-    variantStock: selectedVariant.stock // حفظ المخزون وقت الإضافة للمرجعية
+    variantStock: selectedVariant.stock
   };
-
+  
   if (existingIdx !== -1) {
     const newTotalQty = cart[existingIdx].qty + quantity;
     if (newTotalQty > selectedVariant.stock) {
-      return showToast(`⚠️ الكمية الإجمالية في السلة ستتجاوز المخزون المتاح (${selectedVariant.stock})`, 'error');
+      return showToast(`⚠️ ${t('total_exceeds_stock', {stock: selectedVariant.stock})}`, 'error');
     }
     cart[existingIdx].qty = newTotalQty;
   } else {
     cart.push(itemData);
   }
-
+  
   localStorage.setItem('varen_cart_v1', JSON.stringify(cart));
-  showToast('✅ أضيف للسلة بنجاح!');
+  showToast(t('added_to_cart'));
   quantity = 1;
   document.getElementById('qty-val').textContent = '1';
+  updateCartCount();
 }
 
 // تحميل منتجات مشابهة
 async function loadRelated() {
   const grid = document.getElementById('related-grid');
+  const lang = getCurrentLanguage();
   try {
     const snapshot = await db.collection('products').limit(8).get();
     let products = [];
     snapshot.forEach(doc => {
       const p = { id: doc.id, ...doc.data() };
-      // تحقق من التوفر بناءً على الـ variants
       const totalStock = (p.variants || []).reduce((sum, v) => sum + (v.stock || 0), 0);
       if (p.available !== false && totalStock > 0 && p.id !== product.id) {
         products.push(p);
@@ -440,7 +611,7 @@ async function loadRelated() {
     products = products.slice(0, 4);
     
     if (products.length === 0) {
-      grid.innerHTML = '<p class="col-span-full text-center text-gray-500">لا توجد منتجات مشابهة حالياً</p>';
+      grid.innerHTML = `<p class="col-span-full text-center text-gray-500">${t('no_similar_products')}</p>`;
       return;
     }
     
@@ -452,7 +623,7 @@ async function loadRelated() {
           <img src="${img}" alt="${p.name}" class="w-full h-36 object-cover">
           <div class="p-3">
             <h3 class="font-bold text-sm mb-1">${p.name}</h3>
-            <span class="font-semibold">${p.price} درهم</span>
+            <span class="font-semibold">${p.price} ${lang === 'ar' ? 'درهم' : 'AED'}</span>
           </div>
         </a>
       `;
@@ -462,7 +633,45 @@ async function loadRelated() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadProduct);
+function updateUserUI(user) {
+  const loginBtn = document.getElementById('login-btn');
+  const accountBtn = document.getElementById('account-btn');
+  const accountMenu = document.getElementById('account-menu');
+  const adminLink = document.getElementById('admin-nav-link');
+  
+  if (user) {
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) { accountBtn.classList.remove('hidden'); accountBtn.classList.add('flex'); }
+  } else {
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
+  }
+  updateCartCount();
+}
+
+window.logout = async function () {
+  await auth.signOut();
+  showToast(getCurrentLanguage() === 'ar' ? '✅ تم تسجيل الخروج' : '✅ Logged out successfully');
+  setTimeout(() => window.location.href = 'index.html', 1000);
+};
+
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+if (accountBtn && accountMenu) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => accountMenu.classList.add('hidden'));
+  accountMenu.addEventListener('click', (e) => e.stopPropagation());
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  auth.onAuthStateChanged(updateUserUI);
+  updateCartCount();
+  setTimeout(() => loadProduct(), 100);
+});
 </script>
 
 </body>
