@@ -21,6 +21,7 @@
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
     .modal.active { display: flex; }
     .variant-row { border-bottom: 1px solid #eee; padding: 12px 0; }
+    .tab-btn.active { background: black; color: white; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -45,84 +46,105 @@
   </div>
 </nav>
 
-<main class="max-w-4xl mx-auto px-4 py-8">
+<main class="max-w-5xl mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6">لوحة التحكم</h1>
 
-  <!-- أزرار التحكم -->
-  <div id="admin-buttons" class="hidden flex flex-wrap gap-4 mb-8">
-    <button onclick="showForm('add')" class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">إضافة منتج جديد</button>
-    <button onclick="location.href='admin-orders.html'" class="bg-gray-200 px-6 py-2 rounded-lg hover:bg-gray-300">إدارة الطلبات</button>
+  <!-- أزرار التبويب -->
+  <div id="admin-tabs" class="hidden flex flex-wrap gap-2 mb-8 border-b pb-2">
+    <button onclick="switchTab('products')" class="tab-btn active px-4 py-2 rounded-t-lg hover:bg-gray-100" data-tab="products">
+      <i class="fa-solid fa-box mr-1"></i> المنتجات
+    </button>
+    <button onclick="switchTab('orders')" class="tab-btn px-4 py-2 rounded-t-lg hover:bg-gray-100" data-tab="orders">
+      <i class="fa-solid fa-file-invoice mr-1"></i> الطلبات
+    </button>
+    <button onclick="switchTab('returns')" class="tab-btn px-4 py-2 rounded-t-lg hover:bg-gray-100" data-tab="returns">
+      <i class="fa-solid fa-rotate-left mr-1"></i> طلبات الاسترجاع
+    </button>
   </div>
 
-  <!-- نموذج إضافة منتج -->
-  <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md space-y-4 hidden">
-    <h2 class="text-xl font-bold mb-4">إضافة منتج جديد</h2>
-    <div class="grid md:grid-cols-2 gap-4">
-      <div>
-        <label class="block font-semibold mb-1">اسم المنتج *</label>
-        <input type="text" id="p-name" class="w-full border rounded-lg p-3" required>
-      </div>
-      <div>
-        <label class="block font-semibold mb-1">السعر الأصلي (قبل الخصم)</label>
-        <input type="number" id="p-price-original" class="w-full border rounded-lg p-3" placeholder="اختياري">
-      </div>
-      <div>
-        <label class="block font-semibold mb-1">السعر الحالي (بالدرهم) *</label>
-        <input type="number" id="p-price" class="w-full border rounded-lg p-3" required>
-      </div>
-      <div>
-        <label class="block font-semibold mb-1">التصنيف *</label>
-        <select id="p-gender" class="w-full border rounded-lg p-3">
-          <option value="women">نسائي</option>
-          <option value="men">رجالي</option>
-          <option value="girls">بنات</option>
-          <option value="boys">أولاد</option>
-        </select>
-      </div>
-      <div>
-        <label class="block font-semibold mb-1">النوع</label>
-        <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان / عطر / حذاء...">
-      </div>
-      <div>
-        <label class="block font-semibold mb-1">الموسم</label>
-        <select id="p-season" class="w-full border rounded-lg p-3">
-          <option value="">غير محدد</option>
-          <option value="winter">شتوي</option>
-          <option value="summer">صيفي</option>
-          <option value="formal">رسمي</option>
-        </select>
-      </div>
-      <div>
-        <label class="block font-semibold mb-1">حالة التوفر</label>
-        <select id="p-available" class="w-full border rounded-lg p-3">
-          <option value="true" selected>متوفر ✅</option>
-          <option value="false">غير متوفر ❌</option>
-        </select>
-      </div>
-      <div class="md:col-span-2">
-        <label class="block font-semibold mb-1">روابط الصور (كل رابط في سطر)</label>
-        <textarea id="p-images" class="w-full border rounded-lg p-3" rows="3" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
-      </div>
+  <!-- 📦 قسم المنتجات -->
+  <div id="tab-products" class="tab-content">
+    <div class="flex flex-wrap gap-4 mb-6">
+      <button onclick="showForm('add')" class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">إضافة منتج جديد</button>
     </div>
 
-    <!-- 🎨 إدارة الخيارات: لون + مقاس + مخزون -->
-    <div class="border-t pt-4">
-      <h3 class="text-lg font-bold mb-3">المخزون حسب اللون والمقاس</h3>
-      <div id="variants-list" class="space-y-2 mb-4">
-        <!-- الصفوف الديناميكية تضيف هنا -->
+    <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md space-y-4 mb-8 hidden">
+      <h2 class="text-xl font-bold mb-4">إضافة منتج جديد</h2>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label class="block font-semibold mb-1">اسم المنتج *</label>
+          <input type="text" id="p-name" class="w-full border rounded-lg p-3" required>
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">السعر الأصلي (قبل الخصم)</label>
+          <input type="number" id="p-price-original" class="w-full border rounded-lg p-3" placeholder="اختياري">
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">السعر الحالي (بالدرهم) *</label>
+          <input type="number" id="p-price" class="w-full border rounded-lg p-3" required>
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">التصنيف *</label>
+          <select id="p-gender" class="w-full border rounded-lg p-3">
+            <option value="women">نسائي</option>
+            <option value="men">رجالي</option>
+            <option value="girls">بنات</option>
+            <option value="boys">أولاد</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">النوع</label>
+          <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان / عطر / حذاء...">
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">الموسم</label>
+          <select id="p-season" class="w-full border rounded-lg p-3">
+            <option value="">غير محدد</option>
+            <option value="winter">شتوي</option>
+            <option value="summer">صيفي</option>
+            <option value="formal">رسمي</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">حالة التوفر</label>
+          <select id="p-available" class="w-full border rounded-lg p-3">
+            <option value="true" selected>متوفر ✅</option>
+            <option value="false">غير متوفر ❌</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block font-semibold mb-1">روابط الصور (كل رابط في سطر)</label>
+          <textarea id="p-images" class="w-full border rounded-lg p-3" rows="3" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
+        </div>
       </div>
-      <button type="button" onclick="addVariantRow()" class="bg-gray-100 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">
-        <i class="fa-solid fa-plus mr-1"></i> إضافة خيار جديد
-      </button>
+
+      <div class="border-t pt-4">
+        <h3 class="text-lg font-bold mb-3">المخزون حسب اللون والمقاس</h3>
+        <div id="variants-list" class="space-y-2 mb-4"></div>
+        <button type="button" onclick="addVariantRow()" class="bg-gray-100 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">
+          <i class="fa-solid fa-plus mr-1"></i> إضافة خيار جديد
+        </button>
+      </div>
+
+      <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full mt-4">إضافة المنتج</button>
+    </form>
+
+    <div id="products-section">
+      <h2 class="text-xl font-bold mb-4">المنتجات المضافة</h2>
+      <div id="products-list" class="space-y-4"></div>
     </div>
+  </div>
 
-    <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full mt-4">إضافة المنتج</button>
-  </form>
+  <!-- 📋 قسم الطلبات -->
+  <div id="tab-orders" class="tab-content hidden">
+    <h2 class="text-xl font-bold mb-4">جميع الطلبات</h2>
+    <div id="orders-list" class="space-y-4"></div>
+  </div>
 
-  <!-- قائمة المنتجات المضافة -->
-  <div id="products-section" class="hidden mt-10">
-    <h2 class="text-xl font-bold mb-4">المنتجات المضافة</h2>
-    <div id="products-list" class="space-y-4"></div>
+  <!-- 🔄 قسم طلبات الاسترجاع -->
+  <div id="tab-returns" class="tab-content hidden">
+    <h2 class="text-xl font-bold mb-4">طلبات الاسترجاع</h2>
+    <div id="returns-list" class="space-y-4"></div>
   </div>
 
   <!-- رسالة لغير المصرح لهم -->
@@ -175,9 +197,28 @@ const db = firebase.firestore();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
-// قائمة الألوان والمقاسات جاهزة للاختيار
 const COLORS = ['أسود', 'أبيض', 'رمادي', 'بيج', 'أحمر', 'أزرق', 'أخضر', 'وردي', 'بني', 'برتقالي', 'ذهبي', 'فضي', 'بنفسجي', 'أصفر'];
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'مقاس واحد'];
+
+function formatDate(timestamp) {
+  if (!timestamp) return 'غير محدد';
+  const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  return d.toLocaleString('ar-AE');
+}
+
+function getStatusClass(status) {
+  if (status === 'جديد') return 'bg-blue-100 text-blue-700';
+  if (status === 'مؤكد') return 'bg-green-100 text-green-700';
+  if (status === 'ملغي') return 'bg-red-100 text-red-700';
+  return 'bg-gray-100 text-gray-700';
+}
+
+function getReturnStatusClass(status) {
+  if (status === 'قيد المراجعة') return 'bg-yellow-100 text-yellow-700';
+  if (status === 'مقبول') return 'bg-green-100 text-green-700';
+  if (status === 'مرفوض') return 'bg-red-100 text-red-700';
+  return 'bg-gray-100 text-gray-700';
+}
 
 async function checkAdminAccess(user) {
   if (!user) return false;
@@ -208,7 +249,17 @@ function showToast(msg, type='success') {
   setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
-// 🎨 إضافة صف خيار جديد (لون + مقاس + كمية)
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+  document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+  
+  if (tabName === 'products') loadProducts();
+  if (tabName === 'orders') loadAllOrders();
+  if (tabName === 'returns') loadAllReturns();
+}
+
 let variantCounter = 0;
 window.addVariantRow = function() {
   const list = document.getElementById('variants-list');
@@ -246,7 +297,6 @@ window.removeVariantRow = function(rowId) {
   document.getElementById(rowId)?.remove();
 };
 
-// جمع كل الخيارات من النموذج
 function collectVariants() {
   const rows = document.querySelectorAll('#variants-list .variant-row');
   const variants = [];
@@ -261,37 +311,163 @@ function collectVariants() {
   return variants;
 }
 
-function updateUI(user, isAdmin) {
-  const area = document.getElementById('user-area');
-  const form = document.getElementById('add-product-form');
-  const adminBtns = document.getElementById('admin-buttons');
-  const noAccess = document.getElementById('not-admin-message');
-  const productsSection = document.getElementById('products-section');
-  
-  if (user && isAdmin) {
-    area.innerHTML = `
-      <div class="flex items-center gap-2">
-        <span class="text-sm">أهلاً بك، ${user.displayName || 'مدير'}</span>
-        <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700">تسجيل الخروج</button>
-      </div>
-    `;
-    form.classList.remove('hidden');
-    adminBtns.classList.remove('hidden');
-    noAccess.classList.add('hidden');
-    productsSection.classList.remove('hidden');
-    // أضف صف افتراضي فارغ
-    if (document.querySelectorAll('#variants-list .variant-row').length === 0) {
-      addVariantRow();
+async function loadAllOrders() {
+  const list = document.getElementById('orders-list');
+  list.innerHTML = '<p class="text-gray-500">جاري تحميل الطلبات...</p>';
+  try {
+    const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').limit(50).get();
+    list.innerHTML = '';
+    if (snapshot.empty) {
+      list.innerHTML = '<p class="text-gray-500 text-center py-8">لا توجد طلبات حتى الآن</p>';
+      return;
     }
-    loadProducts();
-  } else {
-    area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
-    form.classList.add('hidden');
-    adminBtns.classList.add('hidden');
-    noAccess.classList.remove('hidden');
-    productsSection.classList.add('hidden');
+    snapshot.forEach(doc => {
+      const o = { id: doc.id, ...doc.data() };
+      list.innerHTML += `
+        <div class="bg-white p-5 rounded-xl shadow-sm border">
+          <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
+            <span class="font-bold">${o.orderNumber || o.id}</span>
+            <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(o.status || 'جديد')}">${o.status || 'جديد'}</span>
+          </div>
+          <p class="text-sm text-gray-600 mb-1">التاريخ: ${formatDate(o.createdAt)}</p>
+          <p class="text-sm text-gray-600 mb-1">العميل: ${o.fullName || 'غير مذكور'} | ${o.phone || 'لا يوجد رقم'}</p>
+          <p class="text-sm text-gray-600 mb-2">الإيميل: ${o.userEmail || 'غير مذكور'}</p>
+          <p class="text-sm text-gray-600 mb-3">العنوان: ${o.address || 'غير مذكور'}</p>
+          <div class="border-t pt-3 mb-3">
+            <p class="font-semibold mb-2">المنتجات:</p>
+            ${(o.items || []).map(i => {
+              const qty = i.qty || i.quantity || 1;
+              return `<p class="text-sm">• ${i.name} — المقاس: ${i.size || '-'} — اللون: ${i.color || '-'} × ${qty} — ${((i.price || 0) * qty).toFixed(2)} درهم</p>`;
+            }).join('')}
+            <p class="font-bold mt-2">المجموع: ${(o.total || 0).toFixed(2)} درهم</p>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button onclick="updateOrderStatus('${o.id}', 'مؤكد')" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">مؤكد</button>
+            <button onclick="updateOrderStatus('${o.id}', 'ملغي')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">ملغي</button>
+          </div>
+        </div>
+      `;
+    });
+  } catch (err) {
+    list.innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
   }
 }
+
+window.updateOrderStatus = async function(orderId, newStatus) {
+  try {
+    await db.collection('orders').doc(orderId).update({ status: newStatus });
+    showToast(`✅ تم تحديث الحالة إلى: ${newStatus}`);
+    loadAllOrders();
+  } catch (err) {
+    showToast('❌ خطأ: ' + err.message, 'error');
+  }
+};
+
+async function loadAllReturns() {
+  const list = document.getElementById('returns-list');
+  list.innerHTML = '<p class="text-gray-500">جاري تحميل الطلبات...</p>';
+  try {
+    const snapshot = await db.collection('returns').orderBy('createdAt', 'desc').limit(50).get();
+    list.innerHTML = '';
+    if (snapshot.empty) {
+      list.innerHTML = '<p class="text-gray-500 text-center py-8">لا توجد طلبات استرجاع حتى الآن</p>';
+      return;
+    }
+    snapshot.forEach(doc => {
+      const r = { id: doc.id, ...doc.data() };
+      list.innerHTML += `
+        <div class="bg-white p-5 rounded-xl shadow-sm border">
+          <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
+            <span class="font-bold">طلب استرجاع: ${r.orderId || 'غير محدد'}</span>
+            <span class="px-3 py-1 rounded-full text-sm font-medium ${getReturnStatusClass(r.status || 'قيد المراجعة')}">${r.status || 'قيد المراجعة'}</span>
+          </div>
+          <p class="text-sm text-gray-600 mb-1">التاريخ: ${formatDate(r.createdAt)}</p>
+          <p class="text-sm text-gray-600 mb-1">العميل: ${r.userEmail || 'غير مذكور'}</p>
+          <p class="text-sm mb-3"><strong>السبب:</strong> ${r.reason || 'غير مذكور'}</p>
+          <div class="flex gap-2">
+            <button onclick="updateReturnStatus('${r.id}', 'مقبول')" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">✅ مقبول</button>
+            <button onclick="updateReturnStatus('${r.id}', 'مرفوض')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">❌ مرفوض</button>
+            <button onclick="updateReturnStatus('${r.id}', 'قيد المراجعة')" class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm hover:bg-yellow-200">⏳ قيد المراجعة</button>
+          </div>
+        </div>
+      `;
+    });
+  } catch (err) {
+    list.innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
+  }
+}
+
+window.updateReturnStatus = async function(returnId, newStatus) {
+  try {
+    await db.collection('returns').doc(returnId).update({ status: newStatus });
+    showToast(`✅ تم تحديث الحالة إلى: ${newStatus}`);
+    loadAllReturns();
+  } catch (err) {
+    showToast('❌ خطأ: ' + err.message, 'error');
+  }
+};
+
+async function loadProducts() {
+  const list = document.getElementById('products-list');
+  list.innerHTML = '<p class="text-gray-500">جاري تحميل المنتجات...</p>';
+  try {
+    const snapshot = await db.collection('products').orderBy('createdAt', 'desc').get();
+    list.innerHTML = '';
+    if (snapshot.empty) {
+      list.innerHTML = '<p class="text-gray-500 text-center py-8">لا توجد منتجات مضافة حتى الآن</p>';
+      return;
+    }
+    snapshot.forEach(doc => {
+      const p = doc.data();
+      const variants = p.variants || [];
+      const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+      const price = p.price || 0;
+      const priceOrig = p.priceOriginal;
+      const image = p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/80x80';
+      const variantsSummary = variants.map(v => `${v.color} / ${v.size}: ${v.stock}`).join(' | ');
+      
+      list.innerHTML += `
+        <div class="bg-white rounded-xl shadow-sm p-4">
+          <div class="flex items-start gap-4">
+            <img src="${image}" alt="${p.name}" class="w-20 h-20 object-cover rounded-lg">
+            <div class="flex-1">
+              <h3 class="font-bold text-lg">${p.name || 'بدون اسم'}</h3>
+              <p class="text-sm text-gray-600">
+                السعر: ${price.toFixed(2)} درهم
+                ${priceOrig ? `<span class="line-through text-red-400 ml-1">${priceOrig.toFixed(2)} درهم</span>` : ''}
+                | إجمالي المخزون: <span class="font-bold ${totalStock === 0 ? 'text-red-500' : 'text-green-600'}">${totalStock}</span>
+                | ${p.available !== false ? 'متوفر' : 'غير متوفر'}
+              </p>
+              <p class="text-xs text-gray-500 mt-1">${p.gender || ''} ${p.type || ''} ${p.season || ''}</p>
+              <p class="text-xs text-gray-400 mt-1">الخيارات: ${variantsSummary || 'لا يوجد خيارات محددة'}</p>
+            </div>
+            <div class="flex flex-col gap-2">
+              <button class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
+                <i class="fa-solid fa-pen-to-square"></i> تعديل
+              </button>
+              <button onclick="deleteProduct('${doc.id}')" class="text-sm bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200">
+                <i class="fa-solid fa-trash"></i> حذف
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  } catch (err) {
+    list.innerHTML = `<p class="text-red-500">❌ خطأ في تحميل المنتجات: ${err.message}</p>`;
+  }
+}
+
+window.deleteProduct = async function(id) {
+  if (!confirm('متأكد من حذف هذا المنتج؟')) return;
+  try {
+    await db.collection('products').doc(id).delete();
+    showToast('✅ تم حذف المنتج');
+    loadProducts();
+  } catch (err) {
+    showToast('❌ خطأ: ' + err.message, 'error');
+  }
+};
 
 window.loginWithGoogle = async () => {
   try {
@@ -329,81 +505,28 @@ window.showForm = () => {
   }
 };
 
-// 📦 تحميل وعرض المنتجات
-async function loadProducts() {
-  const list = document.getElementById('products-list');
-  list.innerHTML = '<p class="text-gray-500">جاري تحميل المنتجات...</p>';
+function updateUI(user, isAdmin) {
+  const area = document.getElementById('user-area');
+  const tabs = document.getElementById('admin-tabs');
+  const noAccess = document.getElementById('not-admin-message');
   
-  try {
-    const snapshot = await db.collection('products').orderBy('createdAt', 'desc').get();
-    list.innerHTML = '';
-    
-    if (snapshot.empty) {
-      list.innerHTML = '<p class="text-gray-500 text-center py-8">لا توجد منتجات مضافة حتى الآن</p>';
-      return;
-    }
-    
-    snapshot.forEach(doc => {
-      const p = doc.data();
-      const variants = p.variants || [];
-      const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-      const price = p.price || 0;
-      const priceOrig = p.priceOriginal;
-      const image = p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/80x80';
-      
-      // عرض ملخص المخزون
-      const variantsSummary = variants.map(v => 
-        `${v.color} / ${v.size}: ${v.stock}`
-      ).join(' | ');
-      
-      list.innerHTML += `
-        <div class="bg-white rounded-xl shadow-sm p-4">
-          <div class="flex items-start gap-4">
-            <img src="${image}" alt="${p.name}" class="w-20 h-20 object-cover rounded-lg">
-            <div class="flex-1">
-              <h3 class="font-bold text-lg">${p.name || 'بدون اسم'}</h3>
-              <p class="text-sm text-gray-600">
-                السعر: ${price.toFixed(2)} درهم
-                ${priceOrig ? `<span class="line-through text-red-400 ml-1">${priceOrig.toFixed(2)} درهم</span>` : ''}
-                | إجمالي المخزون: <span class="font-bold ${totalStock === 0 ? 'text-red-500' : 'text-green-600'}">${totalStock}</span>
-                | ${p.available !== false ? 'متوفر' : 'غير متوفر'}
-              </p>
-              <p class="text-xs text-gray-500 mt-1">
-                ${p.gender || ''} ${p.type || ''} ${p.season || ''}
-              </p>
-              <p class="text-xs text-gray-400 mt-1">
-                الخيارات: ${variantsSummary || 'لا يوجد خيارات محددة'}
-              </p>
-            </div>
-            <div class="flex flex-col gap-2">
-              <button onclick="editProduct('${doc.id}')" class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
-                <i class="fa-solid fa-pen-to-square"></i> تعديل
-              </button>
-              <button onclick="deleteProduct('${doc.id}')" class="text-sm bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200">
-                <i class="fa-solid fa-trash"></i> حذف
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    });
-  } catch (err) {
-    console.error(err);
-    list.innerHTML = `<p class="text-red-500">❌ خطأ في تحميل المنتجات: ${err.message}</p>`;
+  if (user && isAdmin) {
+    area.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="text-sm">أهلاً بك، ${user.displayName || 'مدير'}</span>
+        <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700">تسجيل الخروج</button>
+      </div>
+    `;
+    tabs.classList.remove('hidden');
+    noAccess.classList.add('hidden');
+    switchTab('products');
+  } else {
+    area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
+    tabs.classList.add('hidden');
+    noAccess.classList.remove('hidden');
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
   }
 }
-
-// 🗑️ حذف منتج
-window.deleteProduct = async function(id) {
-  if (!confirm('متأكد من حذف هذا المنتج؟')) return;
-  try {
-    await db.collection('products').doc(id).delete();
-    showToast('✅ تم حذف المنتج');
-    loadProducts();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-};
 
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(async user => {
@@ -413,12 +536,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('add-product-form');
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    
     const variants = collectVariants();
     if (variants.length === 0) {
       return showToast('⚠️ أضف خياراً واحداً على الأقل (لون + مقاس + كمية)', 'error');
     }
-    
     const images = document.getElementById('p-images').value.trim().split('\n').map(s => s.trim()).filter(s => s);
     const priceOriginalVal = document.getElementById('p-price-original').value.trim();
     
@@ -441,7 +562,6 @@ document.addEventListener('DOMContentLoaded', () => {
       addVariantRow();
       loadProducts();
     } catch (err) { 
-      console.error(err);
       showToast('❌ خطأ: ' + err.message, 'error'); 
     }
   });
