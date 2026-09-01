@@ -112,7 +112,7 @@ const ADMIN_EMAIL = 'y0892100@gmail.com';
 
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
-// ⚠️ مهم: توحيد اسم مفتاح السلة زي باقي الملفات
+// اسم مفتاح السلة — متطابق مع باقي الملفات
 const CART_KEY = 'varen_cart_v1';
 
 let cart = [];
@@ -146,7 +146,7 @@ function renderCart() {
   const container = document.getElementById('order-items');
   container.innerHTML = '';
   total = 0;
-  cart.forEach((item, idx) => {
+  cart.forEach((item) => {
     const qty = item.qty || item.quantity || 1;
     const subtotal = item.price * qty;
     total += subtotal;
@@ -210,6 +210,7 @@ async function sendEmail(orderData) {
   }
 }
 
+// ✅ التحقق من المخزون بدقة حسب اللون والمقاس
 async function validateStockBeforeOrder() {
   for (const item of cart) {
     const qtyNeeded = item.qty || item.quantity || 1;
@@ -222,21 +223,32 @@ async function validateStockBeforeOrder() {
     }
     
     const productData = productDoc.data();
-    const availableStock = productData.stock || 0;
+    const variants = productData.variants || [];
     
-    if (availableStock === 0) {
-      showToast(`❌ المنتج "${item.name}" نفذ من المخزون`, 'error');
+    // نبحث عن الـ variant المطابق للون والمقاس
+    const variant = variants.find(v => 
+      v.color === item.color && v.size === item.size
+    );
+    
+    if (!variant) {
+      showToast(`❌ الخيار (${item.color} - ${item.size}) غير متوفر للمنتج "${item.name}"`, 'error');
       return false;
     }
     
-    if (qtyNeeded > availableStock) {
-      showToast(`⚠️ الكمية المطلوبة من "${item.name}" غير متوفرة. المتوفر: ${availableStock} قطعة فقط`, 'error');
+    if (variant.stock <= 0) {
+      showToast(`❌ نفذ من المخزون: ${item.name} (${item.color} - ${item.size})`, 'error');
+      return false;
+    }
+    
+    if (qtyNeeded > variant.stock) {
+      showToast(`⚠️ الكمية المطلوبة من "${item.name}" (${item.color} - ${item.size}) غير متوفرة. المتوفر: ${variant.stock} قطعة فقط`, 'error');
       return false;
     }
   }
   return true;
 }
 
+// ✅ تنقيص الكمية من كل variant محدد
 async function reduceStockAfterOrder() {
   const batch = db.batch();
   
@@ -246,15 +258,29 @@ async function reduceStockAfterOrder() {
     const productDoc = await productRef.get();
     
     if (productDoc.exists) {
-      const currentStock = productDoc.data().stock || 0;
-      const newStock = Math.max(0, currentStock - qtyNeeded);
+      const productData = productDoc.data();
+      const variants = productData.variants || [];
       
-      batch.update(productRef, {
-        stock: newStock,
-        available: newStock > 0
-      });
+      // نجد الـ variant وننقص منه
+      const variantIndex = variants.findIndex(v => 
+        v.color === item.color && v.size === item.size
+      );
       
-      console.log(`📦 ${item.name}: ${currentStock} → ${newStock}`);
+      if (variantIndex !== -1) {
+        const currentStock = variants[variantIndex].stock;
+        const newStock = Math.max(0, currentStock - qtyNeeded);
+        variants[variantIndex].stock = newStock;
+        
+        // نحدث أيضاً حقل available لو أردنا
+        const anyInStock = variants.some(v => v.stock > 0);
+        
+        batch.update(productRef, {
+          variants: variants,
+          available: anyInStock
+        });
+        
+        console.log(`📦 ${item.name} | ${item.color} - ${item.size}: ${currentStock} → ${newStock}`);
+      }
     }
   }
   
@@ -304,7 +330,7 @@ async function handleSubmit(e) {
   }
 
   try {
-    // ✅ أولاً: نتحقق من المخزون
+    // ✅ أولاً: نتحقق من مخزون كل خيار (لون+مقاس)
     const stockValid = await validateStockBeforeOrder();
     if (!stockValid) {
       btn.disabled = false;
@@ -315,7 +341,7 @@ async function handleSubmit(e) {
     // ✅ ثانياً: نحفظ الطلب
     await saveOrderToFirebase(orderData);
 
-    // ✅ ثالثاً: ننقص الكمية من المخزون
+    // ✅ ثالثاً: ننقص الكمية من كل خيار محدد
     await reduceStockAfterOrder();
 
     // ✅ رابعاً: نرسل الإيميل
