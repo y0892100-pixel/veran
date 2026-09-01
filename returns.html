@@ -16,6 +16,7 @@
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
     .toast.error { background: #dc2626; }
+    .toast.warning { background: #f59e0b; }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -27,20 +28,53 @@
 </nav>
 <main class="max-w-lg mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6">طلبات الاسترجاع</h1>
-  <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
+  <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i><p class="mt-2 text-gray-500">جاري التحميل...</p></div>
   <div id="content" class="hidden">
+
+    <!-- ⚠️ شروط الاسترجاع -->
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+      <div class="flex items-start gap-3">
+        <i class="fa-solid fa-circle-info text-amber-500 text-xl mt-0.5"></i>
+        <div class="text-sm text-amber-800">
+          <p class="font-semibold mb-1">شروط الاسترجاع:</p>
+          <ul class="list-disc list-inside space-y-1">
+            <li>يجب تقديم الطلب خلال <strong>7 أيام</strong> من تاريخ إنشاء الطلب</li>
+            <li>يجب أن يكون الطلب <strong>مؤكد أو جديد</strong> وغير ملغي</li>
+            <li>لا يمكن تقديم أكثر من طلب استرجاع لنفس الطلب</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <form id="return-form" class="bg-white p-6 rounded-xl shadow-md space-y-4 mb-8">
       <h2 class="text-lg font-bold">تقديم طلب استرجاع جديد</h2>
       <div>
-        <label class="block font-semibold mb-1">رقم الطلب</label>
-        <input type="text" id="r-order-id" class="w-full border rounded-lg p-3" placeholder="أدخل رقم أو معرف الطلب">
+        <label class="block font-semibold mb-1">رقم الطلب *</label>
+        <input type="text" id="r-order-id" class="w-full border rounded-lg p-3" placeholder="مثال: VA-260901-1234" required>
+        <button type="button" onclick="checkOrder()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
+          <i class="fa-solid fa-magnifying-glass ml-1"></i> تحقق من الرقم
+        </button>
       </div>
-      <div>
-        <label class="block font-semibold mb-1">سبب الاسترجاع</label>
-        <textarea id="r-reason" class="w-full border rounded-lg p-3" rows="3" placeholder="اشرح سبب استرجاع المنتج"></textarea>
+
+      <!-- معلومات الطلب بعد التحقق -->
+      <div id="order-info" class="hidden border rounded-lg p-4 bg-gray-50 space-y-2 text-sm">
+        <p class="font-semibold text-green-700 flex items-center gap-2">
+          <i class="fa-solid fa-circle-check"></i> الطلب موجود ✅
+        </p>
+        <p>التاريخ: <span id="order-date"></span></p>
+        <p>الحالة: <span id="order-status"></span></p>
+        <p id="days-left-text" class="font-medium"></p>
       </div>
-      <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">إرسال الطلب</button>
+
+      <div id="reason-group" class="hidden">
+        <label class="block font-semibold mb-1">سبب الاسترجاع *</label>
+        <textarea id="r-reason" class="w-full border rounded-lg p-3" rows="3" placeholder="اشرح سبب استرجاع المنتج بالتفصيل..." required></textarea>
+        <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 mt-4">
+          <i class="fa-solid fa-paper-plane ml-1"></i> إرسال الطلب
+        </button>
+      </div>
     </form>
+
     <h2 class="text-lg font-bold mb-4">طلباتي السابقة</h2>
     <div id="returns-list"></div>
   </div>
@@ -57,7 +91,6 @@
 </main>
 
 <script>
-// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -72,12 +105,114 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
+let currentOrderDoc = null;
+
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(() => t.classList.remove('show'), 4000);
 }
+
+function formatDate(timestamp) {
+  if (!timestamp) return 'غير محدد';
+  const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  return d.toLocaleString('ar-AE');
+}
+
+// ⏱️ تحقق هل ضمن فترة 7 أيام؟
+function isWithinReturnWindow(createdAt) {
+  if (!createdAt) return false;
+  const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+  const now = new Date();
+  const daysDiff = (now - orderDate) / (1000 * 60 * 60 * 24);
+  return daysDiff <= 7;
+}
+
+// حساب الأيام المتبقية
+function getDaysRemaining(createdAt) {
+  if (!createdAt) return 0;
+  const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+  const now = new Date();
+  const daysDiff = (now - orderDate) / (1000 * 60 * 60 * 24);
+  return Math.max(0, (7 - daysDiff)).toFixed(1);
+}
+
+// 🔍 تحقق من رقم الطلب
+window.checkOrder = async function() {
+  const orderIdInput = document.getElementById('r-order-id').value.trim();
+  if (!orderIdInput) return showToast('أدخل رقم الطلب أولاً', 'error');
+
+  const user = auth.currentUser;
+  if (!user) return showToast('سجّل الدخول أولاً', 'error');
+
+  try {
+    // نبحث عن الطلب برقم الطلب أو المعرف
+    const snapshot = await db.collection('orders')
+      .where('userId', '==', user.uid)
+      .get();
+
+    let foundOrder = null;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.orderNumber === orderIdInput || doc.id === orderIdInput) {
+        foundOrder = { id: doc.id, ...data };
+      }
+    });
+
+    if (!foundOrder) {
+      showToast('❌ رقم الطلب غير صحيح أو لا ينتمي لحسابك', 'error');
+      document.getElementById('order-info').classList.add('hidden');
+      document.getElementById('reason-group').classList.add('hidden');
+      currentOrderDoc = null;
+      return;
+    }
+
+    // ✅ تحقق من الحالة
+    if (foundOrder.status === 'ملغي') {
+      showToast('❌ لا يمكن استرجاع طلب ملغي', 'error');
+      document.getElementById('order-info').classList.add('hidden');
+      document.getElementById('reason-group').classList.add('hidden');
+      return;
+    }
+
+    // ✅ تحقق من فترة الـ 7 أيام
+    if (!isWithinReturnWindow(foundOrder.createdAt)) {
+      showToast('❌ مرت أكثر من 7 أيام على الطلب، لا يمكن تقديم طلب استرجاع', 'error');
+      document.getElementById('order-info').classList.add('hidden');
+      document.getElementById('reason-group').classList.add('hidden');
+      return;
+    }
+
+    // ✅ تحقق ما فيه طلب استرجاع سابق
+    const returnCheck = await db.collection('returns')
+      .where('userId', '==', user.uid)
+      .where('orderId', '==', orderIdInput)
+      .limit(1)
+      .get();
+
+    if (!returnCheck.empty) {
+      showToast('⚠️ يوجد طلب استرجاع سابق لهذا الطلب', 'warning');
+      document.getElementById('order-info').classList.add('hidden');
+      document.getElementById('reason-group').classList.add('hidden');
+      return;
+    }
+
+    // ✅ كل الشروط مُتحققة
+    currentOrderDoc = foundOrder;
+    document.getElementById('order-date').textContent = formatDate(foundOrder.createdAt);
+    document.getElementById('order-status').textContent = foundOrder.status || 'جديد';
+    const daysLeft = getDaysRemaining(foundOrder.createdAt);
+    document.getElementById('days-left-text').textContent = `متبقي: ${daysLeft} يوم من فترة الاسترجاع`;
+    document.getElementById('order-info').classList.remove('hidden');
+    document.getElementById('reason-group').classList.remove('hidden');
+    showToast('✅ الرقم صحيح، اكتب السبب وأرسل الطلب', 'success');
+
+  } catch (err) {
+    console.error(err);
+    showToast('خطأ في التحقق: ' + err.message, 'error');
+  }
+};
 
 // ✅ القائمة المنسدلة للحساب
 function updateUserNav(user) {
@@ -121,25 +256,39 @@ auth.onAuthStateChanged(async user => {
   document.getElementById('content').classList.remove('hidden');
   updateUserNav(user);
 
+  // ✅ قراءة رقم الطلب من الرابط لو جاي من صفحة طلباتي
+  const urlParams = new URLSearchParams(window.location.search);
+  const orderParam = urlParams.get('order');
+  if (orderParam) {
+    document.getElementById('r-order-id').value = orderParam;
+    // ننتظر قليل ثم نتحقق تلقائياً
+    setTimeout(() => checkOrder(), 500);
+  }
+
   // ✅ إرسال طلب استرجاع
   document.getElementById('return-form').addEventListener('submit', async e => {
     e.preventDefault();
     const orderId = document.getElementById('r-order-id').value.trim();
     const reason = document.getElementById('r-reason').value.trim();
     
-    if (!orderId || !reason) return showToast('املأ جميع الحقول', 'error');
+    if (!orderId || !reason) return showToast('املأ جميع الحقول المطلوبة (*)', 'error');
+    if (!currentOrderDoc) return showToast('تحقق من رقم الطلب أولاً', 'error');
     
     try {
       await db.collection('returns').add({
         userId: user.uid,
         userEmail: user.email,
-        orderId,
-        reason,
+        orderId: orderId,
+        orderRef: currentOrderDoc.id,
+        reason: reason,
         status: 'قيد المراجعة',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      showToast('✅ تم إرسال طلب الاسترجاع');
+      showToast('✅ تم إرسال طلب الاسترجاع، سنراجعه ونتواصل معك قريباً');
       document.getElementById('return-form').reset();
+      document.getElementById('order-info').classList.add('hidden');
+      document.getElementById('reason-group').classList.add('hidden');
+      currentOrderDoc = null;
       loadReturns();
     } catch (err) {
       showToast('خطأ في الإرسال: ' + err.message, 'error');
@@ -163,7 +312,6 @@ auth.onAuthStateChanged(async user => {
       
       document.getElementById('no-returns').classList.add('hidden');
       
-      // ترتيب من الأحدث للأقدم
       let returns = [];
       snapshot.forEach(doc => {
         returns.push({ id: doc.id, ...doc.data() });
@@ -175,10 +323,7 @@ auth.onAuthStateChanged(async user => {
       });
 
       returns.forEach(r => {
-        const date = r.createdAt?.toDate 
-          ? new Date(r.createdAt.toDate()).toLocaleDateString('ar-AE') 
-          : 'غير محدد';
-        
+        const date = formatDate(r.createdAt);
         const statusClass = 
           r.status === 'قيد المراجعة' ? 'bg-yellow-100 text-yellow-700' :
           r.status === 'مقبول' ? 'bg-green-100 text-green-700' : 
