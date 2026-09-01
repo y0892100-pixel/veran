@@ -17,6 +17,8 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    html[lang="en"] { direction: ltr; }
+    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
@@ -25,6 +27,8 @@
     .modal.active { display: flex; }
     .variant-row { border-bottom: 1px solid #eee; padding: 12px 0; }
     .tab-btn.active { background: black; color: white; }
+    /* ✅ ضمان ظهور أيقونة السلة مهما تغيّر الاتجاه */
+    .cart-icon { direction: ltr !important; display: inline-flex !important; visibility: visible !important; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -39,7 +43,7 @@
       <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
     </div>
     <div class="flex items-center gap-4">
-      <a href="cart.html" class="text-xl relative">
+      <a href="cart.html" class="text-xl relative cart-icon">
         <i class="fa-solid fa-cart-shopping"></i>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
@@ -184,19 +188,15 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
-
 // ✅ إعداد EmailJS
 emailjs.init('3A0NspFA3vlSd64jc');
-
 const COLORS = ['أسود', 'أبيض', 'رمادي', 'بيج', 'أحمر', 'أزرق', 'أخضر', 'وردي', 'بني', 'برتقالي', 'ذهبي', 'فضي', 'بنفسجي', 'أصفر'];
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'مقاس واحد'];
-
 function formatDate(timestamp) {
   if (!timestamp) return 'غير محدد';
   const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
   return d.toLocaleString('ar-AE');
 }
-
 function getStatusClass(status) {
   if (status === 'جديد') return 'bg-blue-100 text-blue-700';
   if (status === 'مؤكد') return 'bg-green-100 text-green-700';
@@ -205,14 +205,12 @@ function getStatusClass(status) {
   if (status === 'ملغي') return 'bg-red-100 text-red-700';
   return 'bg-gray-100 text-gray-700';
 }
-
 function getReturnStatusClass(status) {
   if (status === 'قيد المراجعة') return 'bg-yellow-100 text-yellow-700';
   if (status === 'مقبول') return 'bg-green-100 text-green-700';
   if (status === 'مرفوض') return 'bg-red-100 text-red-700';
   return 'bg-gray-100 text-gray-700';
 }
-
 async function checkAdminAccess(user) {
   if (!user) return false;
   if (user.email !== ADMIN_EMAIL) {
@@ -223,7 +221,6 @@ async function checkAdminAccess(user) {
   }
   return true;
 }
-
 window.openModal = id => document.getElementById(id).classList.add('active');
 window.closeModal = id => { document.getElementById(id).classList.remove('active'); backToOptions(); };
 window.showEmailLogin = () => { 
@@ -234,14 +231,12 @@ window.backToOptions = () => {
   document.getElementById('login-options').classList.remove('hidden'); 
   document.getElementById('email-login').classList.add('hidden'); 
 };
-
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = `toast show ${type}`;
   setTimeout(() => toast.classList.remove('show'), 4000);
 }
-
 function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -252,7 +247,6 @@ function switchTab(tabName) {
   if (tabName === 'orders') loadAllOrders();
   if (tabName === 'returns') loadAllReturns();
 }
-
 let variantCounter = 0;
 window.addVariantRow = function() {
   const list = document.getElementById('variants-list');
@@ -288,7 +282,6 @@ window.addVariantRow = function() {
 window.removeVariantRow = function(rowId) {
   document.getElementById(rowId)?.remove();
 };
-
 function collectVariants() {
   const rows = document.querySelectorAll('#variants-list .variant-row');
   const variants = [];
@@ -302,9 +295,8 @@ function collectVariants() {
   });
   return variants;
 }
-
-// ✅ إرسال إيميل التأكيد
-async function sendConfirmationEmail(orderData, deliveryDate) {
+// ✅ إرسال إيميل التأكيد بالإيميل اللي تكتبه أنت
+async function sendConfirmationEmail(orderData, deliveryDate, adminEmail) {
   const orderNumber = orderData.orderNumber || orderData.id;
   const orderDate = formatDate(orderData.createdAt);
   
@@ -312,9 +304,11 @@ async function sendConfirmationEmail(orderData, deliveryDate) {
     const qty = i.qty || i.quantity || 1;
     return `• ${i.name} — المقاس: ${i.size || '-'} — اللون: ${i.color || '-'} × ${qty} — ${((i.price || 0) * qty).toFixed(2)} درهم`;
   }).join('\n');
-
   const total = (orderData.total || 0).toFixed(2);
-
+  
+  // ✅ نستخدم الإيميل اللي كتبته أنت، ولو فارغ نأخذ الإيميل الأصلي من الطلب
+  const emailToUse = adminEmail || orderData.userEmail || '';
+  
   try {
     const response = await emailjs.send(
       'service_3bs6onj',
@@ -323,7 +317,7 @@ async function sendConfirmationEmail(orderData, deliveryDate) {
         order_id: orderNumber,
         order_date: orderDate,
         customer_name: orderData.fullName || 'العميل',
-        customer_email: orderData.userEmail || '',
+        customer_email: emailToUse, // ✅ الإيميل اللي تكتبه أنت
         customer_phone: orderData.phone || '',
         customer_address: orderData.address || '',
         order_items: itemsHtml,
@@ -331,14 +325,13 @@ async function sendConfirmationEmail(orderData, deliveryDate) {
         delivery_date: deliveryDate || 'غير محدد'
       }
     );
-    console.log('✅ الإيميل أُرسل!', response);
-    return true;
+    console.log('✅ الإيميل أُرسل إلى:', emailToUse, response);
+    return { success: true, emailUsed: emailToUse };
   } catch (err) {
     console.error('❌ خطأ في إرسال الإيميل:', err);
-    return false;
+    return { success: false, error: err.message, emailUsed: emailToUse };
   }
 }
-
 async function loadAllOrders() {
   const list = document.getElementById('orders-list');
   list.innerHTML = '<p class="text-gray-500">جاري تحميل الطلبات...</p>';
@@ -352,6 +345,7 @@ async function loadAllOrders() {
     snapshot.forEach(doc => {
       const o = { id: doc.id, ...doc.data() };
       const deliveryDateDisplay = o.deliveryDate ? `<p class="text-sm text-green-700 font-medium">📅 تاريخ استلام الطلب المتوقع: ${o.deliveryDate}</p>` : '';
+      const originalEmail = o.userEmail || '';
       
       list.innerHTML += `
         <div class="bg-white p-5 rounded-xl shadow-sm border">
@@ -361,7 +355,14 @@ async function loadAllOrders() {
           </div>
           <p class="text-sm text-gray-600 mb-1">التاريخ: ${formatDate(o.createdAt)}</p>
           <p class="text-sm text-gray-600 mb-1">العميل: ${o.fullName || 'غير مذكور'} | ${o.phone || 'لا يوجد رقم'}</p>
-          <p class="text-sm text-gray-600 mb-1">الإيميل: ${o.userEmail || 'غير مذكور'}</p>
+          
+          <!-- ✅ حقل إيميل العميل تعدله أنت -->
+          <div class="mb-2 p-2 bg-blue-50 rounded-lg">
+            <label class="block text-sm font-semibold mb-1">📧 إيميل العميل (لإرسال التأكيد)</label>
+            <input type="email" id="customer-email-${o.id}" class="w-full border rounded-lg p-2 text-sm" 
+                   value="${originalEmail}" placeholder="اكتب إيميل العميل هنا">
+          </div>
+          
           <p class="text-sm text-gray-600 mb-2">العنوان: ${o.address || 'غير مذكور'}</p>
           ${deliveryDateDisplay}
           <div class="border-t pt-3 mb-3">
@@ -375,7 +376,7 @@ async function loadAllOrders() {
           
           <!-- حقل تاريخ التوصيل -->
           <div class="mb-3 p-2 bg-gray-50 rounded-lg">
-            <label class="block text-sm font-semibold mb-1">📅 تاريخ استلام طلبك المتوقع</label>
+            <label class="block text-sm font-semibold mb-1">📅 تاريخ استلام الطلب المتوقع</label>
             <div class="flex gap-2">
               <input type="date" id="delivery-date-${o.id}" class="flex-1 border rounded-lg p-2" value="${o.deliveryDate || ''}">
               <button onclick="saveDeliveryDate('${o.id}')" class="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">حفظ التاريخ</button>
@@ -395,32 +396,38 @@ async function loadAllOrders() {
     list.innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
   }
 }
-
-// ✅ تأكيد الطلب + إرسال الإيميل
+// ✅ تأكيد الطلب + إرسال الإيميل للإيميل اللي في الحقل
 window.confirmOrderAndSendEmail = async function(orderId) {
   try {
     const deliveryDateInput = document.getElementById(`delivery-date-${orderId}`);
     const deliveryDate = deliveryDateInput ? deliveryDateInput.value : '';
-
+    const customerEmailInput = document.getElementById(`customer-email-${orderId}`);
+    const customerEmail = customerEmailInput ? customerEmailInput.value.trim() : '';
+    
     // جلب بيانات الطلب
     const orderSnap = await db.collection('orders').doc(orderId).get();
     if (!orderSnap.exists) return showToast('❌ الطلب غير موجود', 'error');
     
     const orderData = { id: orderId, ...orderSnap.data() };
-
+    
+    // ✅ حفظ الإيميل الجديد في قاعدة البيانات
+    if (customerEmail) {
+      await db.collection('orders').doc(orderId).update({ userEmail: customerEmail });
+    }
+    
     // تحديث الحالة
     await db.collection('orders').doc(orderId).update({ 
       status: 'مؤكد',
       deliveryDate: deliveryDate || null
     });
-
-    // إرسال الإيميل
-    const emailSent = await sendConfirmationEmail(orderData, deliveryDate);
     
-    if (emailSent) {
-      showToast('✅ تم التأكيد وإرسال الإيميل بنجاح');
+    // إرسال الإيميل
+    const result = await sendConfirmationEmail(orderData, deliveryDate, customerEmail);
+    
+    if (result.success) {
+      showToast(`✅ تم التأكيد وإرسال الإيميل إلى: ${result.emailUsed || 'الإيميل المحدد'}`);
     } else {
-      showToast('⚠️ تم التأكيد لكن فشل إرسال الإيميل', 'warning');
+      showToast(`⚠️ تم التأكيد لكن فشل الإرسال إلى: ${result.emailUsed} — تحقق من صحة الإيميل`, 'error');
     }
     
     loadAllOrders();
@@ -428,7 +435,6 @@ window.confirmOrderAndSendEmail = async function(orderId) {
     showToast('❌ خطأ: ' + err.message, 'error');
   }
 };
-
 // ✅ حفظ تاريخ التوصيل فقط
 window.saveDeliveryDate = async function(orderId) {
   try {
@@ -445,7 +451,6 @@ window.saveDeliveryDate = async function(orderId) {
     showToast('❌ خطأ: ' + err.message, 'error');
   }
 };
-
 // ✅ تحديث الحالة فقط (بدون إيميل)
 window.updateOrderStatus = async function(orderId, newStatus) {
   try {
@@ -456,7 +461,6 @@ window.updateOrderStatus = async function(orderId, newStatus) {
     showToast('❌ خطأ: ' + err.message, 'error');
   }
 };
-
 async function loadAllReturns() {
   const list = document.getElementById('returns-list');
   list.innerHTML = '<p class="text-gray-500">جاري تحميل الطلبات...</p>';
@@ -490,7 +494,6 @@ async function loadAllReturns() {
     list.innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
   }
 }
-
 window.updateReturnStatus = async function(returnId, newStatus) {
   try {
     await db.collection('returns').doc(returnId).update({ status: newStatus });
@@ -500,7 +503,6 @@ window.updateReturnStatus = async function(returnId, newStatus) {
     showToast('❌ خطأ: ' + err.message, 'error');
   }
 };
-
 async function loadProducts() {
   const list = document.getElementById('products-list');
   list.innerHTML = '<p class="text-gray-500">جاري تحميل المنتجات...</p>';
@@ -551,7 +553,6 @@ async function loadProducts() {
     list.innerHTML = `<p class="text-red-500">❌ خطأ في تحميل المنتجات: ${err.message}</p>`;
   }
 }
-
 window.deleteProduct = async function(id) {
   if (!confirm('متأكد من حذف هذا المنتج؟')) return;
   try {
@@ -562,7 +563,6 @@ window.deleteProduct = async function(id) {
     showToast('❌ خطأ: ' + err.message, 'error');
   }
 };
-
 window.loginWithGoogle = async () => {
   try {
     const result = await auth.signInWithPopup(googleProvider);
@@ -573,7 +573,6 @@ window.loginWithGoogle = async () => {
     if (e.code !== 'auth/popup-closed-by-user') showToast('خطأ: ' + e.message, 'error'); 
   }
 };
-
 window.loginWithEmail = async () => {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
@@ -585,20 +584,17 @@ window.loginWithEmail = async () => {
     showToast('✅ تم تسجيل الدخول');
   } catch (e) { showToast('❌ إيميل أو كلمة مرور خاطئة', 'error'); }
 };
-
 window.logout = async () => {
   await auth.signOut();
   showToast('✅ تم تسجيل الخروج');
   setTimeout(() => window.location.reload(), 1000);
 };
-
 window.showForm = () => {
   document.getElementById('add-product-form').classList.remove('hidden');
   if (document.querySelectorAll('#variants-list .variant-row').length === 0) {
     addVariantRow();
   }
 };
-
 function updateUI(user, isAdmin) {
   const area = document.getElementById('user-area');
   const tabs = document.getElementById('admin-tabs');
@@ -621,7 +617,6 @@ function updateUI(user, isAdmin) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
   }
 }
-
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(async user => {
     updateUI(user, user ? await checkAdminAccess(user) : false);
