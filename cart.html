@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="page_title">سلة التسوق - VAREN</title>
+  
+  <!-- ✅ الأيقونة في المكان الصحيح -->
+  <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
@@ -25,7 +29,6 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
-
 <script>
 const translations = {
   ar: {
@@ -89,7 +92,6 @@ const translations = {
     language: "Language"
   }
 };
-
 function setLanguage(lang) {
   if (!translations[lang]) return;
   document.documentElement.lang = lang;
@@ -103,17 +105,14 @@ function setLanguage(lang) {
   
   updateLangUI(lang);
 }
-
 function updateLangUI(lang) {
   document.querySelectorAll('.lang-option').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === lang);
   });
 }
-
 function getCurrentLanguage() {
   return localStorage.getItem('varen_lang') || 'ar';
 }
-
 function t(key, params = {}) {
   const lang = getCurrentLanguage();
   let text = translations[lang][key] || key;
@@ -122,21 +121,18 @@ function t(key, params = {}) {
   });
   return text;
 }
-
 document.addEventListener('DOMContentLoaded', () => {
   setLanguage(getCurrentLanguage());
 });
 </script>
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     
-    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
+    <!-- الشعار: الصورة + كلمة VAREN -->
     <a href="index.html" class="flex items-center gap-3">
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
       <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
     </a>
-
     <div class="flex items-center gap-6">
       <a href="index.html" class="text-sm text-gray-600 hover:text-black">
         <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="continue_shopping">متابعة التسوق</span>
@@ -166,11 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </nav>
-
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center" data-i18n="cart_title">سلة التسوق</h1>
   <div id="toast" class="toast"></div>
-
   <!-- السلة فارغة -->
   <div id="empty-cart" class="hidden text-center py-16">
     <i class="fa-solid fa-cart-shopping text-gray-300 text-6xl mb-4"></i>
@@ -178,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <p class="text-gray-400 mb-6" data-i18n="add_items_first">أضف منتجات للسلة أولاً</p>
     <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block hover:bg-gray-800" data-i18n="browse">التصفح</a>
   </div>
-
   <!-- محتوى السلة -->
   <div id="cart-content" class="hidden">
     <div id="cart-items" class="space-y-4 mb-8"></div>
@@ -197,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </main>
-
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
@@ -212,33 +204,27 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
-
 const CART_KEY = 'varen_cart_v1';
-
 function showToast(msg, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = `toast ${type} show`;
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
-
 function getCart() {
   const data = localStorage.getItem(CART_KEY);
   return data ? JSON.parse(data) : [];
 }
-
 function saveCart(cart) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
   renderCart();
 }
-
 window.removeItem = function(index) {
   const cart = getCart();
   cart.splice(index, 1);
   saveCart(cart);
   showToast(t('deleted_success'));
 };
-
 window.changeQty = async function(index, delta) {
   const cart = getCart();
   const item = cart[index];
@@ -274,7 +260,6 @@ window.changeQty = async function(index, delta) {
     showToast(t('check_stock_error'), 'error');
   }
 };
-
 async function renderCart() {
   const cart = getCart();
   const lang = getCurrentLanguage();
@@ -294,14 +279,12 @@ async function renderCart() {
   itemsCont.innerHTML = '';
   let total = 0;
   let hasStockIssue = false;
-
   for (let index = 0; index < cart.length; index++) {
     const item = cart[index];
     const qty = item.qty || item.quantity || 1;
     const price = Number(item.price);
     const subtotal = price * qty;
     total += subtotal;
-
     let stockWarning = '';
     let isUnavailable = false;
     try {
@@ -330,7 +313,6 @@ async function renderCart() {
     } catch (e) {
       console.error(e);
     }
-
     itemsCont.innerHTML += `
       <div class="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 ${isUnavailable?'opacity-60':''}">
         <img src="${item.image || item.img || 'https://via.placeholder.com/100x100'}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg">
@@ -354,7 +336,6 @@ async function renderCart() {
       </div>
     `;
   }
-
   const checkoutLink = document.getElementById('checkout-link');
   if (hasStockIssue) {
     checkoutLink.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
@@ -363,11 +344,9 @@ async function renderCart() {
     checkoutLink.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
     checkoutLink.innerHTML = `<span data-i18n="proceed_payment">${t('proceed_payment')}</span> <i class="fa-solid fa-arrow-left ml-1"></i>`;
   }
-
   document.getElementById('subtotal').textContent = `${total.toFixed(2)} ${currency}`;
   document.getElementById('total').textContent = `${total.toFixed(2)} ${currency}`;
 }
-
 function updateUserUI(user) {
   const loginBtn = document.getElementById('login-btn');
   const accountBtn = document.getElementById('account-btn');
@@ -382,13 +361,11 @@ function updateUserUI(user) {
     if (accountMenu) accountMenu.classList.add('hidden');
   }
 }
-
 window.logout = async function () {
   await auth.signOut();
   showToast(getCurrentLanguage() === 'ar' ? '✅ تم تسجيل الخروج' : '✅ Logged out successfully');
   setTimeout(() => window.location.href = 'index.html', 1000);
 };
-
 const accountBtn = document.getElementById('account-btn');
 const accountMenu = document.getElementById('account-menu');
 if (accountBtn && accountMenu) {
@@ -399,14 +376,10 @@ if (accountBtn && accountMenu) {
   document.addEventListener('click', () => accountMenu.classList.add('hidden'));
   accountMenu.addEventListener('click', (e) => e.stopPropagation());
 }
-
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(updateUserUI);
   renderCart();
 });
 </script>
-  <!-- ضيف هذا السطر داخل الـ <head> -->
-<link rel="icon" type="image/jpeg" href="varen.jpeg">
-<link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
 </body>
 </html>
