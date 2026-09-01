@@ -101,7 +101,7 @@ window.removeItem = function(index) {
   showToast('✅ تم حذف المنتج');
 }
 
-// ⚠️ تغيير الكمية مع التحقق من المخزون
+// ⚠️ تغيير الكمية مع التحقق من مخزون الـ variant المحدد (لون+مقاس)
 window.changeQty = async function(index, delta) {
   const cart = getCart();
   const item = cart[index];
@@ -120,10 +120,21 @@ window.changeQty = async function(index, delta) {
       return;
     }
 
-    const stock = productDoc.data().stock || 0;
+    const productData = productDoc.data();
+    const variants = productData.variants || [];
 
-    if (newQty > stock) {
-      showToast(`⚠️ المتوفر فقط: ${stock} قطعة — لا يمكن زيادة الكمية`, 'error');
+    // نبحث عن الـ variant المطابق للون والمقاس
+    const variant = variants.find(v => 
+      v.color === item.color && v.size === item.size
+    );
+
+    if (!variant) {
+      showToast(`❌ الخيار (${item.color} - ${item.size}) غير متوفر حالياً`, 'error');
+      return;
+    }
+
+    if (newQty > variant.stock) {
+      showToast(`⚠️ المتوفر فقط لهذا الخيار: ${variant.stock} قطعة — لا يمكن زيادة الكمية`, 'error');
       return;
     }
 
@@ -152,6 +163,8 @@ async function renderCart() {
   itemsCont.innerHTML = '';
 
   let total = 0;
+  let hasStockIssue = false;
+
   for (let index = 0; index < cart.length; index++) {
     const item = cart[index];
     const qty = item.qty || item.quantity || 1;
@@ -159,24 +172,41 @@ async function renderCart() {
     const subtotal = price * qty;
     total += subtotal;
 
-    // نتحقق من المخزون ونعرض تنبيه لو محدود
+    // نتحقق من مخزون الـ variant المحدد ونعرض تنبيه لو محدود
     let stockWarning = '';
+    let isUnavailable = false;
+
     try {
       const productDoc = await db.collection('products').doc(item.id).get();
       if (productDoc.exists) {
-        const stock = productDoc.data().stock || 0;
-        if (qty > stock) {
-          stockWarning = `<p class="text-red-500 text-xs mt-1">⚠️ الكمية المطلوبة (${qty}) أكثر من المتوفر (${stock})</p>`;
-        } else if (stock <= 3) {
-          stockWarning = `<p class="text-orange-500 text-xs mt-1">⚠️ تبقى فقط ${stock} قطع متوفرة</p>`;
+        const productData = productDoc.data();
+        const variants = productData.variants || [];
+
+        const variant = variants.find(v => 
+          v.color === item.color && v.size === item.size
+        );
+
+        if (!variant) {
+          stockWarning = `<p class="text-red-500 text-xs mt-1">❌ هذا الخيار غير متوفر — ربما تم حذفه أو نفذ تماماً</p>`;
+          isUnavailable = true;
+          hasStockIssue = true;
+        } else if (variant.stock <= 0) {
+          stockWarning = `<p class="text-red-500 text-xs mt-1">❌ نفذ من المخزون — المتوفر: 0 قطع</p>`;
+          isUnavailable = true;
+          hasStockIssue = true;
+        } else if (qty > variant.stock) {
+          stockWarning = `<p class="text-red-500 text-xs mt-1">⚠️ الكمية المطلوبة (${qty}) أكثر من المتوفر (${variant.stock})</p>`;
+          hasStockIssue = true;
+        } else if (variant.stock <= 3) {
+          stockWarning = `<p class="text-orange-500 text-xs mt-1">⚠️ تبقى فقط ${variant.stock} قطع لهذا الخيار</p>`;
         }
       }
     } catch (e) {
-      // تجاهل أخطاء التحقق هنا
+      console.error(e);
     }
 
     itemsCont.innerHTML += `
-      <div class="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
+      <div class="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 ${isUnavailable?'opacity-60':''}">
         <img src="${item.image || item.img || 'https://via.placeholder.com/100x100'}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg">
         <div class="flex-1">
           <h3 class="font-bold text-lg">${item.name}</h3>
@@ -185,9 +215,9 @@ async function renderCart() {
           ${stockWarning}
         </div>
         <div class="flex flex-col items-center gap-1">
-          <button onclick="changeQty(${index}, 1)" class="w-8 h-8 border rounded flex items-center justify-center hover:bg-gray-100">+</button>
+          <button onclick="changeQty(${index}, 1)" class="w-8 h-8 border rounded flex items-center justify-center hover:bg-gray-100 ${isUnavailable?'opacity-50 cursor-not-allowed':''}" ${isUnavailable?'disabled':''}>+</button>
           <span class="font-medium">${qty}</span>
-          <button onclick="changeQty(${index}, -1)" class="w-8 h-8 border rounded flex items-center justify-center hover:bg-gray-100">-</button>
+          <button onclick="changeQty(${index}, -1)" class="w-8 h-8 border rounded flex items-center justify-center hover:bg-gray-100 ${isUnavailable?'opacity-50 cursor-not-allowed':''}" ${isUnavailable?'disabled':''}>-</button>
         </div>
         <div class="text-right min-w-[100px]">
           <p class="font-bold">${subtotal.toFixed(2)} درهم</p>
@@ -197,6 +227,16 @@ async function renderCart() {
         </div>
       </div>
     `;
+  }
+
+  // تعطيل زر الدفع لو فيه مشكلة في المخزون
+  const checkoutLink = document.getElementById('checkout-link');
+  if (hasStockIssue) {
+    checkoutLink.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+    checkoutLink.innerHTML = 'أصلح الكميات أولاً <i class="fa-solid fa-exclamation-triangle ml-1"></i>';
+  } else {
+    checkoutLink.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+    checkoutLink.innerHTML = 'متابعة الدفع <i class="fa-solid fa-arrow-left ml-1"></i>';
   }
 
   document.getElementById('subtotal').textContent = `${total.toFixed(2)} درهم`;
