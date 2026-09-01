@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
   
+  <!-- ✅ خريطة OpenStreetMap + Leaflet (مجانية 100% بدون مفتاح!) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
   <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   
@@ -26,6 +30,8 @@
     .toast.error { background: #dc2626; }
     .lang-option:hover { background: #f3f4f6; }
     .lang-option.active { background: #e5e7eb; font-weight: bold; }
+    #map { height: 350px; border-radius: 8px; border: 1px solid #d1d5db; }
+    .map-hint { font-size: 0.875rem; color: #6b7280; margin-top: 0.25rem; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
@@ -55,6 +61,9 @@ const translations = {
     verify: "تحقق",
     address: "العنوان بالتفصيل *",
     address_placeholder: "المدينة، المنطقة، الشارع، رقم المبنى والشقة",
+    set_location_on_map: "📍 حدد موقعك على الخريطة",
+    map_hint: "اسحب الدبوس ليتطابق مع موقعك بدقة",
+    location_coords: "إحداثيات الموقع:",
     notes: "ملاحظات إضافية (اختياري)",
     notes_placeholder: "أي تعليمات خاصة بالتوصيل أو الطلب",
     confirm_order: "تأكيد الطلب",
@@ -82,7 +91,7 @@ const translations = {
     processing: "جاري المعالجة...",
     enter_valid_name: "⚠️ أدخل اسمك الكامل بشكل صحيح",
     enter_valid_phone: "⚠️ أدخل رقم هاتف صالح (مثال: 0501234567)",
-    enter_valid_address: "⚠️ أدخل عنوانك بالتفصيل",
+    enter_valid_address: "⚠️ أدخل عنوانك بالتفصيل أو حدد موقعك على الخريطة",
     order_success_email_sent: "✅ تم تأكيد طلبك بنجاح! وتم إرسال التفاصيل للإيميل",
     error_occurred: "حدث خطأ: {error}",
     email_not_sent_warning: "تنبيه: لم يتم إرسال الإيميل، لكن الطلب مسجل لدينا",
@@ -118,6 +127,9 @@ const translations = {
     verify: "Verify",
     address: "Detailed Address *",
     address_placeholder: "City, Region, Street, Building & Apartment number",
+    set_location_on_map: "📍 Set your location on the map",
+    map_hint: "Drag the marker to your exact location",
+    location_coords: "Location coordinates:",
     notes: "Additional Notes (Optional)",
     notes_placeholder: "Any special delivery instructions",
     confirm_order: "Confirm Order",
@@ -145,7 +157,7 @@ const translations = {
     processing: "Processing...",
     enter_valid_name: "⚠️ Enter a valid full name",
     enter_valid_phone: "⚠️ Enter a valid phone number (e.g. +971501234567)",
-    enter_valid_address: "⚠️ Enter your complete address",
+    enter_valid_address: "⚠️ Enter your complete address or set your location on the map",
     order_success_email_sent: "✅ Order confirmed! Details sent to your email",
     error_occurred: "An error occurred: {error}",
     email_not_sent_warning: "Notice: Email not sent, but your order has been recorded",
@@ -303,8 +315,18 @@ document.addEventListener('DOMContentLoaded', () => {
       
       <div>
         <label class="block font-medium mb-1" data-i18n="address">العنوان بالتفصيل *</label>
-        <textarea id="address" required rows="3" class="w-full border rounded-lg p-3" data-i18n-placeholder="address_placeholder" placeholder="المدينة، المنطقة، الشارع، رقم المبنى والشقة"></textarea>
+        <textarea id="address" required rows="2" class="w-full border rounded-lg p-3" data-i18n-placeholder="address_placeholder" placeholder="المدينة، المنطقة، الشارع، رقم المبنى والشقة"></textarea>
       </div>
+      
+      <!-- ✅ قسم الخريطة الجديد -->
+      <div>
+        <label class="block font-medium mb-1" data-i18n="set_location_on_map">📍 حدد موقعك على الخريطة</label>
+        <div id="map"></div>
+        <p class="map-hint" data-i18n="map_hint">اسحب الدبوس ليتطابق مع موقعك بدقة</p>
+        <p id="coords-display" class="text-sm text-gray-500 mt-1" data-i18n="location_coords">إحداثيات الموقع: —</p>
+        <input type="hidden" id="location_coords" name="location_coords">
+      </div>
+      
       <div>
         <label class="block font-medium mb-1" data-i18n="notes">ملاحظات إضافية (اختياري)</label>
         <textarea id="notes" rows="2" class="w-full border rounded-lg p-3" data-i18n-placeholder="notes_placeholder" placeholder="أي تعليمات خاصة بالتوصيل أو الطلب"></textarea>
@@ -327,6 +349,43 @@ document.addEventListener('DOMContentLoaded', () => {
 </main>
 
 <script>
+// ✅ تهيئة الخريطة
+let map, marker;
+document.addEventListener('DOMContentLoaded', () => {
+  // مركز الخريطة على الشارقة (المجاز تقريباً)
+  const sharjahLat = 25.3538;
+  const sharjahLng = 55.4048;
+  
+  map = L.map('map').setView([sharjahLat, sharjahLng], 13);
+  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  
+  marker = L.marker([sharjahLat, sharjahLng], { draggable: true }).addTo(map);
+  
+  // تحديث الإحداثيات عند سحب الدبوس
+  function updateCoordsDisplay(lat, lng) {
+    const coordsText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    document.getElementById('coords-display').textContent = `${t('location_coords')} ${coordsText}`;
+    document.getElementById('location_coords').value = coordsText;
+  }
+  
+  marker.on('dragend', function(e) {
+    const pos = e.target.getLatLng();
+    updateCoordsDisplay(pos.lat, pos.lng);
+  });
+  
+  // النقر على الخريطة ينقل الدبوس
+  map.on('click', function(e) {
+    marker.setLatLng(e.latlng);
+    updateCoordsDisplay(e.latlng.lat, e.latlng.lng);
+  });
+  
+  // تعيين الموقع الافتراضي
+  updateCoordsDisplay(sharjahLat, sharjahLng);
+});
+
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -513,7 +572,7 @@ async function sendOrderEmail(orderData) {
     customer_name: orderData.fullName,
     customer_email: orderData.customerEmail,
     customer_phone: orderData.phone,
-    customer_address: orderData.address,
+    customer_address: `${orderData.address}\n📍 الموقع على الخريطة: ${orderData.locationCoords || 'غير محدد'}`,
     customer_notes: orderData.notes || (lang === 'ar' ? 'لا يوجد' : 'None'),
     order_items: orderItemsText,
     order_total: `${total.toFixed(2)} ${currency}`
@@ -610,6 +669,7 @@ async function saveOrderToFirebase(orderData) {
     fullName: orderData.fullName,
     phone: orderData.phone,
     address: orderData.address,
+    locationCoords: orderData.locationCoords || '',
     notes: orderData.notes || '',
     items: cart,
     total: total,
@@ -635,6 +695,7 @@ async function handleSubmit(e) {
     phone: document.getElementById('phone').value.trim(),
     customerEmail: document.getElementById('customer_email').value.trim(),
     address: document.getElementById('address').value.trim(),
+    locationCoords: document.getElementById('location_coords').value,
     notes: document.getElementById('notes').value.trim()
   };
   
