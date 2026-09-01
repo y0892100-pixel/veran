@@ -12,6 +12,10 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast.show { display: block; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -23,7 +27,8 @@
 </nav>
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6">طلباتي</h1>
-  <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
+  <div id="toast" class="toast"></div>
+  <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i><p class="mt-2 text-gray-500">جاري التحميل...</p></div>
   <div id="content" class="hidden">
     <div id="orders-list"></div>
   </div>
@@ -40,7 +45,6 @@
 </main>
 
 <script>
-// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -50,11 +54,83 @@ const firebaseConfig = {
   appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
   measurementId: "G-SV7DKGPH2M"
 };
-
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return 'غير محدد';
+  const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  return d.toLocaleString('ar-AE');
+}
+
+// ⏱️ تحقق هل مرت أقل من 6 ساعات؟
+function isWithinCancellationWindow(createdAt) {
+  if (!createdAt) return false;
+  const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+  const now = new Date();
+  const hoursDiff = (now - orderDate) / (1000 * 60 * 60);
+  return hoursDiff < 6;
+}
+
+// حساب الساعات المتبقية للإلغاء
+function getHoursRemaining(createdAt) {
+  if (!createdAt) return 0;
+  const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+  const now = new Date();
+  const hoursDiff = (now - orderDate) / (1000 * 60 * 60);
+  return Math.max(0, 6 - hoursDiff).toFixed(1);
+}
+
+// 🗑️ إلغاء الطلب + إرجاع المخزون
+window.cancelOrder = async function(orderId, orderItems) {
+  if (!confirm('هل أنت متأكد من إلغاء الطلب؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+
+  try {
+    const batch = db.batch();
+
+    // 1️⃣ تغيير حالة الطلب لـ "ملغي"
+    const orderRef = db.collection('orders').doc(orderId);
+    batch.update(orderRef, { status: 'ملغي' });
+
+    // 2️⃣ إرجاع الكميات للمخزون حسب اللون والمقاس
+    for (const item of orderItems) {
+      const qty = item.qty || item.quantity || 1;
+      const productRef = db.collection('products').doc(item.id);
+      const productDoc = await productRef.get();
+
+      if (productDoc.exists) {
+        const data = productDoc.data();
+        const variants = data.variants || [];
+        const idx = variants.findIndex(v => 
+          v.color === (item.color || '') && v.size === (item.size || '')
+        );
+
+        if (idx !== -1) {
+          variants[idx].stock += qty;
+          const anyInStock = variants.some(v => v.stock > 0);
+          batch.update(productRef, { variants, available: anyInStock });
+        }
+      }
+    }
+
+    await batch.commit();
+    showToast('✅ تم إلغاء الطلب وإرجاع الكميات للمخزون');
+    setTimeout(() => location.reload(), 1500);
+
+  } catch (err) {
+    console.error(err);
+    showToast('❌ خطأ في الإلغاء: ' + err.message, 'error');
+  }
+};
 
 // ✅ القائمة المنسدلة للحساب
 function updateUserNav(user) {
@@ -100,11 +176,9 @@ auth.onAuthStateChanged(async user => {
   updateUserNav(user);
   
   try {
-    // نجلب كل طلبات المستخدم ثم نرتبها في الكود
     const snapshot = await db.collection('orders')
       .where('userId', '==', user.uid)
       .get();
-
     const list = document.getElementById('orders-list');
     
     if (snapshot.empty) {
@@ -112,11 +186,12 @@ auth.onAuthStateChanged(async user => {
       return;
     }
 
-    // نرتب من الأحدث للأقدم
     let orders = [];
     snapshot.forEach(doc => {
       orders.push({ id: doc.id, ...doc.data() });
     });
+
+    // ترتيب من الأحدث للأقدم
     orders.sort((a, b) => {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
       const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
@@ -124,9 +199,8 @@ auth.onAuthStateChanged(async user => {
     });
 
     orders.forEach(order => {
-      const date = order.createdAt?.toDate 
-        ? new Date(order.createdAt.toDate()).toLocaleDateString('ar-AE') 
-        : 'غير محدد';
+      const canCancel = order.status !== 'ملغي' && isWithinCancellationWindow(order.createdAt);
+      const hoursLeft = getHoursRemaining(order.createdAt);
       
       const statusClass = 
         order.status === 'جديد' ? 'bg-blue-100 text-blue-700' :
@@ -136,27 +210,48 @@ auth.onAuthStateChanged(async user => {
 
       list.innerHTML += `
         <div class="bg-white p-5 rounded-xl shadow-sm mb-4 border">
-          <div class="flex justify-between items-center mb-3">
+          <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
             <span class="font-bold">رقم الطلب: ${order.orderNumber || order.id}</span>
             <span class="px-3 py-1 rounded-full text-sm font-medium ${statusClass}">${order.status || 'قيد المعالجة'}</span>
           </div>
-          <p class="text-sm text-gray-600 mb-1">التاريخ: ${date}</p>
+          <p class="text-sm text-gray-600 mb-1">التاريخ: ${formatDate(order.createdAt)}</p>
           <p class="text-sm text-gray-600 mb-1">الاسم: ${order.fullName || order.name || 'غير مذكور'}</p>
           <p class="text-sm text-gray-600 mb-1">الهاتف: ${order.phone || 'غير مذكور'}</p>
           <p class="text-sm text-gray-600 mb-3">العنوان: ${order.address || 'غير مذكور'}</p>
-          <div class="border-t pt-3">
+          
+          <div class="border-t pt-3 mb-3">
             <p class="font-semibold mb-2">المشتريات:</p>
-            ${(order.items || []).map(item => `
-              <div class="flex justify-between text-sm py-1">
-                <span>${item.name} — المقاس: ${item.size || '-'} — اللون: ${item.color || '-'} × ${item.quantity}</span>
-                <span class="font-medium">${(item.price * item.quantity).toFixed(2)} درهم</span>
-              </div>
-            `).join('')}
+            ${(order.items || []).map(item => {
+              const qty = item.qty || item.quantity || 1;
+              return `
+                <div class="flex justify-between text-sm py-1">
+                  <span>${item.name} — المقاس: ${item.size || '-'} — اللون: ${item.color || '-'} × ${qty}</span>
+                  <span class="font-medium">${((item.price || 0) * qty).toFixed(2)} درهم</span>
+                </div>
+              `;
+            }).join('')}
             <div class="flex justify-between font-bold mt-2 pt-2 border-t">
               <span>المجموع الكلي</span>
               <span>${(order.total || 0).toFixed(2)} درهم</span>
             </div>
           </div>
+
+          ${order.status !== 'ملغي' ? `
+            <div class="flex flex-wrap gap-2 pt-2 border-t">
+              ${canCancel ? `
+                <button onclick="cancelOrder('${order.id}', ${JSON.stringify(order.items || []).replace(/"/g, '&quot;')})" 
+                  class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">
+                  <i class="fa-solid fa-xmark ml-1"></i> إلغاء الطلب (${hoursLeft} ساعات متبقية)
+                </button>
+              ` : `
+                <span class="text-sm text-gray-500 px-2 py-2">⏱️ انتهت مدة الإلغاء (6 ساعات)</span>
+              `}
+              <a href="returns.html?order=${encodeURIComponent(order.orderNumber || order.id)}" 
+                class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                <i class="fa-solid fa-rotate-left ml-1"></i> طلب استرجاع
+              </a>
+            </div>
+          ` : ''}
         </div>
       `;
     });
