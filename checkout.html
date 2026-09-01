@@ -137,23 +137,19 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// إعدادات EmailJS
+// ✅ إعدادات EmailJS صحيحة
 const EMAILJS_SERVICE_ID = 'service_3bs6onj';
-// ⚠️ غيّر اسم القالب لاسم قالب التحقق الخاص بك
-const EMAILJS_VERIFY_TEMPLATE_ID = 'template_otp_verify'; 
+const EMAILJS_VERIFY_TEMPLATE_ID = 'template_fso5vje'; // ✅ معرّف القالب الصحيح
 const EMAILJS_ORDER_TEMPLATE_ID = 'template_om7zrjs';
 const EMAILJS_PUBLIC_KEY = '3A0NspFA3vlSd64jc';
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
-// اسم مفتاح السلة — متطابق مع باقي الملفات
 const CART_KEY = 'varen_cart_v1';
-
 let cart = [];
 let total = 0;
 
-// ✅ متغيرات التحقق من الإيميل
 let generatedCode = '';
 let codeExpiryTime = null;
 let isEmailVerified = false;
@@ -189,14 +185,12 @@ window.sendVerificationCode = async function() {
   codeExpiryTime = Date.now() + 15 * 60 * 1000; // صالح لمدة 15 دقيقة
 
   try {
-    // ✅ أرسل الرمز عبر قالب التحقق الخاص بك
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_VERIFY_TEMPLATE_ID, {
       EmailCode: generatedCode,
       to_email: email,
       customer_name: fullName
     });
 
-    // أظهر قسم إدخال الرمز
     document.getElementById('verification-section').classList.remove('hidden');
     document.getElementById('send-code-btn').disabled = true;
     document.getElementById('send-code-btn').classList.add('opacity-50', 'cursor-not-allowed');
@@ -205,8 +199,8 @@ window.sendVerificationCode = async function() {
     showToast('✅ تم إرسال الرمز، تفقد بريدك الإلكتروني');
     
   } catch (err) {
-    console.error(err);
-    showToast('❌ فشل إرسال الرمز: ' + err.message, 'error');
+    console.error('❌ تفاصيل الخطأ:', err);
+    showToast(`❌ فشل الإرسال: ${err.text || err.message || 'خطأ غير معروف'}`, 'error');
   }
 };
 
@@ -218,7 +212,6 @@ window.verifyCode = function() {
   if (Date.now() > codeExpiryTime) {
     status.textContent = '⏰ انتهت صلاحية الرمز، أرسل رمزاً جديداً';
     status.className = 'text-sm mt-1 text-red-600';
-    // إعادة تفعيل زر الإرسال
     document.getElementById('send-code-btn').disabled = false;
     document.getElementById('send-code-btn').classList.remove('opacity-50', 'cursor-not-allowed');
     document.getElementById('send-code-btn').textContent = 'إرسال الرمز';
@@ -416,7 +409,6 @@ async function saveOrderToFirebase(orderData) {
 async function handleSubmit(e) {
   e.preventDefault();
   
-  // ✅ تحقق من التحقق من الإيميل أولاً
   if (!isEmailVerified) {
     return showToast('⚠️ تحقق من بريدك الإلكتروني أولاً عبر إدخال الرمز المرسل إليك', 'error');
   }
@@ -434,7 +426,6 @@ async function handleSubmit(e) {
     notes: document.getElementById('notes').value.trim()
   };
 
-  // تحقق إضافي من صحة البيانات
   if (!orderData.fullName || orderData.fullName.length < 3) {
     showToast('⚠️ أدخل اسمك الكامل بشكل صحيح', 'error');
     btn.disabled = false;
