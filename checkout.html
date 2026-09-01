@@ -139,7 +139,7 @@ const auth = firebase.auth();
 
 // ✅ إعدادات EmailJS صحيحة
 const EMAILJS_SERVICE_ID = 'service_3bs6onj';
-const EMAILJS_VERIFY_TEMPLATE_ID = 'template_fso5vje'; // ✅ معرّف القالب الصحيح
+const EMAILJS_VERIFY_TEMPLATE_ID = 'template_fso5vje';
 const EMAILJS_ORDER_TEMPLATE_ID = 'template_om7zrjs';
 const EMAILJS_PUBLIC_KEY = '3A0NspFA3vlSd64jc';
 const ADMIN_EMAIL = 'y0892100@gmail.com';
@@ -149,7 +149,6 @@ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 const CART_KEY = 'varen_cart_v1';
 let cart = [];
 let total = 0;
-
 let generatedCode = '';
 let codeExpiryTime = null;
 let isEmailVerified = false;
@@ -169,7 +168,7 @@ function generateCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-// 📧 إرسال رمز التحقق
+// 📧 إرسال رمز التحقق — ✅ مطابق لأسماء القالب
 window.sendVerificationCode = async function() {
   const email = document.getElementById('customer_email').value.trim();
   const fullName = document.getElementById('full_name').value.trim();
@@ -185,9 +184,10 @@ window.sendVerificationCode = async function() {
   codeExpiryTime = Date.now() + 15 * 60 * 1000;
 
   try {
+    // ✅ أرسل فقط ما القالب يحتاجه بالاسم الصحيح
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_VERIFY_TEMPLATE_ID, {
-      email: email,              // ✅ إلزامي — مطابق للقالب
-      EmailCode: generatedCode   // ✅ رمز التحقق
+      email: email,           // ✅ حقل إلزامي في القالب
+      EmailCode: generatedCode // ✅ رمز التحقق
     });
 
     document.getElementById('verification-section').classList.remove('hidden');
@@ -202,7 +202,35 @@ window.sendVerificationCode = async function() {
     showToast(`❌ فشل الإرسال: ${err.text || err.message || 'خطأ غير معروف'}`, 'error');
   }
 };
+
+// ✅ التحقق من صحة الرمز
+window.verifyCode = function() {
+  const entered = document.getElementById('verification_code').value.trim();
+  const status = document.getElementById('code-status');
   
+  if (Date.now() > codeExpiryTime) {
+    status.textContent = '⏰ انتهت صلاحية الرمز، أرسل رمزاً جديداً';
+    status.className = 'text-sm mt-1 text-red-600';
+    document.getElementById('send-code-btn').disabled = false;
+    document.getElementById('send-code-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+    document.getElementById('send-code-btn').textContent = 'إرسال الرمز';
+    return;
+  }
+  
+  if (entered === generatedCode) {
+    isEmailVerified = true;
+    status.textContent = '✅ تم التحقق بنجاح!';
+    status.className = 'text-sm mt-1 text-green-600 font-semibold';
+    document.getElementById('verification_code').disabled = true;
+    document.getElementById('submit-btn').disabled = false;
+    showToast('✅ يمكنك الآن تأكيد الطلب');
+  } else {
+    isEmailVerified = false;
+    status.textContent = '❌ الرمز غير صحيح، حاول مرة أخرى';
+    status.className = 'text-sm mt-1 text-red-600';
+  }
+};
+
 function loadCart() {
   const saved = localStorage.getItem(CART_KEY);
   if (!saved || saved === '[]') {
