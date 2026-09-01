@@ -182,13 +182,13 @@ window.sendVerificationCode = async function() {
   }
 
   generatedCode = generateCode();
-  codeExpiryTime = Date.now() + 15 * 60 * 1000; // صالح لمدة 15 دقيقة
+  codeExpiryTime = Date.now() + 15 * 60 * 1000;
 
   try {
+    // ✅ أرسل فقط المتغيرات الموجودة في القالب
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_VERIFY_TEMPLATE_ID, {
-      EmailCode: generatedCode,
-      to_email: email,
-      customer_name: fullName
+      EmailCode: generatedCode
+      // 💡 لو فيه متغيرات ثانية في القالب، أضفها هنا بنفس الاسم بالضبط
     });
 
     document.getElementById('verification-section').classList.remove('hidden');
@@ -203,35 +203,7 @@ window.sendVerificationCode = async function() {
     showToast(`❌ فشل الإرسال: ${err.text || err.message || 'خطأ غير معروف'}`, 'error');
   }
 };
-
-// ✅ التحقق من صحة الرمز
-window.verifyCode = function() {
-  const entered = document.getElementById('verification_code').value.trim();
-  const status = document.getElementById('code-status');
   
-  if (Date.now() > codeExpiryTime) {
-    status.textContent = '⏰ انتهت صلاحية الرمز، أرسل رمزاً جديداً';
-    status.className = 'text-sm mt-1 text-red-600';
-    document.getElementById('send-code-btn').disabled = false;
-    document.getElementById('send-code-btn').classList.remove('opacity-50', 'cursor-not-allowed');
-    document.getElementById('send-code-btn').textContent = 'إرسال الرمز';
-    return;
-  }
-  
-  if (entered === generatedCode) {
-    isEmailVerified = true;
-    status.textContent = '✅ تم التحقق بنجاح!';
-    status.className = 'text-sm mt-1 text-green-600 font-semibold';
-    document.getElementById('verification_code').disabled = true;
-    document.getElementById('submit-btn').disabled = false;
-    showToast('✅ يمكنك الآن تأكيد الطلب');
-  } else {
-    isEmailVerified = false;
-    status.textContent = '❌ الرمز غير صحيح، حاول مرة أخرى';
-    status.className = 'text-sm mt-1 text-red-600';
-  }
-};
-
 function loadCart() {
   const saved = localStorage.getItem(CART_KEY);
   if (!saved || saved === '[]') {
