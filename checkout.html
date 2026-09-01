@@ -137,10 +137,10 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// ✅ إعدادات EmailJS صحيحة
+// ✅ إعدادات EmailJS
 const EMAILJS_SERVICE_ID = 'service_3bs6onj';
-const EMAILJS_VERIFY_TEMPLATE_ID = 'template_fso5vje';
-const EMAILJS_ORDER_TEMPLATE_ID = 'template_om7zrjs';
+const EMAILJS_VERIFY_TEMPLATE_ID = 'template_fso5vje';   // قالب رمز التحقق
+const EMAILJS_ORDER_TEMPLATE_ID = 'template_om7zrjs';    // ✅ قالب تفاصيل الطلب
 const EMAILJS_PUBLIC_KEY = '3A0NspFA3vlSd64jc';
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
@@ -168,7 +168,7 @@ function generateCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-// 📧 إرسال رمز التحقق — ✅ مطابق لأسماء القالب
+// 📧 إرسال رمز التحقق
 window.sendVerificationCode = async function() {
   const email = document.getElementById('customer_email').value.trim();
   const fullName = document.getElementById('full_name').value.trim();
@@ -184,9 +184,8 @@ window.sendVerificationCode = async function() {
   codeExpiryTime = Date.now() + 15 * 60 * 1000;
 
   try {
-    // ✅ أرسل فقط ما القالب يحتاجه بالاسم الصحيح
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_VERIFY_TEMPLATE_ID, {
-      email: email,           // ✅ حقل إلزامي في القالب
+      email: email,           // ✅ مطابق لحقل القالب
       EmailCode: generatedCode // ✅ رمز التحقق
     });
 
@@ -281,6 +280,7 @@ function generateOrderNumber() {
   return `VA-${yy}${mm}${dd}-${rand}`;
 }
 
+// 📋 بناء قائمة المنتجات للإيميل
 function buildOrderItemsText() {
   return cart.map((item, i) => {
     const qty = item.qty || item.quantity || 1;
@@ -291,9 +291,11 @@ function buildOrderItemsText() {
   }).join('\n\n');
 }
 
-async function sendEmail(orderData) {
+// ✅ إرسال إيميل تفاصيل الطلب (لما العميل يكمل الطلب)
+async function sendOrderEmail(orderData) {
   const orderItemsText = buildOrderItemsText();
   const orderDate = new Date().toLocaleString('ar-AE');
+  
   const templateParams = {
     order_id: orderData.orderNumber,
     order_date: orderDate,
@@ -305,12 +307,18 @@ async function sendEmail(orderData) {
     order_items: orderItemsText,
     order_total: `${total.toFixed(2)} درهم`
   };
+
   try {
-    const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_TEMPLATE_ID, templateParams);
-    console.log('✅ تم إرسال الإيميل بنجاح:', response);
+    // ✅ إرسال الإيميل باستخدام القالب template_om7zrjs
+    const response = await emailjs.send(
+      EMAILJS_SERVICE_ID,
+      EMAILJS_ORDER_TEMPLATE_ID,
+      templateParams
+    );
+    console.log('✅ تم إرسال إيميل تفاصيل الطلب بنجاح:', response);
     return true;
   } catch (err) {
-    console.error('❌ خطأ في إرسال الإيميل:', err);
+    console.error('❌ خطأ في إرسال إيميل الطلب:', err);
     showToast('تنبيه: لم يتم إرسال الإيميل، لكن الطلب مسجل لدينا', 'error');
     return false;
   }
@@ -457,7 +465,9 @@ async function handleSubmit(e) {
 
     await saveOrderToFirebase(orderData);
     await reduceStockAfterOrder();
-    await sendEmail(orderData);
+    
+    // ✅ إرسال إيميل تفاصيل الطلب لما يكتمل الطلب نهائياً
+    await sendOrderEmail(orderData);
 
     localStorage.removeItem(CART_KEY);
 
@@ -467,7 +477,7 @@ async function handleSubmit(e) {
     document.getElementById('success-section').classList.remove('hidden');
     document.getElementById('order-number').textContent = orderData.orderNumber;
 
-    showToast('✅ تم تأكيد طلبك بنجاح!');
+    showToast('✅ تم تأكيد طلبك بنجاح! وتم إرسال التفاصيل للإيميل');
 
   } catch (err) {
     console.error(err);
