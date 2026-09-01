@@ -3,44 +3,170 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>طلباتي - VAREN</title>
+  <title data-i18n="page_title">طلباتي - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    html[lang="en"] { direction: ltr; }
+    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
     .toast.error { background: #dc2626; }
+    .lang-option:hover { background: #f3f4f6; }
+    .lang-option.active { background: #e5e7eb; font-weight: bold; }
   </style>
 </head>
 <body class="bg-gray-50">
+
+<script>
+const translations = {
+  ar: {
+    page_title: "طلباتي - VAREN",
+    my_orders: "طلباتي",
+    loading: "جاري التحميل...",
+    no_orders: "ليس لديك طلبات حتى الآن",
+    start_shopping: "ابدأ التسوق",
+    please_login: "سجّل الدخول أولاً",
+    login: "تسجيل الدخول",
+    order_number: "رقم الطلب",
+    date: "التاريخ",
+    customer_name: "الاسم",
+    phone: "الهاتف",
+    address: "العنوان",
+    products: "المشتريات",
+    total: "المجموع الكلي",
+    AED: "درهم",
+    status_pending: "قيد المعالجة",
+    status_new: "جديد",
+    status_confirmed: "مؤكد",
+    status_cancelled: "ملغي",
+    cancel_order: "إلغاء الطلب",
+    hours_remaining: "ساعات متبقية",
+    cancellation_expired: "⏱️ انتهت مدة الإلغاء (6 ساعات)",
+    request_return: "طلب استرجاع",
+    confirm_cancel: "هل أنت متأكد من إلغاء الطلب؟ لا يمكن التراجع عن هذا الإجراء.",
+    cancel_success: "✅ تم إلغاء الطلب وإرجاع الكميات للمخزون",
+    cancel_error: "❌ خطأ في الإلغاء: ",
+    load_error: "خطأ في تحميل الطلبات: ",
+    size: "المقاس",
+    color: "اللون",
+    my_info: "بيانات الحساب",
+    returns: "طلبات الاسترجاع",
+    admin_panel: "لوحة التحكم",
+    logout: "تسجيل الخروج",
+    language: "اللغة",
+    undefined: "غير محدد",
+    not_provided: "غير مذكور"
+  },
+  en: {
+    page_title: "My Orders - VAREN",
+    my_orders: "My Orders",
+    loading: "Loading...",
+    no_orders: "You have no orders yet",
+    start_shopping: "Start Shopping",
+    please_login: "Please sign in first",
+    login: "Sign In",
+    order_number: "Order #",
+    date: "Date",
+    customer_name: "Name",
+    phone: "Phone",
+    address: "Address",
+    products: "Items Purchased",
+    total: "Total",
+    AED: "AED",
+    status_pending: "Processing",
+    status_new: "New",
+    status_confirmed: "Confirmed",
+    status_cancelled: "Cancelled",
+    cancel_order: "Cancel Order",
+    hours_remaining: "hours remaining",
+    cancellation_expired: "⏱️ Cancellation period expired (6 hours)",
+    request_return: "Request Return",
+    confirm_cancel: "Are you sure you want to cancel this order? This action cannot be undone.",
+    cancel_success: "✅ Order cancelled and stock restored",
+    cancel_error: "❌ Cancellation error: ",
+    load_error: "Error loading orders: ",
+    size: "Size",
+    color: "Color",
+    my_info: "Account Information",
+    returns: "Returns",
+    admin_panel: "Admin Panel",
+    logout: "Sign Out",
+    language: "Language",
+    undefined: "Not specified",
+    not_provided: "Not provided"
+  }
+};
+
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+}
+
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+
+function t(key) {
+  return translations[getCurrentLanguage()][key] || key;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+});
+</script>
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <div id="user-area"></div>
+    
+    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
+    </a>
+
+    <div id="user-area" class="relative"></div>
   </div>
 </nav>
+
 <main class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-6">طلباتي</h1>
+  <h1 class="text-2xl font-bold mb-6" data-i18n="my_orders">طلباتي</h1>
   <div id="toast" class="toast"></div>
-  <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i><p class="mt-2 text-gray-500">جاري التحميل...</p></div>
+  
+  <div id="loading" class="text-center py-16">
+    <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
+    <p class="mt-2 text-gray-500" data-i18n="loading">جاري التحميل...</p>
+  </div>
+
   <div id="content" class="hidden">
     <div id="orders-list"></div>
   </div>
+
   <div id="no-orders" class="hidden text-center py-16">
     <i class="fa-solid fa-box-open text-6xl text-gray-300 mb-4"></i>
-    <p class="text-xl text-gray-500 mb-4">ليس لديك طلبات حتى الآن</p>
-    <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block">ابدأ التسوق</a>
+    <p class="text-xl text-gray-500 mb-4" data-i18n="no_orders">ليس لديك طلبات حتى الآن</p>
+    <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block" data-i18n="start_shopping">ابدأ التسوق</a>
   </div>
+
   <div id="no-login" class="hidden text-center py-16">
     <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
-    <p class="text-xl text-gray-500 mb-4">سجّل الدخول أولاً</p>
-    <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block">تسجيل الدخول</a>
+    <p class="text-xl text-gray-500 mb-4" data-i18n="please_login">سجّل الدخول أولاً</p>
+    <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block" data-i18n="login">تسجيل الدخول</a>
   </div>
 </main>
 
@@ -67,12 +193,12 @@ function showToast(msg, type='success') {
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return 'غير محدد';
+  if (!timestamp) return t('undefined');
   const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  return d.toLocaleString('ar-AE');
+  const lang = getCurrentLanguage();
+  return d.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-AE');
 }
 
-// ⏱️ تحقق هل مرت أقل من 6 ساعات؟
 function isWithinCancellationWindow(createdAt) {
   if (!createdAt) return false;
   const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
@@ -81,7 +207,6 @@ function isWithinCancellationWindow(createdAt) {
   return hoursDiff < 6;
 }
 
-// حساب الساعات المتبقية للإلغاء
 function getHoursRemaining(createdAt) {
   if (!createdAt) return 0;
   const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
@@ -90,30 +215,23 @@ function getHoursRemaining(createdAt) {
   return Math.max(0, 6 - hoursDiff).toFixed(1);
 }
 
-// 🗑️ إلغاء الطلب + إرجاع المخزون
 window.cancelOrder = async function(orderId, orderItems) {
-  if (!confirm('هل أنت متأكد من إلغاء الطلب؟ لا يمكن التراجع عن هذا الإجراء.')) return;
-
+  if (!confirm(t('confirm_cancel'))) return;
   try {
     const batch = db.batch();
-
-    // 1️⃣ تغيير حالة الطلب لـ "ملغي"
     const orderRef = db.collection('orders').doc(orderId);
     batch.update(orderRef, { status: 'ملغي' });
 
-    // 2️⃣ إرجاع الكميات للمخزون حسب اللون والمقاس
     for (const item of orderItems) {
       const qty = item.qty || item.quantity || 1;
       const productRef = db.collection('products').doc(item.id);
       const productDoc = await productRef.get();
-
       if (productDoc.exists) {
         const data = productDoc.data();
         const variants = data.variants || [];
         const idx = variants.findIndex(v => 
           v.color === (item.color || '') && v.size === (item.size || '')
         );
-
         if (idx !== -1) {
           variants[idx].stock += qty;
           const anyInStock = variants.some(v => v.stock > 0);
@@ -121,41 +239,69 @@ window.cancelOrder = async function(orderId, orderItems) {
         }
       }
     }
-
     await batch.commit();
-    showToast('✅ تم إلغاء الطلب وإرجاع الكميات للمخزون');
+    showToast(t('cancel_success'));
     setTimeout(() => location.reload(), 1500);
-
   } catch (err) {
     console.error(err);
-    showToast('❌ خطأ في الإلغاء: ' + err.message, 'error');
+    showToast(t('cancel_error') + err.message, 'error');
   }
 };
 
-// ✅ القائمة المنسدلة للحساب
 function updateUserNav(user) {
+  const lang = getCurrentLanguage();
   const area = document.getElementById('user-area');
   if (!user) {
-    area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg">تسجيل الدخول</button>`;
+    area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800" data-i18n="login">تسجيل الدخول</button>`;
     return;
   }
   const isAdmin = user.email === ADMIN_EMAIL;
   area.innerHTML = `
-    <div class="relative group">
-      <button class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
+    <div class="relative">
+      <button id="account-nav-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200">
         <i class="fa-solid fa-user-circle"></i>
-        <span>${user.displayName || 'حسابي'}</span>
-        <i class="fa-solid fa-chevron-down text-xs mr-1 transition-transform group-hover:rotate-180"></i>
+        <span>${user.displayName || (lang === 'ar' ? 'حسابي' : 'My Account')}</span>
+        <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
       </button>
-      <div class="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-50">
-        <a href="account.html" class="block px-4 py-3 hover:bg-gray-50 border-b">بيانات الحساب</a>
-        <a href="orders.html" class="block px-4 py-3 hover:bg-gray-50 border-b">طلباتي</a>
-        <a href="returns.html" class="block px-4 py-3 hover:bg-gray-50 border-b">طلبات الاسترجاع</a>
-        ${isAdmin ? `<a href="admin.html" class="block px-4 py-3 hover:bg-gray-50 border-b text-red-600">لوحة التحكم</a>` : ''}
-        <button onclick="logout()" class="w-full text-right px-4 py-3 hover:bg-gray-50 text-red-500">تسجيل الخروج</button>
+      <div id="account-nav-menu" class="hidden absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border z-50">
+        <a href="account.html" class="block px-4 py-3 hover:bg-gray-50 border-b">
+          <i class="fa-solid fa-id-card ml-2"></i> <span data-i18n="my_info">${t('my_info')}</span>
+        </a>
+        <a href="orders.html" class="block px-4 py-3 hover:bg-gray-50 border-b">
+          <i class="fa-solid fa-box ml-2"></i> <span data-i18n="my_orders">${t('my_orders')}</span>
+        </a>
+        <a href="returns.html" class="block px-4 py-3 hover:bg-gray-50 border-b">
+          <i class="fa-solid fa-undo ml-2"></i> <span data-i18n="returns">${t('returns')}</span>
+        </a>
+        ${isAdmin ? `<a href="admin.html" class="block px-4 py-3 hover:bg-gray-50 border-b text-red-600 font-medium">
+          <i class="fa-solid fa-gear ml-2"></i> <span data-i18n="admin_panel">${t('admin_panel')}</span>
+        </a>` : ''}
+        <hr class="mx-3">
+        <div class="px-4 py-2">
+          <p class="text-sm font-semibold text-gray-500 mb-2" data-i18n="language">${t('language')}</p>
+          <button onclick="setLanguage('ar')" class="lang-option w-full text-right px-3 py-2 rounded text-sm" data-lang="ar">العربية</button>
+          <button onclick="setLanguage('en')" class="lang-option w-full text-right px-3 py-2 rounded text-sm mt-1" data-lang="en">English</button>
+        </div>
+        <hr class="mx-3 mt-2">
+        <button onclick="logout()" class="w-full text-right px-4 py-3 hover:bg-gray-50 text-red-500 font-medium">
+          <i class="fa-solid fa-right-from-bracket ml-2"></i> <span data-i18n="logout">${t('logout')}</span>
+        </button>
       </div>
     </div>
   `;
+
+  setTimeout(() => {
+    const btn = document.getElementById('account-nav-btn');
+    const menu = document.getElementById('account-nav-menu');
+    if (btn && menu) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('hidden');
+      });
+      document.addEventListener('click', () => menu.classList.add('hidden'));
+      menu.addEventListener('click', (e) => e.stopPropagation());
+    }
+  }, 0);
 }
 
 window.logout = async () => {
@@ -163,7 +309,6 @@ window.logout = async () => {
   window.location.href = 'index.html';
 };
 
-// ✅ تحميل طلبات المستخدم
 auth.onAuthStateChanged(async user => {
   document.getElementById('loading').classList.add('hidden');
   
@@ -185,13 +330,11 @@ auth.onAuthStateChanged(async user => {
       document.getElementById('no-orders').classList.remove('hidden');
       return;
     }
-
     let orders = [];
     snapshot.forEach(doc => {
       orders.push({ id: doc.id, ...doc.data() });
     });
 
-    // ترتيب من الأحدث للأقدم
     orders.sort((a, b) => {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
       const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
@@ -203,64 +346,68 @@ auth.onAuthStateChanged(async user => {
       const hoursLeft = getHoursRemaining(order.createdAt);
       
       const statusClass = 
-        order.status === 'جديد' ? 'bg-blue-100 text-blue-700' :
-        order.status === 'مؤكد' ? 'bg-green-100 text-green-700' :
-        order.status === 'ملغي' ? 'bg-red-100 text-red-700' :
+        order.status === 'جديد' || order.status === 'New' ? 'bg-blue-100 text-blue-700' :
+        order.status === 'مؤكد' || order.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
+        order.status === 'ملغي' || order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
         'bg-gray-100 text-gray-700';
+
+      const statusText = 
+        order.status === 'جديد' ? t('status_new') :
+        order.status === 'مؤكد' ? t('status_confirmed') :
+        order.status === 'ملغي' ? t('status_cancelled') : t('status_pending');
 
       list.innerHTML += `
         <div class="bg-white p-5 rounded-xl shadow-sm mb-4 border">
           <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
-            <span class="font-bold">رقم الطلب: ${order.orderNumber || order.id}</span>
-            <span class="px-3 py-1 rounded-full text-sm font-medium ${statusClass}">${order.status || 'قيد المعالجة'}</span>
+            <span class="font-bold">${t('order_number')}: ${order.orderNumber || order.id}</span>
+            <span class="px-3 py-1 rounded-full text-sm font-medium ${statusClass}">${statusText}</span>
           </div>
-          <p class="text-sm text-gray-600 mb-1">التاريخ: ${formatDate(order.createdAt)}</p>
-          <p class="text-sm text-gray-600 mb-1">الاسم: ${order.fullName || order.name || 'غير مذكور'}</p>
-          <p class="text-sm text-gray-600 mb-1">الهاتف: ${order.phone || 'غير مذكور'}</p>
-          <p class="text-sm text-gray-600 mb-3">العنوان: ${order.address || 'غير مذكور'}</p>
+          <p class="text-sm text-gray-600 mb-1">${t('date')}: ${formatDate(order.createdAt)}</p>
+          <p class="text-sm text-gray-600 mb-1">${t('customer_name')}: ${order.fullName || order.name || t('not_provided')}</p>
+          <p class="text-sm text-gray-600 mb-1">${t('phone')}: ${order.phone || t('not_provided')}</p>
+          <p class="text-sm text-gray-600 mb-3">${t('address')}: ${order.address || t('not_provided')}</p>
           
           <div class="border-t pt-3 mb-3">
-            <p class="font-semibold mb-2">المشتريات:</p>
+            <p class="font-semibold mb-2">${t('products')}:</p>
             ${(order.items || []).map(item => {
               const qty = item.qty || item.quantity || 1;
               return `
                 <div class="flex justify-between text-sm py-1">
-                  <span>${item.name} — المقاس: ${item.size || '-'} — اللون: ${item.color || '-'} × ${qty}</span>
-                  <span class="font-medium">${((item.price || 0) * qty).toFixed(2)} درهم</span>
+                  <span>${item.name} — ${t('size')}: ${item.size || '-'} — ${t('color')}: ${item.color || '-'} × ${qty}</span>
+                  <span class="font-medium">${((item.price || 0) * qty).toFixed(2)} ${t('AED')}</span>
                 </div>
               `;
             }).join('')}
             <div class="flex justify-between font-bold mt-2 pt-2 border-t">
-              <span>المجموع الكلي</span>
-              <span>${(order.total || 0).toFixed(2)} درهم</span>
+              <span>${t('total')}</span>
+              <span>${(order.total || 0).toFixed(2)} ${t('AED')}</span>
             </div>
           </div>
-
-          ${order.status !== 'ملغي' ? `
+          ${order.status !== 'ملغي' && order.status !== 'Cancelled' ? `
             <div class="flex flex-wrap gap-2 pt-2 border-t">
               ${canCancel ? `
                 <button onclick="cancelOrder('${order.id}', ${JSON.stringify(order.items || []).replace(/"/g, '&quot;')})" 
                   class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">
-                  <i class="fa-solid fa-xmark ml-1"></i> إلغاء الطلب (${hoursLeft} ساعات متبقية)
+                  <i class="fa-solid fa-xmark ml-1"></i> ${t('cancel_order')} (${hoursLeft} ${t('hours_remaining')})
                 </button>
               ` : `
-                <span class="text-sm text-gray-500 px-2 py-2">⏱️ انتهت مدة الإلغاء (6 ساعات)</span>
+                <span class="text-sm text-gray-500 px-2 py-2">${t('cancellation_expired')}</span>
               `}
               <a href="returns.html?order=${encodeURIComponent(order.orderNumber || order.id)}" 
                 class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                <i class="fa-solid fa-rotate-left ml-1"></i> طلب استرجاع
+                <i class="fa-solid fa-rotate-left ml-1"></i> ${t('request_return')}
               </a>
             </div>
           ` : ''}
         </div>
       `;
     });
-
   } catch (err) {
     console.error(err);
-    document.getElementById('orders-list').innerHTML = `<p class="text-red-500">خطأ في تحميل الطلبات: ${err.message}</p>`;
+    document.getElementById('orders-list').innerHTML = `<p class="text-red-500">${t('load_error')} ${err.message}</p>`;
   }
 });
 </script>
+
 </body>
 </html>
