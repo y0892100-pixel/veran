@@ -186,7 +186,7 @@ async function loadProducts() {
   const container = document.getElementById('categories-container');
   try {
     const snapshot = await db.collection('products')
-      .where('available', '==', true)
+     // .where('available', '==', true)
       .get();
     
     // تجميع المنتجات حسب التصنيف
