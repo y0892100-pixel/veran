@@ -30,13 +30,16 @@
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <div class="hidden md:flex gap-8">
+    <div class="hidden md:flex gap-8 items-center">
       <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
       <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
       <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
       <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
       <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
-      <a href="admin.html" class="font-medium text-sm text-gray-500 hover:text-black">لوحة التحكم</a>
+      <!-- ✅ رابط لوحة التحكم: يظهر فقط للأدمن -->
+      <a id="admin-nav-link" href="admin.html" class="hidden font-medium text-sm text-green-600 hover:text-green-800 font-semibold">
+        <i class="fa-solid fa-gear ml-1"></i> لوحة التحكم
+      </a>
     </div>
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
@@ -52,6 +55,7 @@
           <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
           <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
           <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
+          <hr class="mx-3">
           <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
         </div>
       </div>
@@ -106,6 +110,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+const ADMIN_EMAIL = 'y0892100@gmail.com';
 const CART_KEY = 'varen_cart_v1';
 
 // ✅ أسماء التصنيفات بالترتيب اللي تبيه
@@ -170,7 +175,6 @@ function renderCategoryRow(categoryKey, categoryLabel, products) {
       </div>
       <div id="${rowId}" class="scroll-container flex gap-4 overflow-x-auto pb-2">
         ${productsHtml}
-        <!-- مساحة إضافية في النهاية -->
         <div class="flex-shrink-0 w-4"></div>
       </div>
     </div>
@@ -185,11 +189,8 @@ window.scrollRow = function(rowId, distance) {
 async function loadProducts() {
   const container = document.getElementById('categories-container');
   try {
-    const snapshot = await db.collection('products')
-     // .where('available', '==', true)
-      .get();
+    const snapshot = await db.collection('products').get();
     
-    // تجميع المنتجات حسب التصنيف
     const productsByCategory = {};
     snapshot.forEach(doc => {
       const p = { id: doc.id, ...doc.data() };
@@ -198,7 +199,6 @@ async function loadProducts() {
       productsByCategory[cat].push(p);
     });
     
-    // ترتيب كل مجموعة من الأحدث للأقدم
     Object.keys(productsByCategory).forEach(cat => {
       productsByCategory[cat].sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
@@ -209,17 +209,14 @@ async function loadProducts() {
 
     container.innerHTML = '';
     
-    // عرض التصنيفات بالترتيب المحدد
     CATEGORIES.forEach(cat => {
       const products = productsByCategory[cat.key];
       if (products && products.length > 0) {
-        // نعرض حتى 20 منتج في كل صف
         const toShow = products.slice(0, 20);
         container.innerHTML += renderCategoryRow(cat.key, cat.label, toShow);
       }
     });
 
-    // أي تصنيفات أخرى غير مذكورة نعرضها في النهاية
     const knownKeys = CATEGORIES.map(c => c.key);
     Object.keys(productsByCategory).forEach(catKey => {
       if (!knownKeys.includes(catKey)) {
@@ -242,6 +239,7 @@ function updateUserUI(user) {
   const loginBtn = document.getElementById('login-btn');
   const accountBtn = document.getElementById('account-btn');
   const accountMenu = document.getElementById('account-menu');
+  const adminLink = document.getElementById('admin-nav-link');
   
   if (user) {
     if (loginBtn) loginBtn.classList.add('hidden');
@@ -249,10 +247,24 @@ function updateUserUI(user) {
       accountBtn.classList.remove('hidden');
       accountBtn.classList.add('flex');
     }
+    
+    // ✅ لو هو الأدمن → أظهر رابط لوحة التحكم ووجّهه أوتوماتيك
+    if (user.email === ADMIN_EMAIL) {
+      if (adminLink) adminLink.classList.remove('hidden');
+      // توجيه أوتوماتيك لما يسجّل دخول من صفحة تسجيل الدخول
+      if (window.location.pathname.includes('login.html')) {
+        window.location.href = 'admin.html';
+        return;
+      }
+    } else {
+      if (adminLink) adminLink.classList.add('hidden');
+    }
+    
   } else {
     if (loginBtn) loginBtn.classList.remove('hidden');
     if (accountBtn) accountBtn.classList.add('hidden');
     if (accountMenu) accountMenu.classList.add('hidden');
+    if (adminLink) adminLink.classList.add('hidden');
   }
   updateCartCount();
 }
