@@ -58,7 +58,6 @@
 </main>
 
 <script>
-// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -139,14 +138,15 @@ async function loadOrders() {
           <div class="border-t pt-3 mb-3">
             <p class="font-semibold mb-2">المنتجات:</p>
             <div class="text-sm space-y-1">
-              ${(o.items || []).map(i => `
-                <p>• ${i.name} — المقاس: ${i.size || '-'} — اللون: ${i.color || '-'} — الكمية: ${i.quantity} — ${i.price} درهم</p>
-              `).join('')}
+              ${(o.items || []).map(i => {
+                const qty = i.qty || i.quantity || 1;
+                return `<p>• ${i.name} — المقاس: ${i.size || '-'} — اللون: ${i.color || '-'} — الكمية: ${qty} — ${i.price} درهم</p>`;
+              }).join('')}
             </div>
           </div>
           
           <div class="flex flex-wrap justify-between items-center gap-3 pt-2 border-t">
-            <p class="font-bold text-lg">المجموع: ${o.total?.toFixed(2) || '0.00'} درهم</p>
+            <p class="font-bold text-lg">المجموع: ${(o.total || 0).toFixed(2)} درهم</p>
             <div class="flex gap-2">
               <select onchange="changeStatus('${o.id}', this.value)" class="border rounded-lg px-3 py-2 text-sm">
                 <option value="جديد" ${o.status === 'جديد' ? 'selected' : ''}>جديد</option>
