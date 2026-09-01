@@ -31,7 +31,6 @@
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-<!-- 🔄 ملف الترجمة -->
 <script>
 const translations = {
   ar: {
@@ -61,7 +60,9 @@ const translations = {
     protected_info: "معلوماتك محمية بالكامل",
     easy_return: "إرجاع سهل",
     return_policy: "إرجاع خلال 7 أيام",
-    all_rights_reserved: "جميع الحقوق محفوظة."
+    all_rights_reserved: "جميع الحقوق محفوظة.",
+    womens: "نسائي",
+    mens: "رجالي"
   },
   en: {
     page_title: "VAREN — Fashion Store",
@@ -90,7 +91,9 @@ const translations = {
     protected_info: "Your information is fully protected",
     easy_return: "Easy Returns",
     return_policy: "Return within 7 days",
-    all_rights_reserved: "All rights reserved."
+    all_rights_reserved: "All rights reserved.",
+    womens: "Women",
+    mens: "Men"
   }
 };
 
@@ -125,11 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <!-- 🖼️ الصورة الصغيرة + اسم VAREN الكبير -->
-    <div class="flex items-center gap-3">
-      <img src="https://i.imgur.com/87a82c0b-319e-431c-a678-0f1012f13425.png" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
-      <a href="index.html" class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</a>
-    </div>
+    
+    <!-- ✅ الشعار الجديد: الصورة + كلمة Varen بنفس الحجم -->
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
+    </a>
 
     <div class="hidden md:flex gap-8 items-center">
       <a href="index.html" class="font-medium hover:text-gray-600" data-i18n="home">الرئيسية</a>
@@ -158,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_orders">طلباتي</a>
           <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="returns">الاسترجاع</a>
           
-          <!-- 🌐 خيار اللغة داخل قائمة حسابي -->
           <hr class="mx-3">
           <div class="px-4 py-2">
             <p class="text-sm font-semibold text-gray-500 mb-2" data-i18n="language">اللغة</p>
@@ -272,15 +275,14 @@ function renderProductCard(p) {
 
 function renderCategoryRow(categoryKey, categoryLabel, products) {
   if (!products || products.length === 0) return '';
-  const lang = getCurrentLanguage();
   const rowId = `row-${categoryKey.replace(/\s+/g, '-')}`;
   const productsHtml = products.map(p => renderProductCard(p)).join('');
   return `
     <div class="mb-12">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold">${categoryLabel[lang] || categoryKey}</h3>
+        <h3 class="text-xl font-bold">${categoryLabel}</h3>
         <button onclick="scrollRow('${rowId}', 250)" class="text-sm text-gray-500 hover:text-black">
-          ${lang === 'ar' ? 'التالي' : 'Next'} <i class="fa-solid fa-chevron-left mr-1 text-xs"></i>
+          ${getCurrentLanguage() === 'ar' ? 'التالي' : 'Next'} <i class="fa-solid fa-chevron-left mr-1 text-xs"></i>
         </button>
       </div>
       <div id="${rowId}" class="scroll-container flex gap-4 overflow-x-auto pb-2">
@@ -320,14 +322,14 @@ async function loadProducts() {
       const products = productsByCategory[cat.key];
       if (products && products.length > 0) {
         const toShow = products.slice(0, 20);
-        container.innerHTML += renderCategoryRow(cat.key, cat.label, toShow);
+        container.innerHTML += renderCategoryRow(cat.key, cat.label[lang] || cat.key, toShow);
       }
     });
     const knownKeys = CATEGORIES.map(c => c.key);
     Object.keys(productsByCategory).forEach(catKey => {
       if (!knownKeys.includes(catKey)) {
         const products = productsByCategory[catKey].slice(0, 20);
-        container.innerHTML += renderCategoryRow(catKey, { ar: catKey, en: catKey }, products);
+        container.innerHTML += renderCategoryRow(catKey, catKey, products);
       }
     });
     if (container.innerHTML.trim() === '') {
