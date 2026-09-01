@@ -20,6 +20,7 @@
     .toast.error { background: #dc2626; }
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
     .modal.active { display: flex; }
+    .variant-row { border-bottom: 1px solid #eee; padding: 12px 0; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -62,10 +63,6 @@
         <input type="text" id="p-name" class="w-full border rounded-lg p-3" required>
       </div>
       <div>
-        <label class="block font-semibold mb-1">الكمية المتوفرة (المخزون) *</label>
-        <input type="number" id="p-stock" class="w-full border rounded-lg p-3" min="0" value="1" required>
-      </div>
-      <div>
         <label class="block font-semibold mb-1">السعر الأصلي (قبل الخصم)</label>
         <input type="number" id="p-price-original" class="w-full border rounded-lg p-3" placeholder="اختياري">
       </div>
@@ -103,37 +100,23 @@
         </select>
       </div>
       <div class="md:col-span-2">
-        <label class="block font-semibold mb-2">الألوان المتاحة</label>
-        <div class="flex flex-wrap gap-3">
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أسود"> أسود</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أبيض"> أبيض</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="رمادي"> رمادي</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="بيج"> بيج</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أحمر"> أحمر</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أزرق"> أزرق</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أخضر"> أخضر</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="وردي"> وردي</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="بني"> بني</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="برتقالي"> برتقالي</label>
-        </div>
-      </div>
-      <div class="md:col-span-2">
-        <label class="block font-semibold mb-2">المقاسات المتاحة</label>
-        <div class="flex flex-wrap gap-3">
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XS"> XS</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="S"> S</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="M"> M</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="L"> L</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XL"> XL</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XXL"> XXL</label>
-        </div>
-      </div>
-      <div class="md:col-span-2">
         <label class="block font-semibold mb-1">روابط الصور (كل رابط في سطر)</label>
-        <textarea id="p-images" class="w-full border rounded-lg p-3" rows="4" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
+        <textarea id="p-images" class="w-full border rounded-lg p-3" rows="3" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
       </div>
     </div>
-    <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full">إضافة المنتج</button>
+
+    <!-- 🎨 إدارة الخيارات: لون + مقاس + مخزون -->
+    <div class="border-t pt-4">
+      <h3 class="text-lg font-bold mb-3">المخزون حسب اللون والمقاس</h3>
+      <div id="variants-list" class="space-y-2 mb-4">
+        <!-- الصفوف الديناميكية تضيف هنا -->
+      </div>
+      <button type="button" onclick="addVariantRow()" class="bg-gray-100 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">
+        <i class="fa-solid fa-plus mr-1"></i> إضافة خيار جديد
+      </button>
+    </div>
+
+    <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full mt-4">إضافة المنتج</button>
   </form>
 
   <!-- قائمة المنتجات المضافة -->
@@ -192,6 +175,10 @@ const db = firebase.firestore();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
+// قائمة الألوان والمقاسات جاهزة للاختيار
+const COLORS = ['أسود', 'أبيض', 'رمادي', 'بيج', 'أحمر', 'أزرق', 'أخضر', 'وردي', 'بني', 'برتقالي', 'ذهبي', 'فضي', 'بنفسجي', 'أصفر'];
+const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'مقاس واحد'];
+
 async function checkAdminAccess(user) {
   if (!user) return false;
   if (user.email !== ADMIN_EMAIL) {
@@ -221,6 +208,59 @@ function showToast(msg, type='success') {
   setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
+// 🎨 إضافة صف خيار جديد (لون + مقاس + كمية)
+let variantCounter = 0;
+window.addVariantRow = function() {
+  const list = document.getElementById('variants-list');
+  const rowId = `variant-row-${variantCounter++}`;
+  
+  const colorOptions = COLORS.map(c => `<option value="${c}">${c}</option>`).join('');
+  const sizeOptions = SIZES.map(s => `<option value="${s}">${s}</option>`).join('');
+  
+  const row = document.createElement('div');
+  row.id = rowId;
+  row.className = 'variant-row grid grid-cols-3 md:grid-cols-8 gap-2 items-center';
+  row.innerHTML = `
+    <div class="md:col-span-2">
+      <label class="text-xs text-gray-500">اللون</label>
+      <select class="variant-color w-full border rounded p-2">${colorOptions}</select>
+    </div>
+    <div class="md:col-span-2">
+      <label class="text-xs text-gray-500">المقاس</label>
+      <select class="variant-size w-full border rounded p-2">${sizeOptions}</select>
+    </div>
+    <div class="md:col-span-2">
+      <label class="text-xs text-gray-500">الكمية</label>
+      <input type="number" class="variant-stock w-full border rounded p-2" min="0" value="1">
+    </div>
+    <div class="md:col-span-2 flex items-end justify-center">
+      <button type="button" onclick="removeVariantRow('${rowId}')" class="text-red-500 p-2 hover:text-red-700">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  `;
+  list.appendChild(row);
+};
+
+window.removeVariantRow = function(rowId) {
+  document.getElementById(rowId)?.remove();
+};
+
+// جمع كل الخيارات من النموذج
+function collectVariants() {
+  const rows = document.querySelectorAll('#variants-list .variant-row');
+  const variants = [];
+  rows.forEach(row => {
+    const color = row.querySelector('.variant-color')?.value;
+    const size = row.querySelector('.variant-size')?.value;
+    const stock = parseInt(row.querySelector('.variant-stock')?.value) || 0;
+    if (color && size) {
+      variants.push({ color, size, stock });
+    }
+  });
+  return variants;
+}
+
 function updateUI(user, isAdmin) {
   const area = document.getElementById('user-area');
   const form = document.getElementById('add-product-form');
@@ -239,6 +279,10 @@ function updateUI(user, isAdmin) {
     adminBtns.classList.remove('hidden');
     noAccess.classList.add('hidden');
     productsSection.classList.remove('hidden');
+    // أضف صف افتراضي فارغ
+    if (document.querySelectorAll('#variants-list .variant-row').length === 0) {
+      addVariantRow();
+    }
     loadProducts();
   } else {
     area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
@@ -278,7 +322,12 @@ window.logout = async () => {
   setTimeout(() => window.location.reload(), 1000);
 };
 
-window.showForm = () => document.getElementById('add-product-form').classList.remove('hidden');
+window.showForm = () => {
+  document.getElementById('add-product-form').classList.remove('hidden');
+  if (document.querySelectorAll('#variants-list .variant-row').length === 0) {
+    addVariantRow();
+  }
+};
 
 // 📦 تحميل وعرض المنتجات
 async function loadProducts() {
@@ -296,37 +345,44 @@ async function loadProducts() {
     
     snapshot.forEach(doc => {
       const p = doc.data();
-      const stock = p.stock || 0;
+      const variants = p.variants || [];
+      const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
       const price = p.price || 0;
       const priceOrig = p.priceOriginal;
       const image = p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/80x80';
       
+      // عرض ملخص المخزون
+      const variantsSummary = variants.map(v => 
+        `${v.color} / ${v.size}: ${v.stock}`
+      ).join(' | ');
+      
       list.innerHTML += `
-        <div class="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
-          <img src="${image}" alt="${p.name}" class="w-20 h-20 object-cover rounded-lg">
-          <div class="flex-1">
-            <h3 class="font-bold text-lg">${p.name || 'بدون اسم'}</h3>
-            <p class="text-sm text-gray-600">
-              السعر: ${price.toFixed(2)} درهم
-              ${priceOrig ? `<span class="line-through text-red-400 ml-1">${priceOrig.toFixed(2)} درهم</span>` : ''}
-              | المخزون: <span class="font-bold ${stock === 0 ? 'text-red-500' : 'text-green-600'}">${stock}</span>
-              | ${p.available !== false ? 'متوفر' : 'غير متوفر'}
-            </p>
-            <p class="text-xs text-gray-400 mt-1">
-              ${p.gender || ''} ${p.type || ''} ${p.season || ''}
-              ${p.sizes?.length ? `• مقاسات: ${p.sizes.join(', ')}` : ''}
-            </p>
-          </div>
-          <div class="flex flex-col gap-2">
-            <button onclick="updateStock('${doc.id}', ${stock}, 1)" class="text-sm bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">
-              <i class="fa-solid fa-plus"></i> زيادة
-            </button>
-            <button onclick="updateStock('${doc.id}', ${stock}, -1)" class="text-sm bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200">
-              <i class="fa-solid fa-minus"></i> نقص
-            </button>
-            <button onclick="deleteProduct('${doc.id}')" class="text-sm bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200">
-              <i class="fa-solid fa-trash"></i> حذف
-            </button>
+        <div class="bg-white rounded-xl shadow-sm p-4">
+          <div class="flex items-start gap-4">
+            <img src="${image}" alt="${p.name}" class="w-20 h-20 object-cover rounded-lg">
+            <div class="flex-1">
+              <h3 class="font-bold text-lg">${p.name || 'بدون اسم'}</h3>
+              <p class="text-sm text-gray-600">
+                السعر: ${price.toFixed(2)} درهم
+                ${priceOrig ? `<span class="line-through text-red-400 ml-1">${priceOrig.toFixed(2)} درهم</span>` : ''}
+                | إجمالي المخزون: <span class="font-bold ${totalStock === 0 ? 'text-red-500' : 'text-green-600'}">${totalStock}</span>
+                | ${p.available !== false ? 'متوفر' : 'غير متوفر'}
+              </p>
+              <p class="text-xs text-gray-500 mt-1">
+                ${p.gender || ''} ${p.type || ''} ${p.season || ''}
+              </p>
+              <p class="text-xs text-gray-400 mt-1">
+                الخيارات: ${variantsSummary || 'لا يوجد خيارات محددة'}
+              </p>
+            </div>
+            <div class="flex flex-col gap-2">
+              <button onclick="editProduct('${doc.id}')" class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
+                <i class="fa-solid fa-pen-to-square"></i> تعديل
+              </button>
+              <button onclick="deleteProduct('${doc.id}')" class="text-sm bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200">
+                <i class="fa-solid fa-trash"></i> حذف
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -336,18 +392,6 @@ async function loadProducts() {
     list.innerHTML = `<p class="text-red-500">❌ خطأ في تحميل المنتجات: ${err.message}</p>`;
   }
 }
-
-// 🔄 تحديث كمية المخزون
-window.updateStock = async function(id, currentStock, delta) {
-  const newStock = Math.max(0, currentStock + delta);
-  try {
-    await db.collection('products').doc(id).update({ stock: newStock });
-    showToast(`✅ تم تحديث المخزون: ${newStock}`);
-    loadProducts();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-};
 
 // 🗑️ حذف منتج
 window.deleteProduct = async function(id) {
@@ -370,30 +414,31 @@ document.addEventListener('DOMContentLoaded', () => {
   form.addEventListener('submit', async e => {
     e.preventDefault();
     
-    const selectedColors = Array.from(document.querySelectorAll('input[name="colors"]:checked')).map(c => c.value);
-    const selectedSizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked')).map(c => c.value);
+    const variants = collectVariants();
+    if (variants.length === 0) {
+      return showToast('⚠️ أضف خياراً واحداً على الأقل (لون + مقاس + كمية)', 'error');
+    }
+    
     const images = document.getElementById('p-images').value.trim().split('\n').map(s => s.trim()).filter(s => s);
     const priceOriginalVal = document.getElementById('p-price-original').value.trim();
-    const stockVal = parseInt(document.getElementById('p-stock').value) || 1;
     
     try {
       await db.collection('products').add({
         name: document.getElementById('p-name').value.trim(),
-        stock: stockVal,
         priceOriginal: priceOriginalVal ? Number(priceOriginalVal) : null,
         price: Number(document.getElementById('p-price').value),
         gender: document.getElementById('p-gender').value,
         type: document.getElementById('p-type').value.trim(),
         season: document.getElementById('p-season').value || null,
         available: document.getElementById('p-available').value === 'true',
-        colors: selectedColors,
-        sizes: selectedSizes,
         images: images,
+        variants: variants,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       showToast('✅ تم إضافة المنتج بنجاح');
       form.reset();
-      document.getElementById('p-stock').value = 1;
+      document.getElementById('variants-list').innerHTML = '';
+      addVariantRow();
       loadProducts();
     } catch (err) { 
       console.error(err);
