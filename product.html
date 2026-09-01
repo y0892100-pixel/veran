@@ -160,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     
-    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
     <a href="index.html" class="flex items-center gap-3">
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
       <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
@@ -208,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   <div id="product-content" class="hidden">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-      <!-- صور المنتج -->
       <div>
         <div id="main-image" class="main-image-container w-full aspect-square bg-gray-100 rounded-xl overflow-hidden mb-4" onclick="openLightbox(0)">
           <img src="" alt="" class="w-full h-full object-cover" id="main-img-el">
@@ -216,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <div id="thumbnails" class="grid grid-cols-5 gap-2"></div>
       </div>
       
-      <!-- معلومات المنتج -->
       <div>
         <h1 id="prod-name" class="text-3xl font-bold mb-2"></h1>
         <p id="prod-meta" class="text-gray-600 mb-4"></p>
@@ -226,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <span id="prod-original-price" class="text-lg text-gray-400 line-through hidden"></span>
         </div>
         
-        <!-- عرض المخزون حسب الاختيار -->
         <div id="stock-display" class="mb-4 font-medium text-gray-500" data-i18n="choose_color_size">
           اختر اللون والمقاس لمعرفة التوفر
         </div>
@@ -235,13 +231,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <i class="fa-solid fa-circle-xmark ml-1"></i> <span data-i18n="unavailable_option">هذا الخيار غير متوفر حالياً</span>
         </div>
         
-        <!-- اختيار اللون أولاً -->
         <div class="mb-4">
           <p class="font-medium mb-2" data-i18n="color">اللون:</p>
           <div id="colors-container" class="flex flex-wrap gap-3"></div>
         </div>
         
-        <!-- اختيار المقاس بناءً على اللون المختار -->
         <div class="mb-4">
           <p class="font-medium mb-2" data-i18n="size">المقاس:</p>
           <div id="sizes-container" class="flex flex-wrap gap-2">
@@ -249,7 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         
-        <!-- الكمية -->
         <div class="mb-6">
           <p class="font-medium mb-2" data-i18n="quantity">الكمية:</p>
           <div class="flex items-center gap-3">
@@ -259,14 +252,12 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         
-        <!-- زر الإضافة -->
         <button id="add-cart-btn" onclick="addToCart()" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">
           <i class="fa-solid fa-cart-plus ml-1"></i> <span data-i18n="add_to_cart">أضف للسلة</span>
         </button>
       </div>
     </div>
     
-    <!-- منتجات مشابهة -->
     <div id="related-section" class="border-t pt-10">
       <h2 class="text-2xl font-bold mb-6" data-i18n="similar_products">منتجات مشابهة</h2>
       <div id="related-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
@@ -280,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </main>
 
-<!-- نافذة تكبير الصور -->
 <div id="lightbox" class="image-lightbox" onclick="closeLightbox(event)">
   <button class="close-btn" onclick="closeLightbox(event)">&times;</button>
   <button class="nav-btn prev-btn" onclick="prevImage(event)">&#8592;</button>
@@ -305,7 +295,6 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
-// 🎨 أسماء الألوان وأكوادها
 const COLOR_MAP = {
   'أسود': '#000000', 'أبيض': '#ffffff', 'رمادي': '#9ca3af', 'بيج': '#d9c7b8',
   'أحمر': '#ef4444', 'أزرق': '#3b82f6', 'أخضر': '#22c55e', 'وردي': '#f472b6',
@@ -366,7 +355,6 @@ function renderProduct() {
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('product-content').classList.remove('hidden');
   
-  // الاسم والمعلومات
   document.getElementById('prod-name').textContent = product.name || 'منتج بدون اسم';
   const lang = getCurrentLanguage();
   const parts = [
@@ -380,7 +368,6 @@ function renderProduct() {
   ].filter(Boolean);
   document.getElementById('prod-meta').textContent = parts.join(' • ');
   
-  // السعر
   const price = Number(product.price) || 0;
   const origPrice = product.priceOriginal ? Number(product.priceOriginal) : null;
   document.getElementById('prod-price').textContent = `${price.toFixed(2)} ${lang === 'ar' ? 'درهم' : 'AED'}`;
@@ -389,7 +376,6 @@ function renderProduct() {
     document.getElementById('prod-original-price').classList.remove('hidden');
   }
   
-  // الصور
   document.getElementById('main-img-el').src = productImages[0];
   const thumbs = document.getElementById('thumbnails');
   thumbs.innerHTML = '';
@@ -397,7 +383,6 @@ function renderProduct() {
     thumbs.innerHTML += `<button onclick="changeMainImg(${i})" class="aspect-square overflow-hidden rounded-lg border-2 ${i===0?'border-black':'border-transparent'} hover:border-gray-400"><img src="${img}" alt="" class="w-full h-full object-cover"></button>`;
   });
   
-  // 🎨 تحميل الألوان الفريدة من الـ variants
   const variants = product.variants || [];
   const uniqueColors = [...new Set(variants.map(v => v.color))];
   const colorsCont = document.getElementById('colors-container');
@@ -415,7 +400,6 @@ function renderProduct() {
     colorsCont.innerHTML += `<button class="color-btn w-10 h-10 rounded-full ${isLight?'border border-gray-400':''} hover:scale-110 transition-transform" style="background:${bgColor}" title="${c}" onclick="selectColor('${c}', this)"></button>`;
   });
   
-  // إعادة تعيين الحالة
   selectedColor = null;
   selectedSize = null;
   selectedVariant = null;
@@ -459,7 +443,6 @@ function nextImage(event) {
   document.getElementById('lightbox-img').src = productImages[currentImageIndex];
 }
 
-// 🎨 اختيار اللون → تحميل المقاسات المتاحة لهذا اللون فقط
 function selectColor(color, btn) {
   selectedColor = color;
   selectedSize = null;
@@ -467,11 +450,9 @@ function selectColor(color, btn) {
   quantity = 1;
   document.getElementById('qty-val').textContent = '1';
   
-  // تحديث تحديد اللون
   document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   
-  // جلب المقاسات المتاحة لهذا اللون فقط
   const variants = product.variants || [];
   const sizesForColor = variants.filter(v => v.color === color);
   const sizesCont = document.getElementById('sizes-container');
@@ -483,7 +464,6 @@ function selectColor(color, btn) {
     return;
   }
   
-  // عرض المقاسات مع حالة المخزون
   sizesForColor.forEach(v => {
     const isOutOfStock = v.stock <= 0;
     sizesCont.innerHTML += `
@@ -500,15 +480,12 @@ function selectColor(color, btn) {
   document.getElementById('unavailable-msg').classList.add('hidden');
 }
 
-// 📏 اختيار المقاس → عرض المخزون الدقيق لهذا اللون+المقاس
 function selectSize(size, btn) {
   selectedSize = size;
   
-  // تحديث تحديد المقاس
   document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   
-  // جلب الـ variant المحدد
   const variants = product.variants || [];
   selectedVariant = variants.find(v => v.color === selectedColor && v.size === size);
   
@@ -519,7 +496,6 @@ function selectSize(size, btn) {
     return;
   }
   
-  // عرض المخزون
   const stock = selectedVariant.stock;
   const stockEl = document.getElementById('stock-display');
   document.getElementById('unavailable-msg').classList.add('hidden');
@@ -531,7 +507,6 @@ function selectSize(size, btn) {
   }
 }
 
-// ⚠️ التحكم في الكمية بناءً على مخزون الـ variant المحدد
 function changeQty(delta) {
   if (!selectedVariant) {
     showToast(t('choose_color_and_size'), 'error');
@@ -595,7 +570,6 @@ function addToCart() {
   updateCartCount();
 }
 
-// تحميل منتجات مشابهة
 async function loadRelated() {
   const grid = document.getElementById('related-grid');
   const lang = getCurrentLanguage();
