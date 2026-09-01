@@ -3,90 +3,240 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>طلبات الاسترجاع - VAREN</title>
+  <title data-i18n="page_title">طلبات الاسترجاع - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    html[lang="en"] { direction: ltr; }
+    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
     .toast.error { background: #dc2626; }
     .toast.warning { background: #f59e0b; }
+    .lang-option:hover { background: #f3f4f6; }
+    .lang-option.active { background: #e5e7eb; font-weight: bold; }
   </style>
 </head>
 <body class="bg-gray-50">
+
+<script>
+const translations = {
+  ar: {
+    page_title: "طلبات الاسترجاع - VAREN",
+    return_requests: "طلبات الاسترجاع",
+    loading: "جاري التحميل...",
+    no_returns: "لا يوجد طلبات استرجاع سابقة",
+    please_login: "سجّل الدخول أولاً",
+    login: "تسجيل الدخول",
+    return_policy_title: "شروط الاسترجاع:",
+    return_policy_1: "يجب تقديم الطلب خلال <strong>7 أيام</strong> من تاريخ إنشاء الطلب",
+    return_policy_2: "يجب أن يكون الطلب <strong>مؤكد أو جديد</strong> وغير ملغي",
+    return_policy_3: "لا يمكن تقديم أكثر من طلب استرجاع لنفس الطلب",
+    submit_new_request: "تقديم طلب استرجاع جديد",
+    order_number: "رقم الطلب *",
+    order_number_placeholder: "مثال: VA-260901-1234",
+    check_order: "تحقق من الرقم",
+    order_found: "الطلب موجود ✅",
+    order_date: "التاريخ",
+    order_status: "الحالة",
+    days_remaining: "متبقي من فترة الاسترجاع",
+    return_reason: "سبب الاسترجاع *",
+    reason_placeholder: "اشرح سبب استرجاع المنتج بالتفصيل...",
+    submit_request: "إرسال الطلب",
+    my_previous_requests: "طلباتي السابقة",
+    enter_order_number_first: "أدخل رقم الطلب أولاً",
+    login_required: "سجّل الدخول أولاً",
+    order_not_found: "❌ رقم الطلب غير صحيح أو لا ينتمي لحسابك",
+    cannot_return_cancelled: "❌ لا يمكن استرجاع طلب ملغي",
+    return_period_expired: "❌ مرت أكثر من 7 أيام على الطلب، لا يمكن تقديم طلب استرجاع",
+    previous_return_exists: "⚠️ يوجد طلب استرجاع سابق لهذا الطلب",
+    order_valid_enter_reason: "✅ الرقم صحيح، اكتب السبب وأرسل الطلب",
+    check_error: "خطأ في التحقق: ",
+    fill_all_fields: "املأ جميع الحقول المطلوبة (*)",
+    verify_order_first: "تحقق من رقم الطلب أولاً",
+    return_submitted: "✅ تم إرسال طلب الاسترجاع، سنراجعه ونتواصل معك قريباً",
+    submit_error: "خطأ في الإرسال: ",
+    load_error: "خطأ في التحميل: ",
+    status_pending_review: "قيد المراجعة",
+    status_accepted: "مقبول",
+    status_rejected: "مرفوض",
+    reason: "السبب",
+    language: "اللغة",
+    my_info: "بيانات الحساب",
+    my_orders: "طلباتي",
+    returns: "طلبات الاسترجاع",
+    admin_panel: "لوحة التحكم",
+    logout: "تسجيل الخروج",
+    days: "يوم"
+  },
+  en: {
+    page_title: "Return Requests - VAREN",
+    return_requests: "Return Requests",
+    loading: "Loading...",
+    no_returns: "No previous return requests",
+    please_login: "Please sign in first",
+    login: "Sign In",
+    return_policy_title: "Return Policy:",
+    return_policy_1: "Request must be submitted within <strong>7 days</strong> of order creation",
+    return_policy_2: "Order must be <strong>New or Confirmed</strong> and not cancelled",
+    return_policy_3: "Only one return request per order is allowed",
+    submit_new_request: "Submit New Return Request",
+    order_number: "Order Number *",
+    order_number_placeholder: "e.g. VA-260901-1234",
+    check_order: "Check Order",
+    order_found: "Order Found ✅",
+    order_date: "Date",
+    order_status: "Status",
+    days_remaining: "days remaining",
+    return_reason: "Reason for Return *",
+    reason_placeholder: "Explain the reason for return in detail...",
+    submit_request: "Submit Request",
+    my_previous_requests: "My Previous Requests",
+    enter_order_number_first: "Enter order number first",
+    login_required: "Please sign in first",
+    order_not_found: "❌ Order number is incorrect or does not belong to your account",
+    cannot_return_cancelled: "❌ Cannot return a cancelled order",
+    return_period_expired: "❌ More than 7 days have passed, return period expired",
+    previous_return_exists: "⚠️ A return request already exists for this order",
+    order_valid_enter_reason: "✅ Order verified! Enter reason and submit",
+    check_error: "Check error: ",
+    fill_all_fields: "Fill in all required fields (*)",
+    verify_order_first: "Verify order number first",
+    return_submitted: "✅ Return request submitted. We will review it and contact you soon.",
+    submit_error: "Submission error: ",
+    load_error: "Load error: ",
+    status_pending_review: "Under Review",
+    status_accepted: "Accepted",
+    status_rejected: "Rejected",
+    reason: "Reason",
+    language: "Language",
+    my_info: "Account Information",
+    my_orders: "My Orders",
+    returns: "Returns",
+    admin_panel: "Admin Panel",
+    logout: "Sign Out",
+    days: "days"
+  }
+};
+
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.innerHTML = translations[lang][key];
+  });
+  
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (translations[lang][key]) el.placeholder = translations[lang][key];
+  });
+}
+
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+
+function t(key) {
+  return translations[getCurrentLanguage()][key] || key;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+});
+</script>
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <div id="user-area"></div>
+    
+    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
+    </a>
+
+    <div id="user-area" class="relative"></div>
   </div>
 </nav>
-<main class="max-w-lg mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-6">طلبات الاسترجاع</h1>
-  <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i><p class="mt-2 text-gray-500">جاري التحميل...</p></div>
-  <div id="content" class="hidden">
 
+<main class="max-w-lg mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6" data-i18n="return_requests">طلبات الاسترجاع</h1>
+  <div id="loading" class="text-center py-16">
+    <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
+    <p class="mt-2 text-gray-500" data-i18n="loading">جاري التحميل...</p>
+  </div>
+
+  <div id="content" class="hidden">
     <!-- ⚠️ شروط الاسترجاع -->
     <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
       <div class="flex items-start gap-3">
         <i class="fa-solid fa-circle-info text-amber-500 text-xl mt-0.5"></i>
         <div class="text-sm text-amber-800">
-          <p class="font-semibold mb-1">شروط الاسترجاع:</p>
-          <ul class="list-disc list-inside space-y-1">
-            <li>يجب تقديم الطلب خلال <strong>7 أيام</strong> من تاريخ إنشاء الطلب</li>
-            <li>يجب أن يكون الطلب <strong>مؤكد أو جديد</strong> وغير ملغي</li>
-            <li>لا يمكن تقديم أكثر من طلب استرجاع لنفس الطلب</li>
+          <p class="font-semibold mb-1" data-i18n="return_policy_title">شروط الاسترجاع:</p>
+          <ul class="list-disc list-inside space-y-2">
+            <li data-i18n="return_policy_1">يجب تقديم الطلب خلال <strong>7 أيام</strong> من تاريخ إنشاء الطلب</li>
+            <li data-i18n="return_policy_2">يجب أن يكون الطلب <strong>مؤكد أو جديد</strong> وغير ملغي</li>
+            <li data-i18n="return_policy_3">لا يمكن تقديم أكثر من طلب استرجاع لنفس الطلب</li>
           </ul>
         </div>
       </div>
     </div>
 
     <form id="return-form" class="bg-white p-6 rounded-xl shadow-md space-y-4 mb-8">
-      <h2 class="text-lg font-bold">تقديم طلب استرجاع جديد</h2>
+      <h2 class="text-lg font-bold" data-i18n="submit_new_request">تقديم طلب استرجاع جديد</h2>
       <div>
-        <label class="block font-semibold mb-1">رقم الطلب *</label>
-        <input type="text" id="r-order-id" class="w-full border rounded-lg p-3" placeholder="مثال: VA-260901-1234" required>
+        <label class="block font-semibold mb-1" data-i18n="order_number">رقم الطلب *</label>
+        <input type="text" id="r-order-id" class="w-full border rounded-lg p-3" data-i18n-placeholder="order_number_placeholder" placeholder="مثال: VA-260901-1234" required>
         <button type="button" onclick="checkOrder()" class="mt-2 text-sm text-blue-600 hover:text-blue-800">
-          <i class="fa-solid fa-magnifying-glass ml-1"></i> تحقق من الرقم
+          <i class="fa-solid fa-magnifying-glass ml-1"></i> <span data-i18n="check_order">تحقق من الرقم</span>
         </button>
       </div>
 
       <!-- معلومات الطلب بعد التحقق -->
       <div id="order-info" class="hidden border rounded-lg p-4 bg-gray-50 space-y-2 text-sm">
         <p class="font-semibold text-green-700 flex items-center gap-2">
-          <i class="fa-solid fa-circle-check"></i> الطلب موجود ✅
+          <i class="fa-solid fa-circle-check"></i> <span data-i18n="order_found">الطلب موجود ✅</span>
         </p>
-        <p>التاريخ: <span id="order-date"></span></p>
-        <p>الحالة: <span id="order-status"></span></p>
+        <p><span data-i18n="order_date">التاريخ</span>: <span id="order-date"></span></p>
+        <p><span data-i18n="order_status">الحالة</span>: <span id="order-status"></span></p>
         <p id="days-left-text" class="font-medium"></p>
       </div>
 
       <div id="reason-group" class="hidden">
-        <label class="block font-semibold mb-1">سبب الاسترجاع *</label>
-        <textarea id="r-reason" class="w-full border rounded-lg p-3" rows="3" placeholder="اشرح سبب استرجاع المنتج بالتفصيل..." required></textarea>
+        <label class="block font-semibold mb-1" data-i18n="return_reason">سبب الاسترجاع *</label>
+        <textarea id="r-reason" class="w-full border rounded-lg p-3" rows="3" data-i18n-placeholder="reason_placeholder" placeholder="اشرح سبب استرجاع المنتج بالتفصيل..." required></textarea>
         <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 mt-4">
-          <i class="fa-solid fa-paper-plane ml-1"></i> إرسال الطلب
+          <i class="fa-solid fa-paper-plane ml-1"></i> <span data-i18n="submit_request">إرسال الطلب</span>
         </button>
       </div>
     </form>
 
-    <h2 class="text-lg font-bold mb-4">طلباتي السابقة</h2>
+    <h2 class="text-lg font-bold mb-4" data-i18n="my_previous_requests">طلباتي السابقة</h2>
     <div id="returns-list"></div>
   </div>
+
   <div id="no-returns" class="hidden text-center py-12">
     <i class="fa-solid fa-rotate-left text-5xl text-gray-300 mb-4"></i>
-    <p class="text-gray-500">لا يوجد طلبات استرجاع سابقة</p>
+    <p class="text-gray-500" data-i18n="no_returns">لا يوجد طلبات استرجاع سابقة</p>
   </div>
+
   <div id="no-login" class="hidden text-center py-16">
     <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
-    <p class="text-xl text-gray-500 mb-4">سجّل الدخول أولاً</p>
-    <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block">تسجيل الدخول</a>
+    <p class="text-xl text-gray-500 mb-4" data-i18n="please_login">سجّل الدخول أولاً</p>
+    <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block" data-i18n="login">تسجيل الدخول</a>
   </div>
+
   <div id="toast" class="toast"></div>
 </main>
 
@@ -104,7 +254,6 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
-
 let currentOrderDoc = null;
 
 function showToast(msg, type='success') {
@@ -115,12 +264,12 @@ function showToast(msg, type='success') {
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return 'غير محدد';
+  if (!timestamp) return t('undefined') || 'غير محدد';
   const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  return d.toLocaleString('ar-AE');
+  const lang = getCurrentLanguage();
+  return d.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-AE');
 }
 
-// ⏱️ تحقق هل ضمن فترة 7 أيام؟
 function isWithinReturnWindow(createdAt) {
   if (!createdAt) return false;
   const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
@@ -129,7 +278,6 @@ function isWithinReturnWindow(createdAt) {
   return daysDiff <= 7;
 }
 
-// حساب الأيام المتبقية
 function getDaysRemaining(createdAt) {
   if (!createdAt) return 0;
   const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
@@ -138,20 +286,16 @@ function getDaysRemaining(createdAt) {
   return Math.max(0, (7 - daysDiff)).toFixed(1);
 }
 
-// 🔍 تحقق من رقم الطلب
 window.checkOrder = async function() {
   const orderIdInput = document.getElementById('r-order-id').value.trim();
-  if (!orderIdInput) return showToast('أدخل رقم الطلب أولاً', 'error');
-
+  if (!orderIdInput) return showToast(t('enter_order_number_first'), 'error');
   const user = auth.currentUser;
-  if (!user) return showToast('سجّل الدخول أولاً', 'error');
+  if (!user) return showToast(t('login_required'), 'error');
 
   try {
-    // نبحث عن الطلب برقم الطلب أو المعرف
     const snapshot = await db.collection('orders')
       .where('userId', '==', user.uid)
       .get();
-
     let foundOrder = null;
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -161,83 +305,117 @@ window.checkOrder = async function() {
     });
 
     if (!foundOrder) {
-      showToast('❌ رقم الطلب غير صحيح أو لا ينتمي لحسابك', 'error');
+      showToast(t('order_not_found'), 'error');
       document.getElementById('order-info').classList.add('hidden');
       document.getElementById('reason-group').classList.add('hidden');
       currentOrderDoc = null;
       return;
     }
 
-    // ✅ تحقق من الحالة
-    if (foundOrder.status === 'ملغي') {
-      showToast('❌ لا يمكن استرجاع طلب ملغي', 'error');
+    if (foundOrder.status === 'ملغي' || foundOrder.status === 'Cancelled') {
+      showToast(t('cannot_return_cancelled'), 'error');
       document.getElementById('order-info').classList.add('hidden');
       document.getElementById('reason-group').classList.add('hidden');
       return;
     }
 
-    // ✅ تحقق من فترة الـ 7 أيام
     if (!isWithinReturnWindow(foundOrder.createdAt)) {
-      showToast('❌ مرت أكثر من 7 أيام على الطلب، لا يمكن تقديم طلب استرجاع', 'error');
+      showToast(t('return_period_expired'), 'error');
       document.getElementById('order-info').classList.add('hidden');
       document.getElementById('reason-group').classList.add('hidden');
       return;
     }
 
-    // ✅ تحقق ما فيه طلب استرجاع سابق
     const returnCheck = await db.collection('returns')
       .where('userId', '==', user.uid)
-      .where('orderId', '==', orderIdInput)
       .limit(1)
       .get();
-
-    if (!returnCheck.empty) {
-      showToast('⚠️ يوجد طلب استرجاع سابق لهذا الطلب', 'warning');
+    let existingReturn = false;
+    returnCheck.forEach(doc => {
+      const d = doc.data();
+      if (d.orderId === orderIdInput || d.orderRef === foundOrder.id) {
+        existingReturn = true;
+      }
+    });
+    if (existingReturn) {
+      showToast(t('previous_return_exists'), 'warning');
       document.getElementById('order-info').classList.add('hidden');
       document.getElementById('reason-group').classList.add('hidden');
       return;
     }
 
-    // ✅ كل الشروط مُتحققة
     currentOrderDoc = foundOrder;
     document.getElementById('order-date').textContent = formatDate(foundOrder.createdAt);
-    document.getElementById('order-status').textContent = foundOrder.status || 'جديد';
+    const statusText = 
+      foundOrder.status === 'جديد' ? t('status_new') || 'جديد' :
+      foundOrder.status === 'مؤكد' ? t('status_confirmed') || 'مؤكد' :
+      foundOrder.status === 'ملغي' ? t('status_cancelled') || 'ملغي' : foundOrder.status;
+    document.getElementById('order-status').textContent = statusText;
     const daysLeft = getDaysRemaining(foundOrder.createdAt);
-    document.getElementById('days-left-text').textContent = `متبقي: ${daysLeft} يوم من فترة الاسترجاع`;
+    document.getElementById('days-left-text').textContent = `${t('days_remaining')}: ${daysLeft} ${t('days')}`;
     document.getElementById('order-info').classList.remove('hidden');
     document.getElementById('reason-group').classList.remove('hidden');
-    showToast('✅ الرقم صحيح، اكتب السبب وأرسل الطلب', 'success');
-
+    showToast(t('order_valid_enter_reason'), 'success');
   } catch (err) {
     console.error(err);
-    showToast('خطأ في التحقق: ' + err.message, 'error');
+    showToast(t('check_error') + err.message, 'error');
   }
 };
 
-// ✅ القائمة المنسدلة للحساب
 function updateUserNav(user) {
+  const lang = getCurrentLanguage();
   const area = document.getElementById('user-area');
   if (!user) {
-    area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg">تسجيل الدخول</button>`;
+    area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800" data-i18n="login">تسجيل الدخول</button>`;
     return;
   }
   const isAdmin = user.email === ADMIN_EMAIL;
   area.innerHTML = `
-    <div class="relative group">
-      <button class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
+    <div class="relative">
+      <button id="account-nav-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200">
         <i class="fa-solid fa-user-circle"></i>
-        <span>${user.displayName || 'حسابي'}</span>
-        <i class="fa-solid fa-chevron-down text-xs mr-1 transition-transform group-hover:rotate-180"></i>
+        <span>${user.displayName || (lang === 'ar' ? 'حسابي' : 'My Account')}</span>
+        <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
       </button>
-      <div class="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-50">
-        <a href="account.html" class="block px-4 py-3 hover:bg-gray-50 border-b">بيانات الحساب</a>
-        <a href="orders.html" class="block px-4 py-3 hover:bg-gray-50 border-b">طلباتي</a>
-        <a href="returns.html" class="block px-4 py-3 hover:bg-gray-50 border-b">طلبات الاسترجاع</a>
-        ${isAdmin ? `<a href="admin.html" class="block px-4 py-3 hover:bg-gray-50 border-b text-red-600">لوحة التحكم</a>` : ''}
-        <button onclick="logout()" class="w-full text-right px-4 py-3 hover:bg-gray-50 text-red-500">تسجيل الخروج</button>
+      <div id="account-nav-menu" class="hidden absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border z-50">
+        <a href="account.html" class="block px-4 py-3 hover:bg-gray-50 border-b">
+          <i class="fa-solid fa-id-card ml-2"></i> <span data-i18n="my_info">${t('my_info')}</span>
+        </a>
+        <a href="orders.html" class="block px-4 py-3 hover:bg-gray-50 border-b">
+          <i class="fa-solid fa-box ml-2"></i> <span data-i18n="my_orders">${t('my_orders')}</span>
+        </a>
+        <a href="returns.html" class="block px-4 py-3 hover:bg-gray-50 border-b">
+          <i class="fa-solid fa-undo ml-2"></i> <span data-i18n="returns">${t('returns')}</span>
+        </a>
+        ${isAdmin ? `<a href="admin.html" class="block px-4 py-3 hover:bg-gray-50 border-b text-red-600 font-medium">
+          <i class="fa-solid fa-gear ml-2"></i> <span data-i18n="admin_panel">${t('admin_panel')}</span>
+        </a>` : ''}
+        <hr class="mx-3">
+        <div class="px-4 py-2">
+          <p class="text-sm font-semibold text-gray-500 mb-2" data-i18n="language">${t('language')}</p>
+          <button onclick="setLanguage('ar')" class="lang-option w-full text-right px-3 py-2 rounded text-sm" data-lang="ar">العربية</button>
+          <button onclick="setLanguage('en')" class="lang-option w-full text-right px-3 py-2 rounded text-sm mt-1" data-lang="en">English</button>
+        </div>
+        <hr class="mx-3 mt-2">
+        <button onclick="logout()" class="w-full text-right px-4 py-3 hover:bg-gray-50 text-red-500 font-medium">
+          <i class="fa-solid fa-right-from-bracket ml-2"></i> <span data-i18n="logout">${t('logout')}</span>
+        </button>
       </div>
     </div>
   `;
+
+  setTimeout(() => {
+    const btn = document.getElementById('account-nav-btn');
+    const menu = document.getElementById('account-nav-menu');
+    if (btn && menu) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('hidden');
+      });
+      document.addEventListener('click', () => menu.classList.add('hidden'));
+      menu.addEventListener('click', (e) => e.stopPropagation());
+    }
+  }, 0);
 }
 
 window.logout = async () => {
@@ -256,23 +434,20 @@ auth.onAuthStateChanged(async user => {
   document.getElementById('content').classList.remove('hidden');
   updateUserNav(user);
 
-  // ✅ قراءة رقم الطلب من الرابط لو جاي من صفحة طلباتي
   const urlParams = new URLSearchParams(window.location.search);
   const orderParam = urlParams.get('order');
   if (orderParam) {
     document.getElementById('r-order-id').value = orderParam;
-    // ننتظر قليل ثم نتحقق تلقائياً
     setTimeout(() => checkOrder(), 500);
   }
 
-  // ✅ إرسال طلب استرجاع
   document.getElementById('return-form').addEventListener('submit', async e => {
     e.preventDefault();
     const orderId = document.getElementById('r-order-id').value.trim();
     const reason = document.getElementById('r-reason').value.trim();
     
-    if (!orderId || !reason) return showToast('املأ جميع الحقول المطلوبة (*)', 'error');
-    if (!currentOrderDoc) return showToast('تحقق من رقم الطلب أولاً', 'error');
+    if (!orderId || !reason) return showToast(t('fill_all_fields'), 'error');
+    if (!currentOrderDoc) return showToast(t('verify_order_first'), 'error');
     
     try {
       await db.collection('returns').add({
@@ -281,27 +456,25 @@ auth.onAuthStateChanged(async user => {
         orderId: orderId,
         orderRef: currentOrderDoc.id,
         reason: reason,
-        status: 'قيد المراجعة',
+        status: t('status_pending_review') || 'قيد المراجعة',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      showToast('✅ تم إرسال طلب الاسترجاع، سنراجعه ونتواصل معك قريباً');
+      showToast(t('return_submitted'));
       document.getElementById('return-form').reset();
       document.getElementById('order-info').classList.add('hidden');
       document.getElementById('reason-group').classList.add('hidden');
       currentOrderDoc = null;
       loadReturns();
     } catch (err) {
-      showToast('خطأ في الإرسال: ' + err.message, 'error');
+      showToast(t('submit_error') + err.message, 'error');
     }
   });
 
-  // ✅ تحميل طلبات الاسترجاع
   async function loadReturns() {
     try {
       const snapshot = await db.collection('returns')
         .where('userId', '==', user.uid)
         .get();
-
       const list = document.getElementById('returns-list');
       list.innerHTML = '';
       
@@ -324,31 +497,34 @@ auth.onAuthStateChanged(async user => {
 
       returns.forEach(r => {
         const date = formatDate(r.createdAt);
+        const statusText = 
+          r.status === 'قيد المراجعة' || r.status === 'Under Review' ? t('status_pending_review') :
+          r.status === 'مقبول' || r.status === 'Accepted' ? t('status_accepted') :
+          r.status === 'مرفوض' || r.status === 'Rejected' ? t('status_rejected') : r.status;
         const statusClass = 
-          r.status === 'قيد المراجعة' ? 'bg-yellow-100 text-yellow-700' :
-          r.status === 'مقبول' ? 'bg-green-100 text-green-700' : 
-          r.status === 'مرفوض' ? 'bg-red-100 text-red-700' :
+          statusText === t('status_pending_review') ? 'bg-yellow-100 text-yellow-700' :
+          statusText === t('status_accepted') ? 'bg-green-100 text-green-700' : 
+          statusText === t('status_rejected') ? 'bg-red-100 text-red-700' :
           'bg-gray-100 text-gray-700';
-
         list.innerHTML += `
           <div class="bg-white p-4 rounded-lg shadow-sm mb-3 border">
             <div class="flex justify-between items-center mb-2">
-              <span class="font-semibold">طلب: ${r.orderId}</span>
-              <span class="px-2 py-1 rounded text-xs font-medium ${statusClass}">${r.status}</span>
+              <span class="font-semibold">${t('order_number')}: ${r.orderId}</span>
+              <span class="px-2 py-1 rounded text-xs font-medium ${statusClass}">${statusText}</span>
             </div>
-            <p class="text-sm text-gray-600 mb-1">التاريخ: ${date}</p>
-            <p class="text-sm">السبب: ${r.reason}</p>
+            <p class="text-sm text-gray-600 mb-1">${t('order_date')}: ${date}</p>
+            <p class="text-sm">${t('reason')}: ${r.reason}</p>
           </div>
         `;
       });
     } catch (err) {
       console.error(err);
-      document.getElementById('returns-list').innerHTML = `<p class="text-red-500">خطأ في التحميل: ${err.message}</p>`;
+      document.getElementById('returns-list').innerHTML = `<p class="text-red-500">${t('load_error')} ${err.message}</p>`;
     }
   }
-
   loadReturns();
 });
 </script>
+
 </body>
 </html>
