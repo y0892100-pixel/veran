@@ -3,41 +3,180 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>سلة التسوق - VAREN</title>
+  <title data-i18n="page_title">سلة التسوق - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    html[lang="en"] { direction: ltr; }
+    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
     .toast.error { background: #dc2626; }
+    .lang-option:hover { background: #f3f4f6; }
+    .lang-option.active { background: #e5e7eb; font-weight: bold; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
 
+<script>
+const translations = {
+  ar: {
+    page_title: "سلة التسوق - VAREN",
+    continue_shopping: "متابعة التسوق",
+    cart_title: "سلة التسوق",
+    empty_cart: "السلة فارغة",
+    add_items_first: "أضف منتجات للسلة أولاً",
+    browse: "التصفح",
+    subtotal: "المجموع الفرعي:",
+    total: "المجموع الكلي:",
+    proceed_payment: "متابعة الدفع",
+    fix_quantities_first: "أصلح الكميات أولاً",
+    size: "المقاس",
+    color: "اللون",
+    deleted_success: "✅ تم حذف المنتج",
+    unavailable_product: "❌ المنتج \"{name}\" غير متوفر حالياً",
+    unavailable_option: "❌ الخيار ({color} - {size}) غير متوفر حالياً",
+    stock_exceeded: "⚠️ المتوفر فقط لهذا الخيار: {stock} قطعة — لا يمكن زيادة الكمية",
+    check_stock_error: "❌ خطأ في التحقق من المخزون",
+    option_unavailable: "❌ هذا الخيار غير متوفر — ربما تم حذفه أو نفذ تماماً",
+    out_of_stock: "❌ نفذ من المخزون — المتوفر: 0 قطع",
+    qty_exceeds_stock: "⚠️ الكمية المطلوبة ({qty}) أكثر من المتوفر ({stock})",
+    low_stock_warning: "⚠️ تبقى فقط {stock} قطع لهذا الخيار",
+    account: "حسابي",
+    login: "تسجيل الدخول",
+    my_info: "معلوماتي",
+    my_orders: "طلباتي",
+    returns: "الاسترجاع",
+    logout: "تسجيل الخروج",
+    language: "اللغة"
+  },
+  en: {
+    page_title: "Shopping Cart - VAREN",
+    continue_shopping: "Continue Shopping",
+    cart_title: "Shopping Cart",
+    empty_cart: "Your cart is empty",
+    add_items_first: "Add products to your cart first",
+    browse: "Browse",
+    subtotal: "Subtotal:",
+    total: "Total:",
+    proceed_payment: "Proceed to Checkout",
+    fix_quantities_first: "Fix quantities first",
+    size: "Size",
+    color: "Color",
+    deleted_success: "✅ Item removed successfully",
+    unavailable_product: "❌ Product \"{name}\" is currently unavailable",
+    unavailable_option: "❌ Option ({color} - {size}) is currently unavailable",
+    stock_exceeded: "⚠️ Only {stock} items available for this option — cannot increase quantity",
+    check_stock_error: "❌ Error checking stock availability",
+    option_unavailable: "❌ This option is unavailable — it may have been removed or sold out",
+    out_of_stock: "❌ Out of stock — Available: 0 pcs",
+    qty_exceeds_stock: "⚠️ Requested quantity ({qty}) exceeds available stock ({stock})",
+    low_stock_warning: "⚠️ Only {stock} left for this option",
+    account: "My Account",
+    login: "Sign In",
+    my_info: "My Information",
+    my_orders: "My Orders",
+    returns: "Returns",
+    logout: "Sign Out",
+    language: "Language"
+  }
+};
+
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+  
+  updateLangUI(lang);
+}
+
+function updateLangUI(lang) {
+  document.querySelectorAll('.lang-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+}
+
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+
+function t(key, params = {}) {
+  const lang = getCurrentLanguage();
+  let text = translations[lang][key] || key;
+  Object.keys(params).forEach(p => {
+    text = text.replace(`{${p}}`, params[p]);
+  });
+  return text;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+});
+</script>
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <a href="index.html" class="text-sm text-gray-600 hover:text-black">
-      <i class="fa-solid fa-arrow-right ml-1"></i> متابعة التسوق
+    
+    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
     </a>
+
+    <div class="flex items-center gap-6">
+      <a href="index.html" class="text-sm text-gray-600 hover:text-black">
+        <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="continue_shopping">متابعة التسوق</span>
+      </a>
+      <div id="user-area" class="relative">
+        <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
+          <span data-i18n="account">حسابي</span> <i class="fa-solid fa-chevron-down text-xs"></i>
+        </button>
+        <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800" data-i18n="login">تسجيل الدخول</button>
+        
+        <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+          <a href="account.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_info">معلوماتي</a>
+          <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_orders">طلباتي</a>
+          <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="returns">الاسترجاع</a>
+          
+          <hr class="mx-3">
+          <div class="px-4 py-2">
+            <p class="text-sm font-semibold text-gray-500 mb-2" data-i18n="language">اللغة</p>
+            <button onclick="setLanguage('ar')" class="lang-option w-full text-right px-3 py-2 rounded text-sm" data-lang="ar">العربية</button>
+            <button onclick="setLanguage('en')" class="lang-option w-full text-right px-3 py-2 rounded text-sm mt-1" data-lang="en">English</button>
+          </div>
+          
+          <hr class="mx-3 mt-2">
+          <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100" data-i18n="logout">تسجيل الخروج</button>
+        </div>
+      </div>
+    </div>
   </div>
 </nav>
 
 <main class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center">سلة التسوق</h1>
+  <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center" data-i18n="cart_title">سلة التسوق</h1>
   <div id="toast" class="toast"></div>
 
   <!-- السلة فارغة -->
   <div id="empty-cart" class="hidden text-center py-16">
     <i class="fa-solid fa-cart-shopping text-gray-300 text-6xl mb-4"></i>
-    <h2 class="text-xl font-bold text-gray-500 mb-2">السلة فارغة</h2>
-    <p class="text-gray-400 mb-6">أضف منتجات للسلة أولاً</p>
-    <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block hover:bg-gray-800">التصفح</a>
+    <h2 class="text-xl font-bold text-gray-500 mb-2" data-i18n="empty_cart">السلة فارغة</h2>
+    <p class="text-gray-400 mb-6" data-i18n="add_items_first">أضف منتجات للسلة أولاً</p>
+    <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block hover:bg-gray-800" data-i18n="browse">التصفح</a>
   </div>
 
   <!-- محتوى السلة -->
@@ -45,22 +184,21 @@
     <div id="cart-items" class="space-y-4 mb-8"></div>
     <div class="bg-white rounded-xl shadow-sm p-6">
       <div class="flex justify-between text-lg mb-2">
-        <span>المجموع الفرعي:</span>
+        <span data-i18n="subtotal">المجموع الفرعي:</span>
         <span id="subtotal">0.00 درهم</span>
       </div>
       <div class="flex justify-between text-lg font-bold border-t pt-3 mb-4">
-        <span>المجموع الكلي:</span>
+        <span data-i18n="total">المجموع الكلي:</span>
         <span id="total">0.00 درهم</span>
       </div>
       <a href="checkout.html" id="checkout-link" class="block w-full bg-black text-white text-center py-3 rounded-lg font-semibold hover:bg-gray-800">
-        متابعة الدفع <i class="fa-solid fa-arrow-left ml-1"></i>
+        <span data-i18n="proceed_payment">متابعة الدفع</span> <i class="fa-solid fa-arrow-left ml-1"></i>
       </a>
     </div>
   </div>
 </main>
 
 <script>
-// ✅ إعدادات Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -70,11 +208,11 @@ const firebaseConfig = {
   appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
   measurementId: "G-SV7DKGPH2M"
 };
-
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 const db = firebase.firestore();
+const ADMIN_EMAIL = 'y0892100@gmail.com';
 
-// ✅ توحيد اسم السلة
 const CART_KEY = 'varen_cart_v1';
 
 function showToast(msg, type = 'success') {
@@ -98,70 +236,62 @@ window.removeItem = function(index) {
   const cart = getCart();
   cart.splice(index, 1);
   saveCart(cart);
-  showToast('✅ تم حذف المنتج');
-}
+  showToast(t('deleted_success'));
+};
 
-// ⚠️ تغيير الكمية مع التحقق من مخزون الـ variant المحدد (لون+مقاس)
 window.changeQty = async function(index, delta) {
   const cart = getCart();
   const item = cart[index];
   const key = item.qty !== undefined ? 'qty' : 'quantity';
   const currentQty = item[key] || 1;
   const newQty = currentQty + delta;
-
-  // لا نسمح بأن تصبح أقل من 1
+  
   if (newQty < 1) return;
-
-  // نجلب أحدث بيانات المخزون من قاعدة البيانات
+  
   try {
     const productDoc = await db.collection('products').doc(item.id).get();
     if (!productDoc.exists) {
-      showToast(`❌ المنتج "${item.name}" غير متوفر حالياً`, 'error');
+      showToast(t('unavailable_product', { name: item.name }), 'error');
       return;
     }
-
     const productData = productDoc.data();
     const variants = productData.variants || [];
-
-    // نبحث عن الـ variant المطابق للون والمقاس
     const variant = variants.find(v => 
       v.color === item.color && v.size === item.size
     );
-
     if (!variant) {
-      showToast(`❌ الخيار (${item.color} - ${item.size}) غير متوفر حالياً`, 'error');
+      showToast(t('unavailable_option', { color: item.color, size: item.size }), 'error');
       return;
     }
-
     if (newQty > variant.stock) {
-      showToast(`⚠️ المتوفر فقط لهذا الخيار: ${variant.stock} قطعة — لا يمكن زيادة الكمية`, 'error');
+      showToast(t('stock_exceeded', { stock: variant.stock }), 'error');
       return;
     }
-
     cart[index][key] = newQty;
     saveCart(cart);
   } catch (err) {
     console.error(err);
-    showToast('❌ خطأ في التحقق من المخزون', 'error');
+    showToast(t('check_stock_error'), 'error');
   }
-}
+};
 
 async function renderCart() {
   const cart = getCart();
+  const lang = getCurrentLanguage();
+  const currency = lang === 'ar' ? 'درهم' : 'AED';
   const emptyState = document.getElementById('empty-cart');
   const content = document.getElementById('cart-content');
   const itemsCont = document.getElementById('cart-items');
-
+  
   if (cart.length === 0) {
     emptyState.classList.remove('hidden');
     content.classList.add('hidden');
     return;
   }
-
+  
   emptyState.classList.add('hidden');
   content.classList.remove('hidden');
   itemsCont.innerHTML = '';
-
   let total = 0;
   let hasStockIssue = false;
 
@@ -172,33 +302,29 @@ async function renderCart() {
     const subtotal = price * qty;
     total += subtotal;
 
-    // نتحقق من مخزون الـ variant المحدد ونعرض تنبيه لو محدود
     let stockWarning = '';
     let isUnavailable = false;
-
     try {
       const productDoc = await db.collection('products').doc(item.id).get();
       if (productDoc.exists) {
         const productData = productDoc.data();
         const variants = productData.variants || [];
-
         const variant = variants.find(v => 
           v.color === item.color && v.size === item.size
         );
-
         if (!variant) {
-          stockWarning = `<p class="text-red-500 text-xs mt-1">❌ هذا الخيار غير متوفر — ربما تم حذفه أو نفذ تماماً</p>`;
+          stockWarning = `<p class="text-red-500 text-xs mt-1">${t('option_unavailable')}</p>`;
           isUnavailable = true;
           hasStockIssue = true;
         } else if (variant.stock <= 0) {
-          stockWarning = `<p class="text-red-500 text-xs mt-1">❌ نفذ من المخزون — المتوفر: 0 قطع</p>`;
+          stockWarning = `<p class="text-red-500 text-xs mt-1">${t('out_of_stock')}</p>`;
           isUnavailable = true;
           hasStockIssue = true;
         } else if (qty > variant.stock) {
-          stockWarning = `<p class="text-red-500 text-xs mt-1">⚠️ الكمية المطلوبة (${qty}) أكثر من المتوفر (${variant.stock})</p>`;
+          stockWarning = `<p class="text-red-500 text-xs mt-1">${t('qty_exceeds_stock', { qty, stock: variant.stock })}</p>`;
           hasStockIssue = true;
         } else if (variant.stock <= 3) {
-          stockWarning = `<p class="text-orange-500 text-xs mt-1">⚠️ تبقى فقط ${variant.stock} قطع لهذا الخيار</p>`;
+          stockWarning = `<p class="text-orange-500 text-xs mt-1">${t('low_stock_warning', { stock: variant.stock })}</p>`;
         }
       }
     } catch (e) {
@@ -210,8 +336,8 @@ async function renderCart() {
         <img src="${item.image || item.img || 'https://via.placeholder.com/100x100'}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg">
         <div class="flex-1">
           <h3 class="font-bold text-lg">${item.name}</h3>
-          <p class="text-sm text-gray-600">المقاس: ${item.size || 'غير محدد'} | اللون: ${item.color || 'غير محدد'}</p>
-          <p class="font-semibold mt-1">${price.toFixed(2)} درهم</p>
+          <p class="text-sm text-gray-600">${t('size')}: ${item.size || '—'} | ${t('color')}: ${item.color || '—'}</p>
+          <p class="font-semibold mt-1">${price.toFixed(2)} ${currency}</p>
           ${stockWarning}
         </div>
         <div class="flex flex-col items-center gap-1">
@@ -220,30 +346,64 @@ async function renderCart() {
           <button onclick="changeQty(${index}, -1)" class="w-8 h-8 border rounded flex items-center justify-center hover:bg-gray-100 ${isUnavailable?'opacity-50 cursor-not-allowed':''}" ${isUnavailable?'disabled':''}>-</button>
         </div>
         <div class="text-right min-w-[100px]">
-          <p class="font-bold">${subtotal.toFixed(2)} درهم</p>
+          <p class="font-bold">${subtotal.toFixed(2)} ${currency}</p>
           <button onclick="removeItem(${index})" class="text-red-500 text-sm mt-1 hover:text-red-700">
-            <i class="fa-solid fa-trash-can"></i> حذف
+            <i class="fa-solid fa-trash-can"></i> ${lang === 'ar' ? 'حذف' : 'Remove'}
           </button>
         </div>
       </div>
     `;
   }
 
-  // تعطيل زر الدفع لو فيه مشكلة في المخزون
   const checkoutLink = document.getElementById('checkout-link');
   if (hasStockIssue) {
     checkoutLink.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-    checkoutLink.innerHTML = 'أصلح الكميات أولاً <i class="fa-solid fa-exclamation-triangle ml-1"></i>';
+    checkoutLink.innerHTML = `<i class="fa-solid fa-exclamation-triangle ml-1"></i> ${t('fix_quantities_first')}`;
   } else {
     checkoutLink.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-    checkoutLink.innerHTML = 'متابعة الدفع <i class="fa-solid fa-arrow-left ml-1"></i>';
+    checkoutLink.innerHTML = `<span data-i18n="proceed_payment">${t('proceed_payment')}</span> <i class="fa-solid fa-arrow-left ml-1"></i>`;
   }
 
-  document.getElementById('subtotal').textContent = `${total.toFixed(2)} درهم`;
-  document.getElementById('total').textContent = `${total.toFixed(2)} درهم`;
+  document.getElementById('subtotal').textContent = `${total.toFixed(2)} ${currency}`;
+  document.getElementById('total').textContent = `${total.toFixed(2)} ${currency}`;
 }
 
-document.addEventListener('DOMContentLoaded', renderCart);
+function updateUserUI(user) {
+  const loginBtn = document.getElementById('login-btn');
+  const accountBtn = document.getElementById('account-btn');
+  const accountMenu = document.getElementById('account-menu');
+  
+  if (user) {
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (accountBtn) { accountBtn.classList.remove('hidden'); accountBtn.classList.add('flex'); }
+  } else {
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (accountBtn) accountBtn.classList.add('hidden');
+    if (accountMenu) accountMenu.classList.add('hidden');
+  }
+}
+
+window.logout = async function () {
+  await auth.signOut();
+  showToast(getCurrentLanguage() === 'ar' ? '✅ تم تسجيل الخروج' : '✅ Logged out successfully');
+  setTimeout(() => window.location.href = 'index.html', 1000);
+};
+
+const accountBtn = document.getElementById('account-btn');
+const accountMenu = document.getElementById('account-menu');
+if (accountBtn && accountMenu) {
+  accountBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => accountMenu.classList.add('hidden'));
+  accountMenu.addEventListener('click', (e) => e.stopPropagation());
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  auth.onAuthStateChanged(updateUserUI);
+  renderCart();
+});
 </script>
 
 </body>
