@@ -73,8 +73,26 @@
       </div>
       <div>
         <label class="block font-medium mb-1">البريد الإلكتروني *</label>
-        <input type="email" id="customer_email" required class="w-full border rounded-lg p-3" placeholder="example@email.com">
+        <div class="flex gap-2">
+          <input type="email" id="customer_email" required class="flex-1 border rounded-lg p-3" placeholder="example@email.com">
+          <button type="button" id="send-code-btn" onclick="sendVerificationCode()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 whitespace-nowrap">
+            إرسال الرمز
+          </button>
+        </div>
       </div>
+      
+      <!-- قسم التحقق من الرمز (مخفي في البداية) -->
+      <div id="verification-section" class="hidden">
+        <label class="block font-medium mb-1">رمز التحقق *</label>
+        <div class="flex gap-2">
+          <input type="text" id="verification_code" class="flex-1 border rounded-lg p-3" placeholder="أدخل 4 أرقام" maxlength="4" inputmode="numeric">
+          <button type="button" onclick="verifyCode()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 whitespace-nowrap">
+            تحقق
+          </button>
+        </div>
+        <p id="code-status" class="text-sm mt-1"></p>
+      </div>
+      
       <div>
         <label class="block font-medium mb-1">العنوان بالتفصيل *</label>
         <textarea id="address" required rows="3" class="w-full border rounded-lg p-3" placeholder="المدينة، المنطقة، الشارع، رقم المبنى والشقة"></textarea>
@@ -83,7 +101,7 @@
         <label class="block font-medium mb-1">ملاحظات إضافية (اختياري)</label>
         <textarea id="notes" rows="2" class="w-full border rounded-lg p-3" placeholder="أي تعليمات خاصة بالتوصيل أو الطلب"></textarea>
       </div>
-      <button type="submit" id="submit-btn" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 mt-2">
+      <button type="submit" id="submit-btn" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 mt-2 disabled:opacity-50" disabled>
         <span>تأكيد الطلب</span>
         <i class="fa-solid fa-check ml-1"></i>
       </button>
@@ -121,7 +139,9 @@ const auth = firebase.auth();
 
 // إعدادات EmailJS
 const EMAILJS_SERVICE_ID = 'service_3bs6onj';
-const EMAILJS_TEMPLATE_ID = 'template_om7zrjs';
+// ⚠️ غيّر اسم القالب لاسم قالب التحقق الخاص بك
+const EMAILJS_VERIFY_TEMPLATE_ID = 'template_otp_verify'; 
+const EMAILJS_ORDER_TEMPLATE_ID = 'template_om7zrjs';
 const EMAILJS_PUBLIC_KEY = '3A0NspFA3vlSd64jc';
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 
@@ -133,12 +153,91 @@ const CART_KEY = 'varen_cart_v1';
 let cart = [];
 let total = 0;
 
+// ✅ متغيرات التحقق من الإيميل
+let generatedCode = '';
+let codeExpiryTime = null;
+let isEmailVerified = false;
+
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = `toast ${type} show`;
   setTimeout(() => toast.classList.remove('show'), 4000);
 }
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function generateCode() {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
+// 📧 إرسال رمز التحقق
+window.sendVerificationCode = async function() {
+  const email = document.getElementById('customer_email').value.trim();
+  const fullName = document.getElementById('full_name').value.trim();
+  
+  if (!fullName || fullName.length < 3) {
+    return showToast('⚠️ أدخل اسمك الكامل أولاً', 'error');
+  }
+  if (!isValidEmail(email)) {
+    return showToast('⚠️ أدخل بريد إلكتروني صالح', 'error');
+  }
+
+  generatedCode = generateCode();
+  codeExpiryTime = Date.now() + 15 * 60 * 1000; // صالح لمدة 15 دقيقة
+
+  try {
+    // ✅ أرسل الرمز عبر قالب التحقق الخاص بك
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_VERIFY_TEMPLATE_ID, {
+      EmailCode: generatedCode,
+      to_email: email,
+      customer_name: fullName
+    });
+
+    // أظهر قسم إدخال الرمز
+    document.getElementById('verification-section').classList.remove('hidden');
+    document.getElementById('send-code-btn').disabled = true;
+    document.getElementById('send-code-btn').classList.add('opacity-50', 'cursor-not-allowed');
+    document.getElementById('send-code-btn').textContent = 'تم الإرسال';
+    
+    showToast('✅ تم إرسال الرمز، تفقد بريدك الإلكتروني');
+    
+  } catch (err) {
+    console.error(err);
+    showToast('❌ فشل إرسال الرمز: ' + err.message, 'error');
+  }
+};
+
+// ✅ التحقق من صحة الرمز
+window.verifyCode = function() {
+  const entered = document.getElementById('verification_code').value.trim();
+  const status = document.getElementById('code-status');
+  
+  if (Date.now() > codeExpiryTime) {
+    status.textContent = '⏰ انتهت صلاحية الرمز، أرسل رمزاً جديداً';
+    status.className = 'text-sm mt-1 text-red-600';
+    // إعادة تفعيل زر الإرسال
+    document.getElementById('send-code-btn').disabled = false;
+    document.getElementById('send-code-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+    document.getElementById('send-code-btn').textContent = 'إرسال الرمز';
+    return;
+  }
+  
+  if (entered === generatedCode) {
+    isEmailVerified = true;
+    status.textContent = '✅ تم التحقق بنجاح!';
+    status.className = 'text-sm mt-1 text-green-600 font-semibold';
+    document.getElementById('verification_code').disabled = true;
+    document.getElementById('submit-btn').disabled = false;
+    showToast('✅ يمكنك الآن تأكيد الطلب');
+  } else {
+    isEmailVerified = false;
+    status.textContent = '❌ الرمز غير صحيح، حاول مرة أخرى';
+    status.className = 'text-sm mt-1 text-red-600';
+  }
+};
 
 function loadCart() {
   const saved = localStorage.getItem(CART_KEY);
@@ -215,7 +314,7 @@ async function sendEmail(orderData) {
     order_total: `${total.toFixed(2)} درهم`
   };
   try {
-    const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+    const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_TEMPLATE_ID, templateParams);
     console.log('✅ تم إرسال الإيميل بنجاح:', response);
     return true;
   } catch (err) {
@@ -225,7 +324,6 @@ async function sendEmail(orderData) {
   }
 }
 
-// ✅ التحقق من المخزون بدقة حسب اللون والمقاس
 async function validateStockBeforeOrder() {
   for (const item of cart) {
     const qtyNeeded = item.qty || item.quantity || 1;
@@ -239,8 +337,6 @@ async function validateStockBeforeOrder() {
     
     const productData = productDoc.data();
     const variants = productData.variants || [];
-    
-    // نبحث عن الـ variant المطابق للون والمقاس
     const variant = variants.find(v => 
       v.color === item.color && v.size === item.size
     );
@@ -263,7 +359,6 @@ async function validateStockBeforeOrder() {
   return true;
 }
 
-// ✅ تنقيص الكمية من كل variant محدد
 async function reduceStockAfterOrder() {
   const batch = db.batch();
   
@@ -275,8 +370,6 @@ async function reduceStockAfterOrder() {
     if (productDoc.exists) {
       const productData = productDoc.data();
       const variants = productData.variants || [];
-      
-      // نجد الـ variant وننقص منه
       const variantIndex = variants.findIndex(v => 
         v.color === item.color && v.size === item.size
       );
@@ -285,8 +378,6 @@ async function reduceStockAfterOrder() {
         const currentStock = variants[variantIndex].stock;
         const newStock = Math.max(0, currentStock - qtyNeeded);
         variants[variantIndex].stock = newStock;
-        
-        // نحدث أيضاً حقل available لو أردنا
         const anyInStock = variants.some(v => v.stock > 0);
         
         batch.update(productRef, {
@@ -324,6 +415,12 @@ async function saveOrderToFirebase(orderData) {
 
 async function handleSubmit(e) {
   e.preventDefault();
+  
+  // ✅ تحقق من التحقق من الإيميل أولاً
+  if (!isEmailVerified) {
+    return showToast('⚠️ تحقق من بريدك الإلكتروني أولاً عبر إدخال الرمز المرسل إليك', 'error');
+  }
+
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جاري المعالجة...';
@@ -337,15 +434,30 @@ async function handleSubmit(e) {
     notes: document.getElementById('notes').value.trim()
   };
 
-  if (!orderData.fullName || !orderData.phone || !orderData.customerEmail || !orderData.address) {
-    showToast('املأ جميع الحقول المطلوبة (*)', 'error');
+  // تحقق إضافي من صحة البيانات
+  if (!orderData.fullName || orderData.fullName.length < 3) {
+    showToast('⚠️ أدخل اسمك الكامل بشكل صحيح', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span>تأكيد الطلب</span><i class="fa-solid fa-check ml-1"></i>';
+    return;
+  }
+
+  const cleanPhone = orderData.phone.replace(/\s/g, '');
+  if (!/^(\+9715|05)\d{7,8}$/.test(cleanPhone) && !/^\d{8,12}$/.test(cleanPhone)) {
+    showToast('⚠️ أدخل رقم هاتف صالح (مثال: 0501234567)', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span>تأكيد الطلب</span><i class="fa-solid fa-check ml-1"></i>';
+    return;
+  }
+
+  if (!orderData.address || orderData.address.length < 10) {
+    showToast('⚠️ أدخل عنوانك بالتفصيل', 'error');
     btn.disabled = false;
     btn.innerHTML = '<span>تأكيد الطلب</span><i class="fa-solid fa-check ml-1"></i>';
     return;
   }
 
   try {
-    // ✅ أولاً: نتحقق من مخزون كل خيار (لون+مقاس)
     const stockValid = await validateStockBeforeOrder();
     if (!stockValid) {
       btn.disabled = false;
@@ -353,19 +465,12 @@ async function handleSubmit(e) {
       return;
     }
 
-    // ✅ ثانياً: نحفظ الطلب
     await saveOrderToFirebase(orderData);
-
-    // ✅ ثالثاً: ننقص الكمية من كل خيار محدد
     await reduceStockAfterOrder();
-
-    // ✅ رابعاً: نرسل الإيميل
     await sendEmail(orderData);
 
-    // ✅ خامساً: نفرغ السلة
     localStorage.removeItem(CART_KEY);
 
-    // ✅ عرض رسالة النجاح
     document.getElementById('checkout-form').parentElement.classList.add('hidden');
     document.getElementById('order-items').parentElement.classList.add('hidden');
     document.querySelector('.bg-amber-50').classList.add('hidden');
