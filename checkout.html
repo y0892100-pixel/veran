@@ -185,10 +185,9 @@ window.sendVerificationCode = async function() {
   codeExpiryTime = Date.now() + 15 * 60 * 1000;
 
   try {
-    // ✅ أرسل فقط المتغيرات الموجودة في القالب
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_VERIFY_TEMPLATE_ID, {
-      EmailCode: generatedCode
-      // 💡 لو فيه متغيرات ثانية في القالب، أضفها هنا بنفس الاسم بالضبط
+      email: email,              // ✅ إلزامي — مطابق للقالب
+      EmailCode: generatedCode   // ✅ رمز التحقق
     });
 
     document.getElementById('verification-section').classList.remove('hidden');
