@@ -3,16 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>الأقسام - VAREN</title>
+  <title data-i18n="page_title">الأقسام - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- ✅ مكتبات Firebase متوافقة وموحّدة -->
+  
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    html[lang="en"] { direction: ltr; }
+    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
@@ -20,20 +23,139 @@
     .product-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
     .product-card { transition: all 0.3s ease; }
     .filter-btn.active { background: black; color: white; }
+    .lang-option:hover { background: #f3f4f6; }
+    .lang-option.active { background: #e5e7eb; font-weight: bold; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
+
+<script>
+const translations = {
+  ar: {
+    page_title: "الأقسام - VAREN",
+    home: "الرئيسية",
+    women: "نسائي",
+    men: "رجالي",
+    girls: "بنات",
+    boys: "أولاد",
+    admin_panel: "لوحة التحكم",
+    account: "حسابي",
+    login: "تسجيل الدخول",
+    my_info: "معلوماتي",
+    my_orders: "طلباتي",
+    returns: "الاسترجاع",
+    logout: "تسجيل الخروج",
+    language: "اللغة",
+    all_products: "جميع المنتجات",
+    women_products: "المنتجات النسائية",
+    men_products: "المنتجات الرجالية",
+    girls_products: "منتجات البنات",
+    boys_products: "منتجات الأولاد",
+    all: "الكل",
+    hoodies: "هودي",
+    tshirts: "تيشيرت",
+    winter: "شتوي",
+    summer: "صيفي",
+    loading_products: "جاري تحميل المنتجات...",
+    no_products: "لا توجد منتجات في هذا القسم حالياً",
+    error_loading: "خطأ في تحميل المنتجات",
+    all_rights_reserved: "جميع الحقوق محفوظة."
+  },
+  en: {
+    page_title: "Categories - VAREN",
+    home: "Home",
+    women: "Women",
+    men: "Men",
+    girls: "Girls",
+    boys: "Boys",
+    admin_panel: "Admin Panel",
+    account: "My Account",
+    login: "Sign In",
+    my_info: "My Information",
+    my_orders: "My Orders",
+    returns: "Returns",
+    logout: "Sign Out",
+    language: "Language",
+    all_products: "All Products",
+    women_products: "Women's Collection",
+    men_products: "Men's Collection",
+    girls_products: "Girls' Collection",
+    boys_products: "Boys' Collection",
+    all: "All",
+    hoodies: "Hoodies",
+    tshirts: "T-Shirts",
+    winter: "Winter",
+    summer: "Summer",
+    loading_products: "Loading products...",
+    no_products: "No products available in this category",
+    error_loading: "Error loading products",
+    all_rights_reserved: "All rights reserved."
+  }
+};
+
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+  
+  updateLangUI(lang);
+  updatePageTitle();
+}
+
+function updateLangUI(lang) {
+  document.querySelectorAll('.lang-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+}
+
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+
+function updatePageTitle() {
+  const lang = getCurrentLanguage();
+  const titles = {
+    women: translations[lang].women_products,
+    men: translations[lang].men_products,
+    girls: translations[lang].girls_products,
+    boys: translations[lang].boys_products
+  };
+  const params = new URLSearchParams(window.location.search);
+  const gender = params.get('gender');
+  document.getElementById('category-title').textContent = titles[gender] || translations[lang].all_products;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+});
+</script>
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <div class="hidden md:flex gap-8">
-      <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
-      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
-      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
-      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
-      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
-      <a href="admin.html" class="font-medium text-sm text-gray-500 hover:text-black">لوحة التحكم</a>
+    
+    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
+    </a>
+
+    <div class="hidden md:flex gap-8 items-center">
+      <a href="index.html" class="font-medium hover:text-gray-600" data-i18n="home">الرئيسية</a>
+      <a href="category.html?gender=women" class="font-medium hover:text-gray-600" data-i18n="women">نسائي</a>
+      <a href="category.html?gender=men" class="font-medium hover:text-gray-600" data-i18n="men">رجالي</a>
+      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600" data-i18n="girls">بنات</a>
+      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600" data-i18n="boys">أولاد</a>
+      <a id="admin-nav-link" href="admin.html" class="hidden font-medium text-sm text-green-600 hover:text-green-800 font-semibold">
+        <i class="fa-solid fa-gear ml-1"></i> <span data-i18n="admin_panel">لوحة التحكم</span>
+      </a>
     </div>
+
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
         <i class="fa-solid fa-cart-shopping"></i>
@@ -41,43 +163,57 @@
       </a>
       <div id="user-area" class="relative">
         <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
-          حسابي <i class="fa-solid fa-chevron-down text-xs"></i>
+          <span data-i18n="account">حسابي</span> <i class="fa-solid fa-chevron-down text-xs"></i>
         </button>
-        <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">تسجيل الدخول</button>
+        <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800" data-i18n="login">تسجيل الدخول</button>
+        
         <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
-          <a href="account.html" class="block px-4 py-3 hover:bg-gray-100">معلوماتي</a>
-          <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100">طلباتي</a>
-          <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100">الاسترجاع</a>
-          <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100">تسجيل الخروج</button>
+          <a href="account.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_info">معلوماتي</a>
+          <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_orders">طلباتي</a>
+          <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="returns">الاسترجاع</a>
+          
+          <hr class="mx-3">
+          <div class="px-4 py-2">
+            <p class="text-sm font-semibold text-gray-500 mb-2" data-i18n="language">اللغة</p>
+            <button onclick="setLanguage('ar')" class="lang-option w-full text-right px-3 py-2 rounded text-sm" data-lang="ar">العربية</button>
+            <button onclick="setLanguage('en')" class="lang-option w-full text-right px-3 py-2 rounded text-sm mt-1" data-lang="en">English</button>
+          </div>
+          
+          <hr class="mx-3 mt-2">
+          <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100" data-i18n="logout">تسجيل الخروج</button>
         </div>
       </div>
     </div>
   </div>
 </nav>
+
 <main class="max-w-7xl mx-auto px-4 py-8">
-  <h1 id="category-title" class="text-2xl md:text-3xl font-bold mb-8 text-center">جميع المنتجات</h1>
-  <!-- فلاتر -->
+  <h1 id="category-title" class="text-2xl md:text-3xl font-bold mb-8 text-center" data-i18n="all_products">جميع المنتجات</h1>
+  
+  <!-- الفلاتر -->
   <div class="mb-8 flex flex-wrap justify-center gap-3">
-    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100 active" data-filter="all">الكل</button>
-    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="hoodies">هودي</button>
-    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="tshirts">تيشيرت</button>
-    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="winter">شتوي</button>
-    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="summer">صيفي</button>
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100 active" data-filter="all" data-i18n="all">الكل</button>
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="hoodies" data-i18n="hoodies">هودي</button>
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="tshirts" data-i18n="tshirts">تيشيرت</button>
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="winter" data-i18n="winter">شتوي</button>
+    <button class="filter-btn px-4 py-2 border rounded-lg hover:bg-gray-100" data-filter="summer" data-i18n="summer">صيفي</button>
   </div>
+  
   <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     <div class="col-span-full text-center py-12 text-gray-500">
       <i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i>
-      <p>جاري تحميل المنتجات...</p>
+      <p data-i18n="loading_products">جاري تحميل المنتجات...</p>
     </div>
   </div>
 </main>
+
 <footer class="bg-gray-900 text-white py-8 text-center">
-  <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
+  <p>&copy; 2026 VAREN. <span data-i18n="all_rights_reserved">جميع الحقوق محفوظة.</span></p>
 </footer>
+
 <div id="toast" class="toast"></div>
 
 <script>
-// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -87,13 +223,10 @@ const firebaseConfig = {
   appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
   measurementId: "G-SV7DKGPH2M"
 };
-
-// ✅ تهيئة Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const ADMIN_EMAIL = 'y0892100@gmail.com';
 
 let currentGender = null;
 let currentFilter = 'all';
@@ -105,16 +238,6 @@ function showToast(msg, type = 'success') {
   setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
-function setCategoryTitle(gender) {
-  const titles = {
-    women: 'المنتجات النسائية',
-    men: 'المنتجات الرجالية',
-    girls: 'منتجات البنات',
-    boys: 'منتجات الأولاد'
-  };
-  document.getElementById('category-title').textContent = titles[gender] || 'جميع المنتجات';
-}
-
 function matchesFilter(product, filter) {
   if (filter === 'all') return true;
   if (filter === 'hoodies') return product.type === 'hoodies' || product.type === 'هودي';
@@ -124,7 +247,6 @@ function matchesFilter(product, filter) {
   return false;
 }
 
-// ✅ تحديث عداد السلة
 function updateCartCount() {
   const cart = JSON.parse(localStorage.getItem('varen_cart') || '[]');
   const countEl = document.getElementById('cart-count');
@@ -134,50 +256,39 @@ function updateCartCount() {
   }
 }
 
-// ✅ تحميل المنتجات بدون فهارس
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
-  grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i><p>جاري تحميل المنتجات...</p></div>';
+  const lang = getCurrentLanguage();
+  grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-500"><i class="fa-solid fa-spinner fa-spin fa-2xl mb-4"></i><p>${translations[lang].loading_products}</p></div>`;
   
   try {
-    // نجلب الكل ثم نفلتر في الكود
     let snapshot;
     if (currentGender) {
       snapshot = await db.collection('products').where('gender', '==', currentGender).get();
     } else {
       snapshot = await db.collection('products').get();
     }
-
     let products = [];
     snapshot.forEach(doc => {
       const p = { id: doc.id, ...doc.data() };
-      // نعرض المتوفر فقط
-      if (p.available !== false) {
-        products.push(p);
-      }
+      if (p.available !== false) products.push(p);
     });
-
-    // نفلتر حسب النوع والموسم
     if (currentFilter !== 'all') {
       products = products.filter(p => matchesFilter(p, currentFilter));
     }
-
-    // نرتب من الأحدث للأقدم
     products.sort((a, b) => {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
       const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
       return dateB - dateA;
     });
-
     if (products.length === 0) {
-      grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500"><p>لا توجد منتجات في هذا القسم حالياً</p></div>';
+      grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-500"><p>${translations[lang].no_products}</p></div>`;
       return;
     }
-
     grid.innerHTML = '';
     products.forEach(p => {
-      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} درهم</span>` : '';
-      const img = p.images?.[0] || 'https://via.placeholder.com/400x500?text=لا+صورة';
+      const priceTag = p.priceOriginal ? `<span class="text-sm text-gray-400 line-through ml-2">${p.priceOriginal} ${lang === 'ar' ? 'درهم' : 'AED'}</span>` : '';
+      const img = p.images?.[0] || 'https://via.placeholder.com/400x500?text=No+Image';
       grid.innerHTML += `
         <a href="product.html?id=${p.id}" class="product-card bg-white rounded-xl overflow-hidden shadow-sm block">
           <img src="${img}" alt="${p.name}" class="w-full h-64 object-cover">
@@ -185,44 +296,48 @@ async function loadProducts() {
             <h3 class="font-bold text-lg mb-1">${p.name}</h3>
             <p class="text-gray-600 text-sm mb-2">${p.type || ''}</p>
             <div class="flex items-center justify-between">
-              <span class="font-bold text-lg">${p.price} درهم</span>
+              <span class="font-bold text-lg">${p.price} ${lang === 'ar' ? 'درهم' : 'AED'}</span>
               ${priceTag}
             </div>
           </div>
         </a>
       `;
     });
-
   } catch (err) {
     console.error(err);
-    grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>خطأ في تحميل المنتجات: ${err.message}</p></div>`;
+    grid.innerHTML = `<div class="col-span-full text-center py-12 text-red-500"><p>${translations[lang].error_loading}: ${err.message}</p></div>`;
   }
 }
 
-// ✅ تحديث واجهة المستخدم
 function updateUserUI(user) {
   const loginBtn = document.getElementById('login-btn');
   const accountBtn = document.getElementById('account-btn');
   const accountMenu = document.getElementById('account-menu');
-
+  const adminLink = document.getElementById('admin-nav-link');
+  
   if (user) {
     if (loginBtn) loginBtn.classList.add('hidden');
     if (accountBtn) { accountBtn.classList.remove('hidden'); accountBtn.classList.add('flex'); }
+    if (user.email === ADMIN_EMAIL) {
+      if (adminLink) adminLink.classList.remove('hidden');
+    } else {
+      if (adminLink) adminLink.classList.add('hidden');
+    }
   } else {
     if (loginBtn) loginBtn.classList.remove('hidden');
     if (accountBtn) accountBtn.classList.add('hidden');
     if (accountMenu) accountMenu.classList.add('hidden');
+    if (adminLink) adminLink.classList.add('hidden');
   }
   updateCartCount();
 }
 
-// ✅ تسجيل الخروج
 window.logout = async function () {
   await auth.signOut();
-  window.location.href = 'index.html';
+  showToast(getCurrentLanguage() === 'ar' ? '✅ تم تسجيل الخروج' : '✅ Logged out successfully');
+  setTimeout(() => window.location.href = 'index.html', 1000);
 };
 
-// ✅ فتح وإغلاق قائمة الحساب
 const accountBtn = document.getElementById('account-btn');
 const accountMenu = document.getElementById('account-menu');
 if (accountBtn && accountMenu) {
@@ -234,13 +349,10 @@ if (accountBtn && accountMenu) {
   accountMenu.addEventListener('click', (e) => e.stopPropagation());
 }
 
-// ✅ عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   currentGender = params.get('gender');
-  setCategoryTitle(currentGender);
-
-  // أزرار الفلتر
+  
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -249,16 +361,12 @@ document.addEventListener('DOMContentLoaded', () => {
       loadProducts();
     });
   });
-
-  // مراقبة حالة تسجيل الدخول
+  
   auth.onAuthStateChanged(updateUserUI);
-
-  // تحميل السلة
   updateCartCount();
-
-  // تحميل المنتجات
-  loadProducts();
+  setTimeout(() => loadProducts(), 100);
 });
 </script>
+
 </body>
 </html>
