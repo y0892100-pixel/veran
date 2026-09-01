@@ -3,61 +3,156 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>حسابي - VAREN</title>
+  <title data-i18n="page_title">حسابي - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    html[lang="en"] { direction: ltr; }
+    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
     .toast.error { background: #dc2626; }
+    .lang-option:hover { background: #f3f4f6; }
+    .lang-option.active { background: #e5e7eb; font-weight: bold; }
   </style>
 </head>
 <body class="bg-gray-50">
+
+<script>
+const translations = {
+  ar: {
+    page_title: "حسابي - VAREN",
+    account_title: "بيانات الحساب",
+    loading: "جاري التحميل...",
+    full_name: "الاسم الكامل",
+    email: "البريد الإلكتروني",
+    phone: "رقم الهاتف",
+    phone_placeholder: "مثال: 0501234567",
+    full_address: "العنوان الكامل",
+    address_placeholder: "المدينة — المنطقة — الشارع — المبنى — رقم الشقة",
+    save_changes: "حفظ التغييرات",
+    please_login: "سجّل الدخول أولاً",
+    login: "تسجيل الدخول",
+    my_info: "بيانات الحساب",
+    my_orders: "طلباتي",
+    returns: "طلبات الاسترجاع",
+    admin_panel: "لوحة التحكم",
+    logout: "تسجيل الخروج",
+    saved_success: "✅ تم حفظ البيانات بنجاح",
+    logged_out: "✅ تم تسجيل الخروج",
+    language: "اللغة"
+  },
+  en: {
+    page_title: "My Account - VAREN",
+    account_title: "Account Information",
+    loading: "Loading...",
+    full_name: "Full Name",
+    email: "Email Address",
+    phone: "Phone Number",
+    phone_placeholder: "e.g. +971501234567",
+    full_address: "Full Address",
+    address_placeholder: "City — Region — Street — Building — Apartment No.",
+    save_changes: "Save Changes",
+    please_login: "Please sign in first",
+    login: "Sign In",
+    my_info: "Account Information",
+    my_orders: "My Orders",
+    returns: "Returns",
+    admin_panel: "Admin Panel",
+    logout: "Sign Out",
+    saved_success: "✅ Data saved successfully",
+    logged_out: "✅ Signed out successfully",
+    language: "Language"
+  }
+};
+
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+  
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (translations[lang][key]) el.placeholder = translations[lang][key];
+  });
+}
+
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+
+function t(key) {
+  return translations[getCurrentLanguage()][key] || key;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+});
+</script>
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <div id="user-area"></div>
+    
+    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
+    </a>
+
+    <div id="user-area" class="relative"></div>
   </div>
 </nav>
+
 <main class="max-w-lg mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-6">بيانات الحساب</h1>
+  <h1 class="text-2xl font-bold mb-6" data-i18n="account_title">بيانات الحساب</h1>
   <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
+  
   <div id="content" class="hidden">
     <form id="profile-form" class="bg-white p-6 rounded-xl shadow-md space-y-4">
       <div>
-        <label class="block font-semibold mb-1">الاسم الكامل</label>
+        <label class="block font-semibold mb-1" data-i18n="full_name">الاسم الكامل</label>
         <input type="text" id="u-name" class="w-full border rounded-lg p-3">
       </div>
       <div>
-        <label class="block font-semibold mb-1">البريد الإلكتروني</label>
+        <label class="block font-semibold mb-1" data-i18n="email">البريد الإلكتروني</label>
         <input type="email" id="u-email" class="w-full border rounded-lg p-3 bg-gray-100" readonly>
       </div>
       <div>
-        <label class="block font-semibold mb-1">رقم الهاتف</label>
-        <input type="tel" id="u-phone" class="w-full border rounded-lg p-3" placeholder="مثال: 0501234567">
+        <label class="block font-semibold mb-1" data-i18n="phone">رقم الهاتف</label>
+        <input type="tel" id="u-phone" class="w-full border rounded-lg p-3" data-i18n-placeholder="phone_placeholder" placeholder="مثال: 0501234567">
       </div>
       <div>
-        <label class="block font-semibold mb-1">العنوان الكامل</label>
-        <textarea id="u-address" class="w-full border rounded-lg p-3" rows="3" placeholder="المدينة — المنطقة — الشارع — المبنى — رقم الشقة"></textarea>
+        <label class="block font-semibold mb-1" data-i18n="full_address">العنوان الكامل</label>
+        <textarea id="u-address" class="w-full border rounded-lg p-3" rows="3" data-i18n-placeholder="address_placeholder" placeholder="المدينة — المنطقة — الشارع — المبنى — رقم الشقة"></textarea>
       </div>
-      <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800">حفظ التغييرات</button>
+      <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800" data-i18n="save_changes">حفظ التغييرات</button>
     </form>
   </div>
+
   <div id="no-login" class="hidden text-center py-16">
     <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
-    <p class="text-xl text-gray-500 mb-4">سجّل الدخول أولاً</p>
-    <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block">تسجيل الدخول</a>
+    <p class="text-xl text-gray-500 mb-4" data-i18n="please_login">سجّل الدخول أولاً</p>
+    <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block" data-i18n="login">تسجيل الدخول</a>
   </div>
+
   <div id="toast" class="toast"></div>
 </main>
+
 <script>
-// ✅ إعدادات المشروع الجديد
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -79,45 +174,65 @@ function showToast(msg, type='success') {
   setTimeout(() => t.classList.remove('show'), 4000);
 }
 
-// ✅ القائمة المنسدلة الموحدة
 function updateUserNav(user) {
+  const lang = getCurrentLanguage();
   const area = document.getElementById('user-area');
   if (!user) {
-    area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
+    area.innerHTML = `<button onclick="window.location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800" data-i18n="login">تسجيل الدخول</button>`;
     return;
   }
   const isAdmin = user.email === ADMIN_EMAIL;
   area.innerHTML = `
-    <div class="relative group">
-      <button class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200">
+    <div class="relative">
+      <button id="account-nav-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200">
         <i class="fa-solid fa-user-circle"></i>
-        <span>${user.displayName || 'حسابي'}</span>
-        <i class="fa-solid fa-chevron-down text-xs mr-1 transition-transform group-hover:rotate-180"></i>
+        <span>${user.displayName || (lang === 'ar' ? 'حسابي' : 'My Account')}</span>
+        <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
       </button>
-      <div class="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-50">
+      <div id="account-nav-menu" class="hidden absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border z-50">
         <a href="account.html" class="block px-4 py-3 hover:bg-gray-50 border-b">
-          <i class="fa-solid fa-id-card ml-2"></i> بيانات الحساب
+          <i class="fa-solid fa-id-card ml-2"></i> <span data-i18n="my_info">${t('my_info')}</span>
         </a>
         <a href="orders.html" class="block px-4 py-3 hover:bg-gray-50 border-b">
-          <i class="fa-solid fa-box ml-2"></i> طلباتي
+          <i class="fa-solid fa-box ml-2"></i> <span data-i18n="my_orders">${t('my_orders')}</span>
         </a>
         <a href="returns.html" class="block px-4 py-3 hover:bg-gray-50 border-b">
-          <i class="fa-solid fa-undo ml-2"></i> طلبات الاسترجاع
+          <i class="fa-solid fa-undo ml-2"></i> <span data-i18n="returns">${t('returns')}</span>
         </a>
         ${isAdmin ? `<a href="admin.html" class="block px-4 py-3 hover:bg-gray-50 border-b text-red-600 font-medium">
-          <i class="fa-solid fa-gear ml-2"></i> لوحة التحكم
+          <i class="fa-solid fa-gear ml-2"></i> <span data-i18n="admin_panel">${t('admin_panel')}</span>
         </a>` : ''}
+        <hr class="mx-3">
+        <div class="px-4 py-2">
+          <p class="text-sm font-semibold text-gray-500 mb-2" data-i18n="language">${t('language')}</p>
+          <button onclick="setLanguage('ar')" class="lang-option w-full text-right px-3 py-2 rounded text-sm" data-lang="ar">العربية</button>
+          <button onclick="setLanguage('en')" class="lang-option w-full text-right px-3 py-2 rounded text-sm mt-1" data-lang="en">English</button>
+        </div>
+        <hr class="mx-3 mt-2">
         <button onclick="logout()" class="w-full text-right px-4 py-3 hover:bg-gray-50 text-red-500 font-medium">
-          <i class="fa-solid fa-right-from-bracket ml-2"></i> تسجيل الخروج
+          <i class="fa-solid fa-right-from-bracket ml-2"></i> <span data-i18n="logout">${t('logout')}</span>
         </button>
       </div>
     </div>
   `;
+  
+  setTimeout(() => {
+    const btn = document.getElementById('account-nav-btn');
+    const menu = document.getElementById('account-nav-menu');
+    if (btn && menu) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('hidden');
+      });
+      document.addEventListener('click', () => menu.classList.add('hidden'));
+      menu.addEventListener('click', (e) => e.stopPropagation());
+    }
+  }, 0);
 }
 
 window.logout = async () => {
   await auth.signOut();
-  showToast('✅ تم تسجيل الخروج');
+  showToast(t('logged_out'));
   setTimeout(() => window.location.href = 'index.html', 1000);
 };
 
@@ -129,34 +244,33 @@ auth.onAuthStateChanged(async user => {
   }
   document.getElementById('content').classList.remove('hidden');
   updateUserNav(user);
-
-  // ✅ تعبئة البيانات
+  
   document.getElementById('u-name').value = user.displayName || '';
   document.getElementById('u-email').value = user.email || '';
-
+  
   const doc = await db.collection('users').doc(user.uid).get();
   if (doc.exists) {
     const data = doc.data();
     document.getElementById('u-phone').value = data.phone || '';
     document.getElementById('u-address').value = data.address || '';
   }
-
-  // ✅ حفظ البيانات
+  
   document.getElementById('profile-form').addEventListener('submit', async e => {
     e.preventDefault();
     const name = document.getElementById('u-name').value.trim();
     const phone = document.getElementById('u-phone').value.trim();
     const address = document.getElementById('u-address').value.trim();
-
+    
     await user.updateProfile({ displayName: name });
     await db.collection('users').doc(user.uid).set({
       name, phone, address, email: user.email
     }, { merge: true });
-
-    showToast('✅ تم حفظ البيانات بنجاح');
+    
+    showToast(t('saved_success'));
     updateUserNav(user);
   });
 });
 </script>
+
 </body>
 </html>
