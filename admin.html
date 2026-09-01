@@ -7,6 +7,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -25,7 +28,6 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
@@ -45,10 +47,8 @@
     </div>
   </div>
 </nav>
-
 <main class="max-w-5xl mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6">لوحة التحكم</h1>
-
   <!-- أزرار التبويب -->
   <div id="admin-tabs" class="hidden flex flex-wrap gap-2 mb-8 border-b pb-2">
     <button onclick="switchTab('products')" class="tab-btn active px-4 py-2 rounded-t-lg hover:bg-gray-100" data-tab="products">
@@ -61,13 +61,11 @@
       <i class="fa-solid fa-rotate-left mr-1"></i> طلبات الاسترجاع
     </button>
   </div>
-
   <!-- 📦 قسم المنتجات -->
   <div id="tab-products" class="tab-content">
     <div class="flex flex-wrap gap-4 mb-6">
       <button onclick="showForm('add')" class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">إضافة منتج جديد</button>
     </div>
-
     <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md space-y-4 mb-8 hidden">
       <h2 class="text-xl font-bold mb-4">إضافة منتج جديد</h2>
       <div class="grid md:grid-cols-2 gap-4">
@@ -117,7 +115,6 @@
           <textarea id="p-images" class="w-full border rounded-lg p-3" rows="3" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
         </div>
       </div>
-
       <div class="border-t pt-4">
         <h3 class="text-lg font-bold mb-3">المخزون حسب اللون والمقاس</h3>
         <div id="variants-list" class="space-y-2 mb-4"></div>
@@ -125,28 +122,23 @@
           <i class="fa-solid fa-plus mr-1"></i> إضافة خيار جديد
         </button>
       </div>
-
       <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full mt-4">إضافة المنتج</button>
     </form>
-
     <div id="products-section">
       <h2 class="text-xl font-bold mb-4">المنتجات المضافة</h2>
       <div id="products-list" class="space-y-4"></div>
     </div>
   </div>
-
   <!-- 📋 قسم الطلبات -->
   <div id="tab-orders" class="tab-content hidden">
     <h2 class="text-xl font-bold mb-4">جميع الطلبات</h2>
     <div id="orders-list" class="space-y-4"></div>
   </div>
-
   <!-- 🔄 قسم طلبات الاسترجاع -->
   <div id="tab-returns" class="tab-content hidden">
     <h2 class="text-xl font-bold mb-4">طلبات الاسترجاع</h2>
     <div id="returns-list" class="space-y-4"></div>
   </div>
-
   <!-- رسالة لغير المصرح لهم -->
   <div id="not-admin-message" class="text-center py-16 hidden">
     <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
@@ -154,7 +146,6 @@
     <button onclick="openModal('login-modal')" class="mt-4 bg-black text-white px-6 py-2 rounded-lg">تسجيل الدخول</button>
   </div>
 </main>
-
 <!-- نافذة تسجيل الدخول -->
 <div id="login-modal" class="modal">
   <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
@@ -177,9 +168,7 @@
     </div>
   </div>
 </div>
-
 <div id="toast" class="toast"></div>
-
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
@@ -190,12 +179,14 @@ const firebaseConfig = {
   appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
   measurementId: "G-SV7DKGPH2M"
 };
-
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
+
+// ✅ إعداد EmailJS
+emailjs.init('3A0NspFA3vlSd64jc');
 
 const COLORS = ['أسود', 'أبيض', 'رمادي', 'بيج', 'أحمر', 'أزرق', 'أخضر', 'وردي', 'بني', 'برتقالي', 'ذهبي', 'فضي', 'بنفسجي', 'أصفر'];
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'مقاس واحد'];
@@ -209,6 +200,8 @@ function formatDate(timestamp) {
 function getStatusClass(status) {
   if (status === 'جديد') return 'bg-blue-100 text-blue-700';
   if (status === 'مؤكد') return 'bg-green-100 text-green-700';
+  if (status === 'يتم تجهيز طلبك') return 'bg-yellow-100 text-yellow-700';
+  if (status === 'يتم تجهيز توصيل طلبك') return 'bg-orange-100 text-orange-700';
   if (status === 'ملغي') return 'bg-red-100 text-red-700';
   return 'bg-gray-100 text-gray-700';
 }
@@ -292,7 +285,6 @@ window.addVariantRow = function() {
   `;
   list.appendChild(row);
 };
-
 window.removeVariantRow = function(rowId) {
   document.getElementById(rowId)?.remove();
 };
@@ -311,6 +303,42 @@ function collectVariants() {
   return variants;
 }
 
+// ✅ إرسال إيميل التأكيد
+async function sendConfirmationEmail(orderData, deliveryDate) {
+  const orderNumber = orderData.orderNumber || orderData.id;
+  const orderDate = formatDate(orderData.createdAt);
+  
+  const itemsHtml = (orderData.items || []).map(i => {
+    const qty = i.qty || i.quantity || 1;
+    return `• ${i.name} — المقاس: ${i.size || '-'} — اللون: ${i.color || '-'} × ${qty} — ${((i.price || 0) * qty).toFixed(2)} درهم`;
+  }).join('\n');
+
+  const total = (orderData.total || 0).toFixed(2);
+
+  try {
+    const response = await emailjs.send(
+      'service_3bs6onj',
+      'template_om7zrjs',
+      {
+        order_id: orderNumber,
+        order_date: orderDate,
+        customer_name: orderData.fullName || 'العميل',
+        customer_email: orderData.userEmail || '',
+        customer_phone: orderData.phone || '',
+        customer_address: orderData.address || '',
+        order_items: itemsHtml,
+        order_total: total,
+        delivery_date: deliveryDate || 'غير محدد'
+      }
+    );
+    console.log('✅ الإيميل أُرسل!', response);
+    return true;
+  } catch (err) {
+    console.error('❌ خطأ في إرسال الإيميل:', err);
+    return false;
+  }
+}
+
 async function loadAllOrders() {
   const list = document.getElementById('orders-list');
   list.innerHTML = '<p class="text-gray-500">جاري تحميل الطلبات...</p>';
@@ -323,6 +351,8 @@ async function loadAllOrders() {
     }
     snapshot.forEach(doc => {
       const o = { id: doc.id, ...doc.data() };
+      const deliveryDateDisplay = o.deliveryDate ? `<p class="text-sm text-green-700 font-medium">📅 تاريخ استلام الطلب المتوقع: ${o.deliveryDate}</p>` : '';
+      
       list.innerHTML += `
         <div class="bg-white p-5 rounded-xl shadow-sm border">
           <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
@@ -331,8 +361,9 @@ async function loadAllOrders() {
           </div>
           <p class="text-sm text-gray-600 mb-1">التاريخ: ${formatDate(o.createdAt)}</p>
           <p class="text-sm text-gray-600 mb-1">العميل: ${o.fullName || 'غير مذكور'} | ${o.phone || 'لا يوجد رقم'}</p>
-          <p class="text-sm text-gray-600 mb-2">الإيميل: ${o.userEmail || 'غير مذكور'}</p>
-          <p class="text-sm text-gray-600 mb-3">العنوان: ${o.address || 'غير مذكور'}</p>
+          <p class="text-sm text-gray-600 mb-1">الإيميل: ${o.userEmail || 'غير مذكور'}</p>
+          <p class="text-sm text-gray-600 mb-2">العنوان: ${o.address || 'غير مذكور'}</p>
+          ${deliveryDateDisplay}
           <div class="border-t pt-3 mb-3">
             <p class="font-semibold mb-2">المنتجات:</p>
             ${(o.items || []).map(i => {
@@ -341,9 +372,21 @@ async function loadAllOrders() {
             }).join('')}
             <p class="font-bold mt-2">المجموع: ${(o.total || 0).toFixed(2)} درهم</p>
           </div>
-          <div class="flex gap-2 mt-2">
-            <button onclick="updateOrderStatus('${o.id}', 'مؤكد')" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">مؤكد</button>
-            <button onclick="updateOrderStatus('${o.id}', 'ملغي')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">ملغي</button>
+          
+          <!-- حقل تاريخ التوصيل -->
+          <div class="mb-3 p-2 bg-gray-50 rounded-lg">
+            <label class="block text-sm font-semibold mb-1">📅 تاريخ استلام طلبك المتوقع</label>
+            <div class="flex gap-2">
+              <input type="date" id="delivery-date-${o.id}" class="flex-1 border rounded-lg p-2" value="${o.deliveryDate || ''}">
+              <button onclick="saveDeliveryDate('${o.id}')" class="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">حفظ التاريخ</button>
+            </div>
+          </div>
+          
+          <div class="flex flex-wrap gap-2 mt-2">
+            <button onclick="confirmOrderAndSendEmail('${o.id}')" class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600">✅ مؤكد + إرسال الإيميل</button>
+            <button onclick="updateOrderStatus('${o.id}', 'يتم تجهيز طلبك')" class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm hover:bg-yellow-200">⏳ يتم تجهيز الطلب</button>
+            <button onclick="updateOrderStatus('${o.id}', 'يتم تجهيز توصيل طلبك')" class="px-3 py-1 bg-orange-100 text-orange-700 rounded text-sm hover:bg-orange-200">🚚 جاري التوصيل</button>
+            <button onclick="updateOrderStatus('${o.id}', 'ملغي')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">❌ ملغي</button>
           </div>
         </div>
       `;
@@ -353,6 +396,57 @@ async function loadAllOrders() {
   }
 }
 
+// ✅ تأكيد الطلب + إرسال الإيميل
+window.confirmOrderAndSendEmail = async function(orderId) {
+  try {
+    const deliveryDateInput = document.getElementById(`delivery-date-${orderId}`);
+    const deliveryDate = deliveryDateInput ? deliveryDateInput.value : '';
+
+    // جلب بيانات الطلب
+    const orderSnap = await db.collection('orders').doc(orderId).get();
+    if (!orderSnap.exists) return showToast('❌ الطلب غير موجود', 'error');
+    
+    const orderData = { id: orderId, ...orderSnap.data() };
+
+    // تحديث الحالة
+    await db.collection('orders').doc(orderId).update({ 
+      status: 'مؤكد',
+      deliveryDate: deliveryDate || null
+    });
+
+    // إرسال الإيميل
+    const emailSent = await sendConfirmationEmail(orderData, deliveryDate);
+    
+    if (emailSent) {
+      showToast('✅ تم التأكيد وإرسال الإيميل بنجاح');
+    } else {
+      showToast('⚠️ تم التأكيد لكن فشل إرسال الإيميل', 'warning');
+    }
+    
+    loadAllOrders();
+  } catch (err) {
+    showToast('❌ خطأ: ' + err.message, 'error');
+  }
+};
+
+// ✅ حفظ تاريخ التوصيل فقط
+window.saveDeliveryDate = async function(orderId) {
+  try {
+    const deliveryDateInput = document.getElementById(`delivery-date-${orderId}`);
+    const deliveryDate = deliveryDateInput ? deliveryDateInput.value : '';
+    
+    await db.collection('orders').doc(orderId).update({ 
+      deliveryDate: deliveryDate 
+    });
+    
+    showToast('✅ تم حفظ تاريخ التوصيل');
+    loadAllOrders();
+  } catch (err) {
+    showToast('❌ خطأ: ' + err.message, 'error');
+  }
+};
+
+// ✅ تحديث الحالة فقط (بدون إيميل)
 window.updateOrderStatus = async function(orderId, newStatus) {
   try {
     await db.collection('orders').doc(orderId).update({ status: newStatus });
@@ -476,7 +570,7 @@ window.loginWithGoogle = async () => {
     closeModal('login-modal');
     showToast('✅ تم تسجيل الدخول');
   } catch (e) { 
-    if (e.code !== 'auth/popup-closed-by-user') showToast('خطأ: ' + e.message, 'error');
+    if (e.code !== 'auth/popup-closed-by-user') showToast('خطأ: ' + e.message, 'error'); 
   }
 };
 
@@ -532,7 +626,6 @@ document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(async user => {
     updateUI(user, user ? await checkAdminAccess(user) : false);
   });
-
   const form = document.getElementById('add-product-form');
   form.addEventListener('submit', async e => {
     e.preventDefault();
@@ -567,6 +660,5 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
-
 </body>
 </html>
