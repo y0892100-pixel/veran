@@ -25,7 +25,6 @@
   </style>
 </head>
 <body class="bg-gray-50">
-
 <script>
 const translations = {
   ar: {
@@ -38,6 +37,7 @@ const translations = {
     login: "تسجيل الدخول",
     order_number: "رقم الطلب",
     date: "التاريخ",
+    delivery_date: "📅 تاريخ استلام الطلب المتوقع",
     customer_name: "الاسم",
     phone: "الهاتف",
     address: "العنوان",
@@ -47,6 +47,8 @@ const translations = {
     status_pending: "قيد المعالجة",
     status_new: "جديد",
     status_confirmed: "مؤكد",
+    status_preparing: "يتم تجهيز طلبك",
+    status_shipping: "يتم تجهيز توصيل طلبك",
     status_cancelled: "ملغي",
     cancel_order: "إلغاء الطلب",
     hours_remaining: "ساعات متبقية",
@@ -76,6 +78,7 @@ const translations = {
     login: "Sign In",
     order_number: "Order #",
     date: "Date",
+    delivery_date: "📅 Expected Delivery Date",
     customer_name: "Name",
     phone: "Phone",
     address: "Address",
@@ -85,6 +88,8 @@ const translations = {
     status_pending: "Processing",
     status_new: "New",
     status_confirmed: "Confirmed",
+    status_preparing: "Preparing your order",
+    status_shipping: "Preparing for delivery",
     status_cancelled: "Cancelled",
     cancel_order: "Cancel Order",
     hours_remaining: "hours remaining",
@@ -105,7 +110,6 @@ const translations = {
     not_provided: "Not provided"
   }
 };
-
 function setLanguage(lang) {
   if (!translations[lang]) return;
   document.documentElement.lang = lang;
@@ -117,20 +121,16 @@ function setLanguage(lang) {
     if (translations[lang][key]) el.textContent = translations[lang][key];
   });
 }
-
 function getCurrentLanguage() {
   return localStorage.getItem('varen_lang') || 'ar';
 }
-
 function t(key) {
   return translations[getCurrentLanguage()][key] || key;
 }
-
 document.addEventListener('DOMContentLoaded', () => {
   setLanguage(getCurrentLanguage());
 });
 </script>
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     
@@ -139,11 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
       <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
     </a>
-
     <div id="user-area" class="relative"></div>
   </div>
 </nav>
-
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6" data-i18n="my_orders">طلباتي</h1>
   <div id="toast" class="toast"></div>
@@ -152,24 +150,20 @@ document.addEventListener('DOMContentLoaded', () => {
     <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
     <p class="mt-2 text-gray-500" data-i18n="loading">جاري التحميل...</p>
   </div>
-
   <div id="content" class="hidden">
     <div id="orders-list"></div>
   </div>
-
   <div id="no-orders" class="hidden text-center py-16">
     <i class="fa-solid fa-box-open text-6xl text-gray-300 mb-4"></i>
     <p class="text-xl text-gray-500 mb-4" data-i18n="no_orders">ليس لديك طلبات حتى الآن</p>
     <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block" data-i18n="start_shopping">ابدأ التسوق</a>
   </div>
-
   <div id="no-login" class="hidden text-center py-16">
     <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
     <p class="text-xl text-gray-500 mb-4" data-i18n="please_login">سجّل الدخول أولاً</p>
     <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block" data-i18n="login">تسجيل الدخول</a>
   </div>
 </main>
-
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
@@ -184,21 +178,18 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
-
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(() => t.classList.remove('show'), 4000);
 }
-
 function formatDate(timestamp) {
   if (!timestamp) return t('undefined');
   const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
   const lang = getCurrentLanguage();
   return d.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-AE');
 }
-
 function isWithinCancellationWindow(createdAt) {
   if (!createdAt) return false;
   const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
@@ -206,7 +197,6 @@ function isWithinCancellationWindow(createdAt) {
   const hoursDiff = (now - orderDate) / (1000 * 60 * 60);
   return hoursDiff < 6;
 }
-
 function getHoursRemaining(createdAt) {
   if (!createdAt) return 0;
   const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
@@ -214,14 +204,12 @@ function getHoursRemaining(createdAt) {
   const hoursDiff = (now - orderDate) / (1000 * 60 * 60);
   return Math.max(0, 6 - hoursDiff).toFixed(1);
 }
-
 window.cancelOrder = async function(orderId, orderItems) {
   if (!confirm(t('confirm_cancel'))) return;
   try {
     const batch = db.batch();
     const orderRef = db.collection('orders').doc(orderId);
     batch.update(orderRef, { status: 'ملغي' });
-
     for (const item of orderItems) {
       const qty = item.qty || item.quantity || 1;
       const productRef = db.collection('products').doc(item.id);
@@ -247,7 +235,6 @@ window.cancelOrder = async function(orderId, orderItems) {
     showToast(t('cancel_error') + err.message, 'error');
   }
 };
-
 function updateUserNav(user) {
   const lang = getCurrentLanguage();
   const area = document.getElementById('user-area');
@@ -289,7 +276,6 @@ function updateUserNav(user) {
       </div>
     </div>
   `;
-
   setTimeout(() => {
     const btn = document.getElementById('account-nav-btn');
     const menu = document.getElementById('account-nav-menu');
@@ -303,12 +289,10 @@ function updateUserNav(user) {
     }
   }, 0);
 }
-
 window.logout = async () => {
   await auth.signOut();
   window.location.href = 'index.html';
 };
-
 auth.onAuthStateChanged(async user => {
   document.getElementById('loading').classList.add('hidden');
   
@@ -334,28 +318,41 @@ auth.onAuthStateChanged(async user => {
     snapshot.forEach(doc => {
       orders.push({ id: doc.id, ...doc.data() });
     });
-
     orders.sort((a, b) => {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
       const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
       return dateB - dateA;
     });
-
     orders.forEach(order => {
       const canCancel = order.status !== 'ملغي' && isWithinCancellationWindow(order.createdAt);
       const hoursLeft = getHoursRemaining(order.createdAt);
       
-      const statusClass = 
-        order.status === 'جديد' || order.status === 'New' ? 'bg-blue-100 text-blue-700' :
-        order.status === 'مؤكد' || order.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
-        order.status === 'ملغي' || order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
-        'bg-gray-100 text-gray-700';
-
-      const statusText = 
-        order.status === 'جديد' ? t('status_new') :
-        order.status === 'مؤكد' ? t('status_confirmed') :
-        order.status === 'ملغي' ? t('status_cancelled') : t('status_pending');
-
+      // تحديد لون ونص الحالة
+      let statusClass, statusText;
+      if (order.status === 'جديد' || order.status === 'New') {
+        statusClass = 'bg-blue-100 text-blue-700';
+        statusText = t('status_new');
+      } else if (order.status === 'مؤكد' || order.status === 'Confirmed') {
+        statusClass = 'bg-green-100 text-green-700';
+        statusText = t('status_confirmed');
+      } else if (order.status === 'يتم تجهيز طلبك') {
+        statusClass = 'bg-yellow-100 text-yellow-700';
+        statusText = t('status_preparing');
+      } else if (order.status === 'يتم تجهيز توصيل طلبك') {
+        statusClass = 'bg-orange-100 text-orange-700';
+        statusText = t('status_shipping');
+      } else if (order.status === 'ملغي' || order.status === 'Cancelled') {
+        statusClass = 'bg-red-100 text-red-700';
+        statusText = t('status_cancelled');
+      } else {
+        statusClass = 'bg-gray-100 text-gray-700';
+        statusText = t('status_pending');
+      }
+      
+      // عرض تاريخ التوصيل لو موجود
+      const deliveryDateLine = order.deliveryDate ? 
+        `<p class="text-sm text-green-700 font-medium mb-2">📅 ${t('delivery_date')}: ${order.deliveryDate}</p>` : '';
+      
       list.innerHTML += `
         <div class="bg-white p-5 rounded-xl shadow-sm mb-4 border">
           <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
@@ -363,6 +360,7 @@ auth.onAuthStateChanged(async user => {
             <span class="px-3 py-1 rounded-full text-sm font-medium ${statusClass}">${statusText}</span>
           </div>
           <p class="text-sm text-gray-600 mb-1">${t('date')}: ${formatDate(order.createdAt)}</p>
+          ${deliveryDateLine}
           <p class="text-sm text-gray-600 mb-1">${t('customer_name')}: ${order.fullName || order.name || t('not_provided')}</p>
           <p class="text-sm text-gray-600 mb-1">${t('phone')}: ${order.phone || t('not_provided')}</p>
           <p class="text-sm text-gray-600 mb-3">${t('address')}: ${order.address || t('not_provided')}</p>
@@ -408,6 +406,5 @@ auth.onAuthStateChanged(async user => {
   }
 });
 </script>
-
 </body>
 </html>
