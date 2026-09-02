@@ -3,28 +3,263 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة التحكم - VAREN</title>
+  <title data-i18n="page_title">لوحة التحكم - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
   
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&display=swap');
     * { font-family: 'Cairo', sans-serif; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
-    .toast.show { display: block; }
-    .toast.success { background: #16a34a; }
-    .toast.error { background: #dc2626; }
-    .tab-btn.active { background: black; color: white; }
+    html[lang="en"] { direction: ltr; }
+    html { scroll-behavior: smooth; }
+    
+    /* رسائل التنبيه */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; padding: 14px 28px; border-radius: 12px; z-index: 9999; display: none; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.18); max-width: 90%; width: fit-content; }
+    .toast.show { display: block; animation: fadeInUp 0.35s ease; }
+    .toast.success { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .toast.error { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .toast.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .toast.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    @keyframes fadeInUp { from { opacity:0; transform: translate(-50%, 25px); } to { opacity:1; transform: translate(-50%, 0); } }
+    
+    /* التبويبات */
+    .tab-btn.active { background-color: black; color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    
+    /* بطاقات وعناصر */
+    .card { background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #f3f4f6; }
+    .status-badge { padding: 4px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-confirmed { background: #dbeafe; color: #1e40af; }
+    .status-preparing { background: #e0e7ff; color: #3730a3; }
+    .status-shipping { background: #d1fae5; color: #065f46; }
+    .status-delivered { background: #dcfce7; color: #166534; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+    
+    /* حقول الإدخال */
+    input, select, textarea { border: 2px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; width: 100%; font-size: 1rem; transition: border 0.2s; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: black; }
+    label { font-weight: 600; color: #374151; margin-bottom: 6px; display: block; }
+    
+    /* زر الإجراء */
+    .btn { padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 0.95rem; }
+    .btn-primary { background: black; color: white; }
+    .btn-primary:hover { background: #374151; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-success:hover { background: #15803d; }
+    .btn-warning { background: #f59e0b; color: white; }
+    .btn-warning:hover { background: #d97706; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
+    
+    /* شاشة الحماية */
+    .auth-screen { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
 <script>
+// ==============================================
+// إعدادات الترجمة
+// ==============================================
+const translations = {
+  ar: {
+    page_title: "لوحة التحكم - VAREN",
+    loading: "جاري التحميل...",
+    no_access: "غير مسموح لك بالوصول إلى هذه الصفحة",
+    logging_in: "جاري تسجيل الدخول...",
+    welcome: "مرحباً بك في لوحة تحكم VAREN",
+    logout: "تسجيل الخروج",
+    tab_products: "المنتجات",
+    tab_orders: "الطلبات",
+    tab_add_product: "إضافة منتج جديد",
+    tab_edit_product: "تعديل منتج",
+    product_name: "اسم المنتج",
+    product_price: "السعر (درهم)",
+    product_price_original: "السعر الأصلي (اختياري)",
+    product_desc: "وصف المنتج",
+    product_gender: "القسم",
+    product_type: "النوع",
+    product_season: "الموسم",
+    product_images: "روابط الصور (افصل بينها بفاصلة)",
+    add_variant: "إضافة خيار (لون - مقاس - كمية)",
+    variant_color: "اللون",
+    variant_size: "المقاس",
+    variant_stock: "الكمية المتوفرة",
+    remove_variant: "حذف",
+    save_product: "حفظ المنتج",
+    update_product: "تحديث المنتج",
+    delete_product: "حذف المنتج",
+    product_saved: "✅ تم حفظ المنتج بنجاح",
+    product_updated: "✅ تم تحديث المنتج بنجاح",
+    product_deleted: "✅ تم حذف المنتج بنجاح",
+    product_error: "❌ حدث خطأ أثناء حفظ المنتج",
+    men: "رجالي",
+    women: "نسائي",
+    kids: "أطفال",
+    hoodie: "هودي",
+    tshirt: "تيشيرت",
+    pants: "بناطيل",
+    formal: "لبس رسمي",
+    tracksuit: "ترينق",
+    underwear: "ملابس داخلية",
+    dress: "فساتين",
+    winter: "شتوي",
+    summer: "صيفي",
+    all_season: "مناسب لكل المواسم",
+    actions: "إجراءات",
+    edit: "تعديل",
+    no_products: "لا يوجد منتجات مضافة حتى الآن",
+    order_id: "رقم الطلب",
+    customer_name: "اسم العميل",
+    customer_email: "بريد العميل",
+    customer_phone: "هاتف العميل",
+    order_address: "العنوان",
+    order_items: "المنتجات",
+    order_total: "المجموع",
+    order_status: "حالة الطلب",
+    status_pending: "قيد المراجعة",
+    status_confirmed: "مؤكد ✅",
+    status_preparing: "جاري التجهيز",
+    status_shipping: "جاري التوصيل",
+    status_delivered: "تم التسليم",
+    status_cancelled: "ملغي",
+    confirm_order: "تأكيد الطلب",
+    prepare_order: "جاري التجهيز",
+    ship_order: "جاري التوصيل",
+    deliver_order: "تم التسليم",
+    cancel_order: "إلغاء الطلب",
+    delivery_date: "تاريخ التوصيل المتوقع",
+    save_status: "حفظ الحالة والتاريخ",
+    status_updated: "✅ تم تحديث حالة الطلب وإرسال الإيميل للعميل",
+    email_sent: "✅ تم إرسال رسالة البريد بنجاح",
+    email_failed: "❌ فشل إرسال البريد، تحقق من الإيميل",
+    no_orders: "لا يوجد طلبات حتى الآن",
+    search: "بحث برقم الطلب أو اسم العميل",
+    confirm_delete: "هل أنت متأكد من حذف هذا المنتج؟",
+    required_fields: "⚠️ الرجاء ملء الحقول المطلوبة (الاسم والسعر والألوان والمقاسات)",
+    step1: "1 - مؤكد",
+    step2: "2 - جاري التجهيز",
+    step3: "3 - جاري التوصيل",
+    step4: "4 - تاريخ التوصيل المتوقع"
+  },
+  en: {
+    page_title: "Admin Panel - VAREN",
+    loading: "Loading...",
+    no_access: "You do not have permission to access this page",
+    logging_in: "Verifying access...",
+    welcome: "Welcome to VAREN Admin Panel",
+    logout: "Logout",
+    tab_products: "Products",
+    tab_orders: "Orders",
+    tab_add_product: "Add New Product",
+    tab_edit_product: "Edit Product",
+    product_name: "Product Name",
+    product_price: "Price (AED)",
+    product_price_original: "Original Price (Optional)",
+    product_desc: "Description",
+    product_gender: "Department",
+    product_type: "Type",
+    product_season: "Season",
+    product_images: "Image URLs (comma separated)",
+    add_variant: "Add Option (Color - Size - Stock)",
+    variant_color: "Color",
+    variant_size: "Size",
+    variant_stock: "Stock Quantity",
+    remove_variant: "Remove",
+    save_product: "Save Product",
+    update_product: "Update Product",
+    delete_product: "Delete Product",
+    product_saved: "✅ Product saved successfully",
+    product_updated: "✅ Product updated successfully",
+    product_deleted: "✅ Product deleted successfully",
+    product_error: "❌ Error saving product",
+    men: "Men",
+    women: "Women",
+    kids: "Kids",
+    hoodie: "Hoodie",
+    tshirt: "T-Shirt",
+    pants: "Pants",
+    formal: "Formal Wear",
+    tracksuit: "Tracksuit",
+    underwear: "Underwear",
+    dress: "Dress",
+    winter: "Winter",
+    summer: "Summer",
+    all_season: "All Season",
+    actions: "Actions",
+    edit: "Edit",
+    no_products: "No products added yet",
+    order_id: "Order ID",
+    customer_name: "Customer Name",
+    customer_email: "Customer Email",
+    customer_phone: "Phone",
+    order_address: "Delivery Address",
+    order_items: "Items",
+    order_total: "Total",
+    order_status: "Status",
+    status_pending: "Pending",
+    status_confirmed: "Confirmed ✅",
+    status_preparing: "Preparing",
+    status_shipping: "Out for Delivery",
+    status_delivered: "Delivered",
+    status_cancelled: "Cancelled",
+    confirm_order: "Confirm Order",
+    prepare_order: "Start Preparation",
+    ship_order: "Start Delivery",
+    deliver_order: "Mark Delivered",
+    cancel_order: "Cancel Order",
+    delivery_date: "Expected Delivery Date",
+    save_status: "Save Status & Date",
+    status_updated: "✅ Status updated and email sent to customer",
+    email_sent: "✅ Email sent successfully",
+    email_failed: "❌ Failed to send email, check the address",
+    no_orders: "No orders yet",
+    search: "Search by Order ID or Customer Name",
+    confirm_delete: "Are you sure you want to delete this product?",
+    required_fields: "⚠️ Please fill required fields (name, price, colors, sizes)",
+    step1: "1 - Confirmed",
+    step2: "2 - Preparing",
+    step3: "3 - Out for Delivery",
+    step4: "4 - Expected Delivery Date"
+  }
+};
+
+// ==============================================
+// دوال اللغة
+// ==============================================
+function setLanguage(lang) {
+  if (!translations[lang]) lang = 'ar';
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+}
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+function t(key) {
+  return translations[getCurrentLanguage()][key] || key;
+}
+
+// ==============================================
+// إعدادات Firebase
+// ==============================================
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -37,316 +272,731 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const ADMIN_EMAIL = 'y0892100@gmail.com';
+
+// ==============================================
+// إعدادات EmailJS
+// ==============================================
+const EMAILJS_SERVICE_ID = "service_3bs6onj";
+const EMAILJS_TEMPLATE_CONFIRM = "template_om7zrjs";
+const ADMIN_EMAIL = "y0892100@gmail.com";
+
+// ==============================================
+// متغيرات عامة
+// ==============================================
+let currentEditProductId = null;
+let variantsList = [];
+let allProducts = [];
+let allOrders = [];
+let filteredOrders = [];
 </script>
 
+<!-- شريط التنقل -->
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="flex items-center gap-3">
+    <div class="flex items-center gap-3">
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
-      <span class="text-2xl font-black text-gray-900">لوحة التحكم — VAREN</span>
-    </a>
-    <div>
-      <button onclick="logout()" class="text-red-500 hover:text-red-700 font-medium">
-        <i class="fa-solid fa-right-from-bracket ml-1"></i> تسجيل الخروج
+      <span class="text-2xl font-black text-gray-900">VAREN — لوحة التحكم</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="toggleLanguage()" class="text-sm border px-3 py-1.5 rounded-lg hover:bg-gray-100">
+        <i class="fa-solid fa-globe mr-1"></i>
+        <span id="lang-btn">English</span>
+      </button>
+      <button id="logout-btn" onclick="logout()" class="text-sm bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100">
+        <i class="fa-solid fa-sign-out-alt ml-1"></i>
+        <span data-i18n="logout">تسجيل الخروج</span>
       </button>
     </div>
   </div>
 </nav>
 
-<!-- شاشة رفض الوصول -->
-<div id="access-denied" class="hidden max-w-md mx-auto px-4 py-20 text-center">
-  <i class="fa-solid fa-lock text-6xl text-red-400 mb-4"></i>
-  <h1 class="text-2xl font-bold text-red-600 mb-2">غير مصرّح لك بالدخول</h1>
-  <p class="text-gray-500 mb-6">هذه الصفحة خاصة بصاحب المتجر فقط</p>
-  <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block">العودة للرئيسية</a>
+<!-- شاشة التحقق من الصلاحية -->
+<div id="auth-screen" class="auth-screen">
+  <div class="card p-8 text-center max-w-md">
+    <i class="fa-solid fa-shield-halved fa-3xl text-gray-400 mb-4"></i>
+    <h2 class="text-xl font-bold mb-2" data-i18n="logging_in">جاري التحقق من الصلاحية...</h2>
+    <p class="text-gray-500">VAREN Admin Panel</p>
+  </div>
 </div>
 
-<!-- محتوى لوحة التحكم -->
+<!-- المحتوى الرئيسي — مخفي حتى التحقق -->
 <div id="admin-content" class="hidden max-w-7xl mx-auto px-4 py-6">
+  
   <!-- التبويبات -->
   <div class="flex flex-wrap gap-2 mb-6 border-b pb-2">
-    <button class="tab-btn active px-4 py-2 rounded-t-lg border-t border-l border-r" onclick="showTab('products')">
-      <i class="fa-solid fa-box ml-1"></i> المنتجات
+    <button class="tab-btn btn btn-primary active" data-tab="products">
+      <i class="fa-solid fa-boxes-stacked ml-1"></i>
+      <span data-i18n="tab_products">المنتجات</span>
     </button>
-    <button class="tab-btn px-4 py-2 rounded-t-lg border-t border-l border-r" onclick="showTab('orders')">
-      <i class="fa-solid fa-file-invoice ml-1"></i> الطلبات
+    <button class="tab-btn btn" data-tab="orders">
+      <i class="fa-solid fa-file-invoice ml-1"></i>
+      <span data-i18n="tab_orders">الطلبات</span>
+    </button>
+    <button class="tab-btn btn btn-success" data-tab="add-product">
+      <i class="fa-solid fa-plus ml-1"></i>
+      <span data-i18n="tab_add_product">إضافة منتج</span>
     </button>
   </div>
 
-  <!-- قسم المنتجات -->
-  <div id="tab-products" class="tab-content">
-    <button onclick="showAddForm()" class="bg-black text-white px-4 py-2 rounded-lg mb-6">
-      <i class="fa-solid fa-plus ml-1"></i> إضافة منتج جديد
-    </button>
-    
-    <!-- نموذج إضافة/تعديل منتج -->
-    <div id="product-form" class="hidden bg-white rounded-xl shadow-sm p-6 mb-8 border">
-      <h3 class="text-xl font-bold mb-4" id="form-title">إضافة منتج جديد</h3>
-      <form id="prod-form" class="space-y-4">
-        <input type="hidden" id="prod-id">
+  <!-- تبويب المنتجات -->
+  <div id="tab-products" class="tab-content active">
+    <div class="card p-6 mb-6">
+      <h2 class="text-xl font-bold mb-4">قائمة المنتجات</h2>
+      <div id="products-list" class="space-y-3">
+        <!-- منتجات تُضاف هنا -->
+        <p class="text-center text-gray-400 py-4" data-i18n="loading">جاري التحميل...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- تبويب إضافة/تعديل منتج -->
+  <div id="tab-add-product" class="tab-content">
+    <div class="card p-6">
+      <h2 id="form-title" class="text-xl font-bold mb-6" data-i18n="tab_add_product">إضافة منتج جديد</h2>
+      <form id="product-form" class="space-y-4">
         <div class="grid md:grid-cols-2 gap-4">
           <div>
-            <label class="block font-medium mb-1">اسم المنتج</label>
-            <input type="text" id="prod-name" required class="w-full border rounded-lg px-4 py-2">
+            <label data-i18n="product_name">اسم المنتج *</label>
+            <input type="text" id="prod-name" required placeholder="مثال: هودي قطن عادي">
           </div>
           <div>
-            <label class="block font-medium mb-1">السعر (درهم)</label>
-            <input type="number" step="0.01" id="prod-price" required class="w-full border rounded-lg px-4 py-2">
+            <label data-i18n="product_images">روابط الصور *</label>
+            <input type="text" id="prod-images" required placeholder="الرابط1, الرابط2">
           </div>
           <div>
-            <label class="block font-medium mb-1">السعر الأصلي (اختياري)</label>
-            <input type="number" step="0.01" id="prod-price-orig" class="w-full border rounded-lg px-4 py-2">
+            <label data-i18n="product_price">السعر (درهم) *</label>
+            <input type="number" step="0.01" id="prod-price" required placeholder="مثال: 99">
           </div>
           <div>
-            <label class="block font-medium mb-1">التصنيف</label>
-            <select id="prod-gender" class="w-full border rounded-lg px-4 py-2">
-              <option value="men">رجالي</option>
-              <option value="women">نسائي</option>
-              <option value="kids">أطفال</option>
+            <label data-i18n="product_price_original">السعر الأصلي (اختياري)</label>
+            <input type="number" step="0.01" id="prod-price-orig" placeholder="مثال: 120">
+          </div>
+          <div>
+            <label data-i18n="product_gender">القسم</label>
+            <select id="prod-gender">
+              <option value="men" data-i18n="men">رجالي</option>
+              <option value="women" data-i18n="women">نسائي</option>
+              <option value="kids" data-i18n="kids">أطفال</option>
             </select>
           </div>
           <div>
-            <label class="block font-medium mb-1">النوع</label>
-            <input type="text" id="prod-type" placeholder="هودي، تيشيرت، بنطلون..." class="w-full border rounded-lg px-4 py-2">
+            <label data-i18n="product_type">النوع</label>
+            <select id="prod-type">
+              <option value="hoodie" data-i18n="hoodie">هودي</option>
+              <option value="tshirt" data-i18n="tshirt">تيشيرت</option>
+              <option value="pants" data-i18n="pants">بناطيل</option>
+              <option value="formal" data-i18n="formal">لبس رسمي</option>
+              <option value="tracksuit" data-i18n="tracksuit">ترينق</option>
+              <option value="underwear" data-i18n="underwear">ملابس داخلية</option>
+              <option value="dress" data-i18n="dress">فساتين</option>
+            </select>
           </div>
           <div>
-            <label class="block font-medium mb-1">الموسم</label>
-            <select id="prod-season" class="w-full border rounded-lg px-4 py-2">
-              <option value="">عام</option>
-              <option value="winter">شتوي</option>
-              <option value="summer">صيفي</option>
+            <label data-i18n="product_season">الموسم</label>
+            <select id="prod-season">
+              <option value="all" data-i18n="all_season">مناسب لكل المواسم</option>
+              <option value="winter" data-i18n="winter">شتوي</option>
+              <option value="summer" data-i18n="summer">صيفي</option>
             </select>
           </div>
         </div>
         <div>
-          <label class="block font-medium mb-1">روابط الصور (افصل بينها بفاصلة)</label>
-          <textarea id="prod-images" rows="2" placeholder="رابط1, رابط2..." class="w-full border rounded-lg px-4 py-2"></textarea>
+          <label data-i18n="product_desc">وصف المنتج</label>
+          <textarea id="prod-desc" rows="3" placeholder="أدخل وصفاً للمنتج..."></textarea>
         </div>
-        <div>
-          <label class="block font-medium mb-1">المخزون — اللون | المقاس | الكمية (كل سطر)</label>
-          <textarea id="prod-variants" rows="5" placeholder="أسود | M | 10&#10;أسود | L | 5&#10;أبيض | M | 8" class="w-full border rounded-lg px-4 py-2"></textarea>
+
+        <!-- خيارات الألوان والمقاسات والمخزون -->
+        <div class="border-2 border-dashed border-gray-200 p-4 rounded-lg">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-lg" data-i18n="add_variant">خيارات المنتج (لون - مقاس - كمية) *</h3>
+            <button type="button" onclick="addVariantRow()" class="btn btn-success btn-sm">
+              <i class="fa-solid fa-plus ml-1"></i> إضافة صف
+            </button>
+          </div>
+          <div id="variants-container" class="space-y-2">
+            <!-- صفوف الخيارات تُضاف هنا -->
+          </div>
         </div>
-        <div class="flex gap-2">
-          <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">حفظ</button>
-          <button type="button" onclick="hideForm()" class="bg-gray-300 px-6 py-2 rounded-lg">إلغاء</button>
+
+        <!-- أزرار الحفظ -->
+        <div class="flex gap-3 mt-4">
+          <button type="submit" id="save-btn" class="btn btn-primary">
+            <i class="fa-solid fa-save ml-1"></i>
+            <span data-i18n="save_product">حفظ المنتج</span>
+          </button>
+          <button type="button" id="delete-btn" class="btn btn-danger hidden" onclick="deleteProduct()">
+            <i class="fa-solid fa-trash ml-1"></i>
+            <span data-i18n="delete_product">حذف المنتج</span>
+          </button>
+          <button type="reset" class="btn" onclick="resetForm()">
+            <i class="fa-solid fa-undo ml-1"></i>
+            إعادة تعيين
+          </button>
         </div>
       </form>
     </div>
-
-    <!-- قائمة المنتجات -->
-    <div id="products-list" class="space-y-3"></div>
   </div>
 
-  <!-- قسم الطلبات -->
-  <div id="tab-orders" class="tab-content hidden">
-    <h2 class="text-xl font-bold mb-4">إدارة الطلبات</h2>
-    <div id="orders-list" class="space-y-3"></div>
+  <!-- تبويب الطلبات -->
+  <div id="tab-orders" class="tab-content">
+    <div class="card p-6 mb-4">
+      <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4">
+        <h2 class="text-xl font-bold">قائمة الطلبات</h2>
+        <input type="text" id="search-orders" placeholder="ابحث برقم الطلب أو اسم العميل..." class="max-w-sm" oninput="filterOrders(this.value)">
+      </div>
+      <div id="orders-list" class="space-y-4">
+        <!-- طلبات تُضاف هنا -->
+        <p class="text-center text-gray-400 py-4" data-i18n="loading">جاري التحميل...</p>
+      </div>
+    </div>
   </div>
+
 </div>
 
+<!-- رسائل التنبيه -->
 <div id="toast" class="toast"></div>
 
 <script>
+// ==============================================
+// دوال مساعدة
+// ==============================================
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = `toast ${type} show`;
-  setTimeout(() => toast.classList.remove('show'), 4000);
+  setTimeout(() => toast.classList.remove('show'), 5000);
 }
 
-function showTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-  document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-  
-  if (tabName === 'products') loadProducts();
-  if (tabName === 'orders') loadOrders();
+function toggleLanguage() {
+  const current = getCurrentLanguage();
+  const newLang = current === 'ar' ? 'en' : 'ar';
+  setLanguage(newLang);
+  document.getElementById('lang-btn').textContent = newLang === 'ar' ? 'English' : 'العربية';
+  renderProductsList();
+  renderOrdersList();
 }
 
-function showAddForm() {
-  document.getElementById('product-form').classList.remove('hidden');
-  document.getElementById('form-title').textContent = 'إضافة منتج جديد';
-  document.getElementById('prod-form').reset();
-  document.getElementById('prod-id').value = '';
+function getStatusClass(status) {
+  const map = {
+    pending: 'status-pending',
+    confirmed: 'status-confirmed',
+    preparing: 'status-preparing',
+    shipping: 'status-shipping',
+    delivered: 'status-delivered',
+    cancelled: 'status-cancelled'
+  };
+  return map[status] || 'status-pending';
 }
 
-function hideForm() {
-  document.getElementById('product-form').classList.add('hidden');
+function getStatusText(status) {
+  const map = {
+    pending: t('status_pending'),
+    confirmed: t('status_confirmed'),
+    preparing: t('status_preparing'),
+    shipping: t('status_shipping'),
+    delivered: t('status_delivered'),
+    cancelled: t('status_cancelled')
+  };
+  return map[status] || status;
 }
 
-function parseVariants(text) {
-  if (!text) return [];
-  return text.split('\n').map(line => {
-    const parts = line.split('|').map(p => p.trim());
-    if (parts.length >= 3) {
-      return { color: parts[0], size: parts[1], stock: parseInt(parts[2]) || 0 };
+// ==============================================
+// حماية الصفحة والتحقق من المدير
+// ==============================================
+auth.onAuthStateChanged(user => {
+  setTimeout(() => {
+    document.getElementById('auth-screen').classList.add('hidden');
+  }, 800);
+
+  if (user && user.email === ADMIN_EMAIL) {
+    // دخول صحيح — عرض المحتوى
+    document.getElementById('admin-content').classList.remove('hidden');
+    document.getElementById('auth-screen').classList.add('hidden');
+    setLanguage(getCurrentLanguage());
+    document.getElementById('lang-btn').textContent = getCurrentLanguage() === 'ar' ? 'English' : 'العربية';
+    
+    // تحميل البيانات
+    loadProducts();
+    loadOrders();
+    
+    // إضافة صف افتراضي للخيارات
+    addVariantRow();
+  } else {
+    // دخول غير مسموح — تسجيل خروج وإخفاء كل شيء
+    if (user) auth.signOut();
+    document.getElementById('auth-screen').innerHTML = `
+      <div class="card p-8 text-center max-w-md">
+        <i class="fa-solid fa-lock fa-3xl text-red-400 mb-4"></i>
+        <h2 class="text-xl font-bold mb-2 text-red-600" data-i18n="no_access">غير مسموح لك بالوصول</h2>
+        <p class="text-gray-500 mb-4">سجل الدخول باستخدام حساب المدير فقط</p>
+        <a href="login.html" class="btn btn-primary">
+          <i class="fa-solid fa-sign-in-alt ml-1"></i> تسجيل الدخول
+        </a>
+      </div>
+    `;
+  }
+});
+
+function logout() {
+  auth.signOut().then(() => {
+    window.location.href = 'index.html';
+  });
+}
+
+// ==============================================
+// التبويبات
+// ==============================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabId = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${tabId}`).classList.add('active');
+    
+    if (tabId === 'add-product') {
+      resetForm();
     }
-    return null;
-  }).filter(Boolean);
+  });
+});
+
+// ==============================================
+// إدارة صفوف الخيارات (لون - مقاس - مخزون)
+// ==============================================
+function addVariantRow(color='', size='', stock=1) {
+  const container = document.getElementById('variants-container');
+  const rowId = Date.now();
+  const row = document.createElement('div');
+  row.className = 'flex flex-wrap gap-2 items-center variant-row';
+  row.innerHTML = `
+    <input type="text" class="variant-color flex-1 min-w-[100px]" placeholder="${t('variant_color')}" value="${color}">
+    <input type="text" class="variant-size flex-1 min-w-[100px]" placeholder="${t('variant_size')}" value="${size}">
+    <input type="number" min="1" class="variant-stock w-20" placeholder="${t('variant_stock')}" value="${stock}">
+    <button type="button" onclick="this.closest('.variant-row').remove()" class="btn btn-danger btn-sm">
+      <i class="fa-solid fa-times"></i>
+    </button>
+  `;
+  container.appendChild(row);
 }
 
-function parseImages(text) {
-  if (!text) return [];
-  return text.split(',').map(s => s.trim()).filter(Boolean);
+function collectVariants() {
+  const variants = [];
+  document.querySelectorAll('.variant-row').forEach(row => {
+    const color = row.querySelector('.variant-color').value.trim();
+    const size = row.querySelector('.variant-size').value.trim();
+    const stock = parseInt(row.querySelector('.variant-stock').value) || 0;
+    if (color && size && stock > 0) {
+      variants.push({ color, size, stock });
+    }
+  });
+  return variants;
 }
 
-// حفظ منتج
-document.getElementById('prod-form').addEventListener('submit', async e => {
+// ==============================================
+// حفظ وتحديث المنتج
+// ==============================================
+document.getElementById('product-form').addEventListener('submit', async e => {
   e.preventDefault();
-  const id = document.getElementById('prod-id').value;
-  const data = {
-    name: document.getElementById('prod-name').value,
-    price: parseFloat(document.getElementById('prod-price').value),
-    priceOriginal: document.getElementById('prod-price-orig').value ? parseFloat(document.getElementById('prod-price-orig').value) : null,
-    gender: document.getElementById('prod-gender').value,
-    type: document.getElementById('prod-type').value,
-    season: document.getElementById('prod-season').value,
-    images: parseImages(document.getElementById('prod-images').value),
-    variants: parseVariants(document.getElementById('prod-variants').value),
+  
+  const name = document.getElementById('prod-name').value.trim();
+  const price = parseFloat(document.getElementById('prod-price').value);
+  const priceOriginal = parseFloat(document.getElementById('prod-price-orig').value) || null;
+  const description = document.getElementById('prod-desc').value.trim();
+  const gender = document.getElementById('prod-gender').value;
+  const type = document.getElementById('prod-type').value;
+  const season = document.getElementById('prod-season').value;
+  const imagesText = document.getElementById('prod-images').value.trim();
+  const images = imagesText.split(',').map(u => u.trim()).filter(u => u);
+  const variants = collectVariants();
+
+  // التحقق من الحقول المطلوبة
+  if (!name || !price || images.length === 0 || variants.length === 0) {
+    showToast(t('required_fields'), 'warning');
+    return;
+  }
+
+  const productData = {
+    name,
+    price,
+    priceOriginal,
+    description,
+    gender,
+    type,
+    season,
+    images,
+    variants,
     available: true,
-    updatedAt: new Date()
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
 
   try {
-    if (id) {
-      await db.collection('products').doc(id).update(data);
-      showToast('✅ تم تحديث المنتج');
+    if (currentEditProductId) {
+      // تحديث منتج موجود
+      await db.collection('products').doc(currentEditProductId).update(productData);
+      showToast(t('product_updated'));
     } else {
-      data.createdAt = new Date();
-      await db.collection('products').add(data);
-      showToast('✅ تم إضافة المنتج');
+      // إضافة منتج جديد
+      productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('products').add(productData);
+      showToast(t('product_saved'));
     }
-    hideForm();
+
+    // إعادة تعيين النموذج وتحديث القائمة
+    resetForm();
     loadProducts();
+
+    // الانتقال لقائمة المنتجات
+    document.querySelector('[data-tab="products"]').click();
+
+  } catch (err) {
+    console.error('Save product error:', err);
+    showToast(t('product_error') + ': ' + err.message, 'error');
+  }
+});
+
+// ==============================================
+// تحميل قائمة المنتجات
+// ==============================================
+async function loadProducts() {
+  try {
+    const snap = await db.collection('products').orderBy('updatedAt', 'desc').get();
+    allProducts = [];
+    snap.forEach(doc => {
+      allProducts.push({ id: doc.id, ...doc.data() });
+    });
+    renderProductsList();
+  } catch (err) {
+    console.error('Load products error:', err);
+    document.getElementById('products-list').innerHTML = `<p class="text-red-500">خطأ في التحميل: ${err.message}</p>`;
+  }
+}
+
+function renderProductsList() {
+  const list = document.getElementById('products-list');
+  if (allProducts.length === 0) {
+    list.innerHTML = `<p class="text-center text-gray-400 py-6">${t('no_products')}</p>`;
+    return;
+  }
+
+  list.innerHTML = allProducts.map(p => {
+    const img = p.images?.[0] || 'https://via.placeholder.com/80x80?text=No+Image';
+    const totalStock = (p.variants || []).reduce((sum, v) => sum + (v.stock || 0), 0);
+    return `
+      <div class="flex flex-wrap items-center gap-4 p-3 border rounded-lg hover:bg-gray-50">
+        <img src="${img}" alt="${p.name}" class="w-20 h-20 object-cover rounded-lg">
+        <div class="flex-1 min-w-[200px]">
+          <h4 class="font-bold text-lg">${p.name}</h4>
+          <p class="text-sm text-gray-500">
+            السعر: ${p.price} درهم | المخزون الكلي: ${totalStock} قطعة
+            ${p.priceOriginal ? ` | خصم: ${Math.round((1 - p.price/p.priceOriginal)*100)}%` : ''}
+          </p>
+          <p class="text-xs text-gray-400">
+            ${(p.variants||[]).map(v => `${v.color} / ${v.size}: ${v.stock}`).join(' | ')}
+          </p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="editProduct('${p.id}')">
+          <i class="fa-solid fa-pen-to-square ml-1"></i> ${t('edit')}
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+// ==============================================
+// تعديل منتج
+// ==============================================
+async function editProduct(productId) {
+  const product = allProducts.find(p => p.id === productId);
+  if (!product) return;
+
+  currentEditProductId = productId;
+  document.getElementById('form-title').textContent = t('tab_edit_product');
+  document.getElementById('save-btn').querySelector('span').textContent = t('update_product');
+  document.getElementById('delete-btn').classList.remove('hidden');
+
+  // ملء البيانات
+  document.getElementById('prod-name').value = product.name || '';
+  document.getElementById('prod-price').value = product.price || '';
+  document.getElementById('prod-price-orig').value = product.priceOriginal || '';
+  document.getElementById('prod-desc').value = product.description || '';
+  document.getElementById('prod-gender').value = product.gender || 'men';
+  document.getElementById('prod-type').value = product.type || 'hoodie';
+  document.getElementById('prod-season').value = product.season || 'all';
+  document.getElementById('prod-images').value = (product.images || []).join(', ');
+
+  // ملء الخيارات
+  document.getElementById('variants-container').innerHTML = '';
+  (product.variants || []).forEach(v => {
+    addVariantRow(v.color, v.size, v.stock);
+  });
+
+  // الانتقال لتبويب التعديل
+  document.querySelector('[data-tab="add-product"]').click();
+}
+
+// ==============================================
+// حذف منتج
+// ==============================================
+async function deleteProduct() {
+  if (!currentEditProductId) return;
+  if (!confirm(t('confirm_delete'))) return;
+
+  try {
+    await db.collection('products').doc(currentEditProductId).delete();
+    showToast(t('product_deleted'));
+    resetForm();
+    loadProducts();
+    document.querySelector('[data-tab="products"]').click();
+  } catch (err) {
+    showToast('❌ خطأ في الحذف: ' + err.message, 'error');
+  }
+}
+
+// ==============================================
+// إعادة تعيين النموذج
+// ==============================================
+function resetForm() {
+  currentEditProductId = null;
+  document.getElementById('product-form').reset();
+  document.getElementById('form-title').textContent = t('tab_add_product');
+  document.getElementById('save-btn').querySelector('span').textContent = t('save_product');
+  document.getElementById('delete-btn').classList.add('hidden');
+  document.getElementById('variants-container').innerHTML = '';
+  addVariantRow();
+}
+
+// ==============================================
+// تحميل الطلبات
+// ==============================================
+async function loadOrders() {
+  try {
+    const snap = await db.collection('orders').orderBy('createdAt', 'desc').limit(100).get();
+    allOrders = [];
+    snap.forEach(doc => {
+      allOrders.push({ id: doc.id, ...doc.data() });
+    });
+    filteredOrders = [...allOrders];
+    renderOrdersList();
+  } catch (err) {
+    console.error('Load orders error:', err);
+    document.getElementById('orders-list').innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
+  }
+}
+
+function filterOrders(keyword) {
+  const kw = keyword.toLowerCase().trim();
+  if (!kw) {
+    filteredOrders = [...allOrders];
+  } else {
+    filteredOrders = allOrders.filter(o => 
+      o.id.toLowerCase().includes(kw) ||
+      (o.customerName || '').toLowerCase().includes(kw) ||
+      (o.customerEmail || '').toLowerCase().includes(kw)
+    );
+  }
+  renderOrdersList();
+}
+
+function renderOrdersList() {
+  const list = document.getElementById('orders-list');
+  if (filteredOrders.length === 0) {
+    list.innerHTML = `<p class="text-center text-gray-400 py-6">${t('no_orders')}</p>`;
+    return;
+  }
+
+  list.innerHTML = filteredOrders.map(order => {
+    const itemsList = (order.items || []).map(i => `${i.name} × ${i.qty} (${i.color} / ${i.size})`).join('<br>');
+    const statusClass = getStatusClass(order.status || 'pending');
+    const statusText = getStatusText(order.status || 'pending');
+    const createdAt = order.createdAt ? new Date(order.createdAt.toDate()).toLocaleString('ar-AE') : '-';
+    const deliveryDate = order.deliveryDate || '';
+    const customerEmail = order.customerEmail || '';
+
+    return `
+      <div class="card p-4 border-l-4 border-gray-200">
+        <div class="flex flex-wrap justify-between items-start gap-2 mb-3">
+          <div>
+            <h4 class="font-bold text-lg">${t('order_id')}: ${order.id.slice(0, 8)}...</h4>
+            <p class="text-sm text-gray-500">${createdAt}</p>
+          </div>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-4 mb-3 text-sm">
+          <div>
+            <p><strong>${t('customer_name')}:</strong> ${order.customerName || '-'}</p>
+            <p><strong>${t('customer_email')}:</strong> ${customerEmail || '-'}</p>
+            <p><strong>${t('customer_phone')}:</strong> ${order.customerPhone || '-'}</p>
+          </div>
+          <div>
+            <p><strong>${t('order_address')}:</strong> ${order.address || '-'}</p>
+            <p><strong>${t('order_total')}:</strong> ${order.totalPrice || 0} درهم</p>
+            <p><strong>${t('delivery_date')}:</strong> ${deliveryDate || 'غير محدد'}</p>
+          </div>
+        </div>
+        
+        <div class="text-sm bg-gray-50 p-2 rounded mb-3">
+          <strong>${t('order_items')}:</strong><br>
+          ${itemsList}
+        </div>
+
+        <!-- خطوات التحديث والإيميل -->
+        <div class="border-t pt-3 space-y-3">
+          <div class="flex flex-wrap gap-2">
+            <button class="btn btn-sm ${order.status==='pending'?'btn-primary':'btn-success'}" 
+                    onclick="updateOrderStatus('${order.id}', 'confirmed', '${customerEmail}')" ${order.status!=='pending'?'disabled':''}>
+              <i class="fa-solid fa-check-circle ml-1"></i> ${t('step1')}
+            </button>
+            <button class="btn btn-sm ${order.status==='confirmed'?'btn-primary':'bg-gray-200 text-gray-500'}" 
+                    onclick="updateOrderStatus('${order.id}', 'preparing', '${customerEmail}')" ${order.status!=='confirmed'?'disabled':''}>
+              <i class="fa-solid fa-box ml-1"></i> ${t('step2')}
+            </button>
+            <button class="btn btn-sm ${order.status==='preparing'?'btn-primary':'bg-gray-200 text-gray-500'}" 
+                    onclick="updateOrderStatus('${order.id}', 'shipping', '${customerEmail}')" ${order.status!=='preparing'?'disabled':''}>
+              <i class="fa-solid fa-truck ml-1"></i> ${t('step3')}
+            </button>
+            <button class="btn btn-sm bg-gray-100 border" style="border:1px solid #ccc;" onclick="openDeliveryDateModal('${order.id}', '${customerEmail}')">
+              <i class="fa-solid fa-calendar-check ml-1"></i> ${t('step4')}
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="cancelOrder('${order.id}', '${customerEmail}')" ${order.status==='delivered'||order.status==='cancelled'?'disabled':''}>
+              <i class="fa-solid fa-ban ml-1"></i> ${t('cancel_order')}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ==============================================
+// تحديث حالة الطلب وإرسال الإيميل
+// ==============================================
+async function updateOrderStatus(orderId, newStatus, customerEmail) {
+  try {
+    await db.collection('orders').doc(orderId).update({
+      status: newStatus,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // خصم المخزون عند التأكيد
+    if (newStatus === 'confirmed') {
+      await deductStockWhenConfirmed(orderId);
+    }
+
+    // إرسال إيميل فقط عند التأكيد
+    if (newStatus === 'confirmed' && customerEmail && customerEmail.includes('@')) {
+      try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
+          to_email: customerEmail,
+          order_id: orderId,
+          status: getStatusText(newStatus)
+        });
+        showToast(t('status_updated'));
+      } catch (emailErr) {
+        console.warn('Email sent but error:', emailErr);
+        showToast('✅ تم التحديث — فشل إرسال الإيميل', 'warning');
+      }
+    } else if (!customerEmail || !customerEmail.includes('@')) {
+      showToast('✅ تم التحديث — بريد العميل غير صالح، لم يُرسل', 'warning');
+    } else {
+      showToast('✅ تم تحديث الحالة');
+    }
+
+    loadOrders();
+  } catch (err) {
+    console.error('Update status error:', err);
+    showToast('❌ خطأ في التحديث: ' + err.message, 'error');
+  }
+}
+
+// ==============================================
+// خصم الكمية من المخزون عند تأكيد الطلب
+// ==============================================
+async function deductStockWhenConfirmed(orderId) {
+  try {
+    const orderDoc = await db.collection('orders').doc(orderId).get();
+    const order = orderDoc.data();
+    if (!order || !order.items) return;
+
+    const batch = db.batch();
+
+    for (const item of order.items) {
+      if (!item.productId || !item.color || !item.size || !item.qty) continue;
+
+      const productRef = db.collection('products').doc(item.productId);
+      const productDoc = await productRef.get();
+      if (!productDoc.exists) continue;
+
+      const product = productDoc.data();
+      const variants = product.variants || [];
+
+      // خصم الكمية من المتغير المطابق
+      const variantIndex = variants.findIndex(v => 
+        String(v.color).trim() === String(item.color).trim() && 
+        String(v.size).trim() === String(item.size).trim()
+      );
+
+      if (variantIndex !== -1) {
+        variants[variantIndex].stock = Math.max(0, (variants[variantIndex].stock || 0) - item.qty);
+        batch.update(productRef, { variants });
+      }
+    }
+
+    await batch.commit();
+  } catch (err) {
+    console.error('Deduct stock error:', err);
+  }
+}
+
+// ==============================================
+// تحديد تاريخ التوصيل
+// ==============================================
+async function openDeliveryDateModal(orderId, customerEmail) {
+  const deliveryDate = prompt(`أدخل تاريخ التوصيل المتوقع (مثال: 15 سبتمبر 2026):`);
+  if (!deliveryDate || !deliveryDate.trim()) return;
+
+  try {
+    await db.collection('orders').doc(orderId).update({
+      status: 'delivered',
+      deliveryDate: deliveryDate.trim(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('✅ تم حفظ تاريخ التوصيل وتحديث الحالة');
+    loadOrders();
   } catch (err) {
     showToast('❌ خطأ: ' + err.message, 'error');
   }
-});
+}
 
-// تحميل المنتجات
-async function loadProducts() {
-  const list = document.getElementById('products-list');
+// ==============================================
+// إلغاء الطلب وإرجاع المخزون
+// ==============================================
+async function cancelOrder(orderId, customerEmail) {
+  if (!confirm('هل أنت متأكد من إلغاء هذا الطلب؟ سيتم إرجاع الكميات للمخزون')) return;
+
   try {
-    const snap = await db.collection('products').orderBy('createdAt','desc').get();
-    list.innerHTML = '';
-    snap.forEach(doc => {
-      const p = { id: doc.id, ...doc.data() };
-      const totalStock = (p.variants || []).reduce((sum,v) => sum + (v.stock||0), 0);
-      list.innerHTML += `
-        <div class="bg-white rounded-xl shadow-sm p-4 border flex justify-between items-center">
-          <div>
-            <h4 class="font-bold text-lg">${p.name}</h4>
-            <p class="text-sm text-gray-500">${p.price} درهم | المخزون: ${totalStock} قطعة</p>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="editProduct('${doc.id}')" class="bg-blue-500 text-white px-3 py-1 rounded">تعديل</button>
-            <button onclick="deleteProduct('${doc.id}')" class="bg-red-500 text-white px-3 py-1 rounded">حذف</button>
-          </div>
-        </div>
-      `;
-    });
-  } catch (err) {
-    list.innerHTML = `<p class="text-red-500">خطأ في التحميل: ${err.message}</p>`;
-  }
-}
-
-window.editProduct = async function(id) {
-  const doc = await db.collection('products').doc(id).get();
-  if (!doc.exists) return;
-  const p = { id: doc.id, ...doc.data() };
-  
-  document.getElementById('product-form').classList.remove('hidden');
-  document.getElementById('form-title').textContent = 'تعديل المنتج';
-  document.getElementById('prod-id').value = p.id;
-  document.getElementById('prod-name').value = p.name || '';
-  document.getElementById('prod-price').value = p.price || '';
-  document.getElementById('prod-price-orig').value = p.priceOriginal || '';
-  document.getElementById('prod-gender').value = p.gender || 'men';
-  document.getElementById('prod-type').value = p.type || '';
-  document.getElementById('prod-season').value = p.season || '';
-  document.getElementById('prod-images').value = (p.images || []).join(', ');
-  
-  const vars = (p.variants || []).map(v => `${v.color} | ${v.size} | ${v.stock}`).join('\n');
-  document.getElementById('prod-variants').value = vars;
-};
-
-window.deleteProduct = async function(id) {
-  if (!confirm('متأكد من الحذف؟')) return;
-  await db.collection('products').doc(id).delete();
-  showToast('✅ تم الحذف');
-  loadProducts();
-};
-
-// تحميل الطلبات
-async function loadOrders() {
-  const list = document.getElementById('orders-list');
-  try {
-    const snap = await db.collection('orders').orderBy('createdAt','desc').limit(50).get();
-    list.innerHTML = '';
-    if (snap.empty) {
-      list.innerHTML = '<p class="text-gray-500">لا توجد طلبات بعد</p>';
-      return;
+    // إرجاع المخزون أولاً
+    const orderDoc = await db.collection('orders').doc(orderId).get();
+    const order = orderDoc.data();
+    if (order && order.items) {
+      const batch = db.batch();
+      for (const item of order.items) {
+        if (!item.productId || !item.color || !item.size || !item.qty) continue;
+        const productRef = db.collection('products').doc(item.productId);
+        const productDoc = await productRef.get();
+        if (!productDoc.exists) continue;
+        const product = productDoc.data();
+        const variants = product.variants || [];
+        const variantIndex = variants.findIndex(v => 
+          String(v.color).trim() === String(item.color).trim() && 
+          String(v.size).trim() === String(item.size).trim()
+        );
+        if (variantIndex !== -1) {
+          variants[variantIndex].stock = (variants[variantIndex].stock || 0) + item.qty;
+          batch.update(productRef, { variants });
+        }
+      }
+      await batch.commit();
     }
-    snap.forEach(doc => {
-      const o = { id: doc.id, ...doc.data() };
-      list.innerHTML += `
-        <div class="bg-white rounded-xl shadow-sm p-4 border">
-          <div class="flex justify-between items-start mb-2">
-            <span class="font-bold">طلب #${o.id.slice(0,8)}</span>
-            <span class="px-2 py-1 rounded text-sm font-medium ${
-              o.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-              o.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
-              o.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-              'bg-yellow-100 text-yellow-700'
-            }">${o.status || 'pending'}</span>
-          </div>
-          <p class="text-sm text-gray-600">الاسم: ${o.fullName || '-'}</p>
-          <p class="text-sm text-gray-600">الإيميل: ${o.email || '-'}</p>
-          <p class="text-sm text-gray-600">المجموع: ${o.total || 0} درهم</p>
-        </div>
-      `;
-    });
-  } catch (err) {
-    list.innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
-  }
-}
 
-// تسجيل الخروج
-window.logout = async function() {
-  await auth.signOut();
-  window.location.href = 'index.html';
-};
-
-// فحص الصلاحية
-function checkAdminAccess(user) {
-  const accessDenied = document.getElementById('access-denied');
-  const adminContent = document.getElementById('admin-content');
-  
-  if (user && user.email === ADMIN_EMAIL) {
-    accessDenied.classList.add('hidden');
-    adminContent.classList.remove('hidden');
-    loadProducts();
-  } else {
-    accessDenied.classList.remove('hidden');
-    adminContent.classList.add('hidden');
-    if (user) {
-      setTimeout(() => auth.signOut(), 3000);
-    }
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  auth.onAuthStateChanged(user => {
-    if (!user) {
-      window.location.href = 'login.html?redirect=admin.html';
-      return;
-    }
-    checkAdminAccess(user);
-  });
-});
-</script>
-
-</body>
-</html>
+   
