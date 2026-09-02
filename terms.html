@@ -3,17 +3,120 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>الشروط والأحكام - VAREN</title>
+  <title data-i18n="page_title">الشروط والأحكام - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
+    html[lang="en"] { direction: ltr; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
+<script>
+const translations = {
+  ar: {
+    page_title: "الشروط والأحكام - VAREN",
+    back_home: "العودة للرئيسية",
+    title: "الشروط والأحكام",
+    last_updated: "آخر تحديث: 1 سبتمبر 2026",
+    welcome: "مرحباً بكم في متجر VAREN. باستخدامكم لهذا الموقع وخدماتنا، فإنكم توافقون على الشروط والأحكام التالية. يرجى قراءتها بعناية قبل إجراء أي طلب.",
+    section1_title: "1. القبول بالشروط",
+    section1_text: "الوصول إلى الموقع واستخدام خدماته يعني موافقتكم الكاملة على هذه الشروط. إذا كنتم لا توافقون عليها، يرجى عدم استخدام الموقع.",
+    section2_title: "2. الحسابات والتسجيل",
+    section2_item1: "عند إنشاء حساب، يجب تقديم معلومات دقيقة وكاملة ومحدثة",
+    section2_item2: "أنتم مسؤولون عن الحفاظ على سرية بيانات الدخول لحسابكم",
+    section2_item3: "أنتم مسؤولون عن جميع الأنشطة التي تتم من خلال حسابكم",
+    section2_item4: "يجب إبلاغنا فوراً في حال وجود استخدام غير مصرح به للحساب",
+    section3_title: "3. الطلبات والدفع",
+    section3_item1: "جميع الأسعار معروضة بالدرهم الإماراتي ما لم يُذكر غير ذلك",
+    section3_item2: "نحتفظ بالحق في تعديل الأسعار في أي وقت قبل تأكيد الطلب",
+    section3_item3: "عند إتمام الطلب، ستصلك رسالة تأكيد عبر البريد الإلكتروني",
+    section3_item4: "نحتفظ بالحق في رفض أو إلغاء أي طلب لأسباب تشمل عدم توفر المنتج، خطأ في التسعير، أو اكتشاف احتيال",
+    section4_title: "4. توفر المنتجات والصور",
+    section4_text: "جميع المنتجات معروضة حسب توفر المخزون. نبذل قصارى جهدنا لضمان دقة الصور والألوان والمعلومات، لكن قد توجد اختلافات طفيفة نتيجة لاختلاف شاشات العرض أو عمليات التصنيع.",
+    section5_title: "5. الشحن والتوصيل",
+    section5_item1: "مواعيد التوصيل تقديرية وقد تتأخر قليلاً لأسباب خارجة عن سيطرتنا",
+    section5_item2: "المسؤولية عن الطلب تنتقل إليكم عند استلامه من شركة الشحن",
+    section5_item3: "تكاليف الشحن تظهر بوضوح قبل تأكيد الطلب",
+    section6_title: "6. سياسة الإرجاع والاستبدال",
+    section6_text: "يمكنكم إرجاع أو استبدال المنتجات خلال 7 أيام من تاريخ الاستلام، بشرط أن تكون بحالتها الأصلية، مع ملصقاتها، وغير مستخدمة. يُستثنى من ذلك المنتجات المُصنعة حسب الطلب أو المنتجات الصحية. تكاليف الشحن للإرجاع يتحملها العميل ما لم يكن السبب خطأ منا.",
+    section7_title: "7. الملكية الفكرية",
+    section7_text: "جميع المحتويات في الموقع — بما في ذلك النصوص، الصور، الشعارات، والتصاميم — هي ملك لـ VAREN أو الجهات المانحة للترخيص، ويُحظر نسخها أو توزيعها دون إذن كتابي.",
+    section8_title: "8. حدود المسؤولية",
+    section8_text: "لا نتحمل المسؤولية عن أي أضرار مباشرة أو غير مباشرة تنجم عن استخدام الموقع أو عدم القدرة على استخدامه، أو عن تأخير في التوصيل ناتج عن ظروف خارجة عن سيطرتنا.",
+    section9_title: "9. تعديلات الشروط",
+    section9_text: "نحتفظ بالحق في تعديل هذه الشروط في أي وقت. التغييرات سارية فور نشرها على الصفحة، واستمرار استخدام الموقع يعني موافقتكم عليها.",
+    section10_title: "10. التواصل",
+    section10_text: "لأي استفسار بخصوص هذه الشروط، يمكنكم مراسلتنا عبر صفحة",
+    contact_link: "تواصل معنا",
+    footer_about: "من نحن",
+    footer_privacy: "سياسة الخصوصية",
+    footer_terms: "الشروط والأحكام",
+    footer_contact: "تواصل معنا",
+    footer_rights: "جميع الحقوق محفوظة."
+  },
+  en: {
+    page_title: "Terms & Conditions - VAREN",
+    back_home: "Back to Home",
+    title: "Terms & Conditions",
+    last_updated: "Last updated: September 1, 2026",
+    welcome: "Welcome to VAREN. By accessing our website and using our services, you agree to be bound by the following terms and conditions. Please read them carefully before placing any order.",
+    section1_title: "1. Acceptance of Terms",
+    section1_text: "Accessing and using this website means your full acceptance of these terms. If you do not agree, please do not use the website.",
+    section2_title: "2. Accounts & Registration",
+    section2_item1: "When creating an account, you must provide accurate, complete, and up-to-date information",
+    section2_item2: "You are responsible for maintaining the confidentiality of your login credentials",
+    section2_item3: "You are responsible for all activities conducted through your account",
+    section2_item4: "Notify us immediately of any unauthorized use of your account",
+    section3_title: "3. Orders & Payment",
+    section3_item1: "All prices are displayed in AED unless otherwise stated",
+    section3_item2: "We reserve the right to modify prices at any time before order confirmation",
+    section3_item3: "Upon order completion, you will receive a confirmation email",
+    section3_item4: "We reserve the right to refuse or cancel any order for reasons including product unavailability, pricing errors, or detected fraud",
+    section4_title: "4. Product Availability & Images",
+    section4_text: "All products are subject to stock availability. We strive to ensure images, colors, and details are accurate, though slight variations may occur due to display differences or manufacturing processes.",
+    section5_title: "5. Shipping & Delivery",
+    section5_item1: "Delivery dates are estimates and may be delayed due to circumstances beyond our control",
+    section5_item2: "Responsibility for the order transfers to you upon delivery by the carrier",
+    section5_item3: "Shipping costs are clearly displayed before order confirmation",
+    section6_title: "6. Return & Exchange Policy",
+    section6_text: "You may return or exchange products within 7 days of delivery, provided they are in original condition, with tags attached, and unused. Custom-made or hygiene products are excluded. Return shipping costs are borne by the customer unless the error is ours.",
+    section7_title: "7. Intellectual Property",
+    section7_text: "All website content — including text, images, logos, and designs — is the property of VAREN or its licensors, and may not be copied or distributed without written permission.",
+    section8_title: "8. Limitation of Liability",
+    section8_text: "We are not liable for any direct or indirect damages arising from your use or inability to use this website, or from delivery delays caused by circumstances beyond our control.",
+    section9_title: "9. Amendments to Terms",
+    section9_text: "We reserve the right to update these terms at any time. Changes take effect immediately upon posting, and continued use of the website constitutes your acceptance.",
+    section10_title: "10. Contact",
+    section10_text: "For any questions regarding these terms, please contact us via",
+    contact_link: "Contact Us",
+    footer_about: "About Us",
+    footer_privacy: "Privacy Policy",
+    footer_terms: "Terms & Conditions",
+    footer_contact: "Contact Us",
+    footer_rights: "All rights reserved."
+  }
+};
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+}
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+document.addEventListener('DOMContentLoaded', () => setLanguage(getCurrentLanguage()));
+</script>
+
+<!-- ✅ شعار ورابط العودة -->
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="flex items-center gap-3">
@@ -21,91 +124,93 @@
       <span class="text-2xl font-black text-gray-900">VAREN</span>
     </a>
     <a href="index.html" class="text-sm text-gray-600 hover:text-black">
-      <i class="fa-solid fa-arrow-right ml-1"></i> العودة للرئيسية
+      <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="back_home">العودة للرئيسية</span>
     </a>
   </div>
 </nav>
 
+<!-- ✅ المحتوى كما هو بالضبط -->
 <main class="max-w-3xl mx-auto px-4 py-12">
-  <h1 class="text-4xl font-bold mb-8 text-center">الشروط والأحكام</h1>
-  <p class="text-sm text-gray-500 text-center mb-8">آخر تحديث: 1 سبتمبر 2026</p>
+  <h1 class="text-4xl font-bold mb-8 text-center" data-i18n="title">الشروط والأحكام</h1>
+  <p class="text-sm text-gray-500 text-center mb-8" data-i18n="last_updated">آخر تحديث: 1 سبتمبر 2026</p>
   
   <div class="bg-white rounded-xl shadow-sm p-8 space-y-6">
-    <p class="leading-relaxed">
+    <p class="leading-relaxed" data-i18n="welcome">
       مرحباً بكم في متجر VAREN. باستخدامكم لهذا الموقع وخدماتنا، فإنكم توافقون على الشروط والأحكام التالية. يرجى قراءتها بعناية قبل إجراء أي طلب.
     </p>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">1. القبول بالشروط</h2>
-    <p class="leading-relaxed">
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section1_title">1. القبول بالشروط</h2>
+    <p class="leading-relaxed" data-i18n="section1_text">
       الوصول إلى الموقع واستخدام خدماته يعني موافقتكم الكاملة على هذه الشروط. إذا كنتم لا توافقون عليها، يرجى عدم استخدام الموقع.
     </p>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">2. الحسابات والتسجيل</h2>
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section2_title">2. الحسابات والتسجيل</h2>
     <ul class="list-disc list-inside space-y-2">
-      <li>عند إنشاء حساب، يجب تقديم معلومات دقيقة وكاملة ومحدثة</li>
-      <li>أنتم مسؤولون عن الحفاظ على سرية بيانات الدخول لحسابكم</li>
-      <li>أنتم مسؤولون عن جميع الأنشطة التي تتم من خلال حسابكم</li>
-      <li>يجب إبلاغنا فوراً في حال وجود استخدام غير مصرح به للحساب</li>
+      <li data-i18n="section2_item1">عند إنشاء حساب، يجب تقديم معلومات دقيقة وكاملة ومحدثة</li>
+      <li data-i18n="section2_item2">أنتم مسؤولون عن الحفاظ على سرية بيانات الدخول لحسابكم</li>
+      <li data-i18n="section2_item3">أنتم مسؤولون عن جميع الأنشطة التي تتم من خلال حسابكم</li>
+      <li data-i18n="section2_item4">يجب إبلاغنا فوراً في حال وجود استخدام غير مصرح به للحساب</li>
     </ul>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">3. الطلبات والدفع</h2>
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section3_title">3. الطلبات والدفع</h2>
     <ul class="list-disc list-inside space-y-2">
-      <li>جميع الأسعار معروضة بالدرهم الإماراتي ما لم يُذكر غير ذلك</li>
-      <li>نحتفظ بالحق في تعديل الأسعار في أي وقت قبل تأكيد الطلب</li>
-      <li>عند إتمام الطلب، ستصلك رسالة تأكيد عبر البريد الإلكتروني</li>
-      <li>نحتفظ بالحق في رفض أو إلغاء أي طلب لأسباب تشمل عدم توفر المنتج، خطأ في التسعير، أو اكتشاف احتيال</li>
+      <li data-i18n="section3_item1">جميع الأسعار معروضة بالدرهم الإماراتي ما لم يُذكر غير ذلك</li>
+      <li data-i18n="section3_item2">نحتفظ بالحق في تعديل الأسعار في أي وقت قبل تأكيد الطلب</li>
+      <li data-i18n="section3_item3">عند إتمام الطلب، ستصلك رسالة تأكيد عبر البريد الإلكتروني</li>
+      <li data-i18n="section3_item4">نحتفظ بالحق في رفض أو إلغاء أي طلب لأسباب تشمل عدم توفر المنتج، خطأ في التسعير، أو اكتشاف احتيال</li>
     </ul>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">4. توفر المنتجات والصور</h2>
-    <p class="leading-relaxed">
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section4_title">4. توفر المنتجات والصور</h2>
+    <p class="leading-relaxed" data-i18n="section4_text">
       جميع المنتجات معروضة حسب توفر المخزون. نبذل قصارى جهدنا لضمان دقة الصور والألوان والمعلومات، لكن قد توجد اختلافات طفيفة نتيجة لاختلاف شاشات العرض أو عمليات التصنيع.
     </p>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">5. الشحن والتوصيل</h2>
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section5_title">5. الشحن والتوصيل</h2>
     <ul class="list-disc list-inside space-y-2">
-      <li>مواعيد التوصيل تقديرية وقد تتأخر قليلاً لأسباب خارجة عن سيطرتنا</li>
-      <li>المسؤولية عن الطلب تنتقل إليكم عند استلامه من شركة الشحن</li>
-      <li>تكاليف الشحن تظهر بوضوح قبل تأكيد الطلب</li>
+      <li data-i18n="section5_item1">مواعيد التوصيل تقديرية وقد تتأخر قليلاً لأسباب خارجة عن سيطرتنا</li>
+      <li data-i18n="section5_item2">المسؤولية عن الطلب تنتقل إليكم عند استلامه من شركة الشحن</li>
+      <li data-i18n="section5_item3">تكاليف الشحن تظهر بوضوح قبل تأكيد الطلب</li>
     </ul>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">6. سياسة الإرجاع والاستبدال</h2>
-    <p class="leading-relaxed">
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section6_title">6. سياسة الإرجاع والاستبدال</h2>
+    <p class="leading-relaxed" data-i18n="section6_text">
       يمكنكم إرجاع أو استبدال المنتجات خلال 7 أيام من تاريخ الاستلام، بشرط أن تكون بحالتها الأصلية، مع ملصقاتها، وغير مستخدمة. يُستثنى من ذلك المنتجات المُصنعة حسب الطلب أو المنتجات الصحية. تكاليف الشحن للإرجاع يتحملها العميل ما لم يكن السبب خطأ منا.
     </p>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">7. الملكية الفكرية</h2>
-    <p class="leading-relaxed">
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section7_title">7. الملكية الفكرية</h2>
+    <p class="leading-relaxed" data-i18n="section7_text">
       جميع المحتويات في الموقع — بما في ذلك النصوص، الصور، الشعارات، والتصاميم — هي ملك لـ VAREN أو الجهات المانحة للترخيص، ويُحظر نسخها أو توزيعها دون إذن كتابي.
     </p>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">8. حدود المسؤولية</h2>
-    <p class="leading-relaxed">
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section8_title">8. حدود المسؤولية</h2>
+    <p class="leading-relaxed" data-i18n="section8_text">
       لا نتحمل المسؤولية عن أي أضرار مباشرة أو غير مباشرة تنجم عن استخدام الموقع أو عدم القدرة على استخدامه، أو عن تأخير في التوصيل ناتج عن ظروف خارجة عن سيطرتنا.
     </p>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">9. تعديلات الشروط</h2>
-    <p class="leading-relaxed">
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section9_title">9. تعديلات الشروط</h2>
+    <p class="leading-relaxed" data-i18n="section9_text">
       نحتفظ بالحق في تعديل هذه الشروط في أي وقت. التغييرات سارية فور نشرها على الصفحة، واستمرار استخدام الموقع يعني موافقتكم عليها.
     </p>
     
-    <h2 class="text-2xl font-bold mt-8 mb-2">10. التواصل</h2>
+    <h2 class="text-2xl font-bold mt-8 mb-2" data-i18n="section10_title">10. التواصل</h2>
     <p class="leading-relaxed">
-      لأي استفسار بخصوص هذه الشروط، يمكنكم مراسلتنا عبر صفحة <a href="contact.html" class="text-blue-600 hover:underline">تواصل معنا</a>.
+      <span data-i18n="section10_text">لأي استفسار بخصوص هذه الشروط، يمكنكم مراسلتنا عبر صفحة</span>
+      <a href="contact.html" class="text-blue-600 hover:underline" data-i18n="contact_link">تواصل معنا</a>.
     </p>
   </div>
 </main>
 
+<!-- ✅ تذييل موحّد -->
 <footer class="bg-gray-900 text-white py-8 mt-12">
   <div class="max-w-7xl mx-auto px-4 text-center">
-    <p>&copy; 2026 VAREN. جميع الحقوق محفوظة.</p>
+    <p>&copy; 2026 VAREN. <span data-i18n="footer_rights">جميع الحقوق محفوظة.</span></p>
     <div class="mt-3 flex justify-center gap-6 text-sm">
-      <a href="about.html" class="hover:underline">من نحن</a>
-      <a href="privacy.html" class="hover:underline">سياسة الخصوصية</a>
-      <a href="terms.html" class="hover:underline">الشروط والأحكام</a>
-      <a href="contact.html" class="hover:underline">تواصل معنا</a>
+      <a href="about.html" class="hover:underline" data-i18n="footer_about">من نحن</a>
+      <a href="privacy.html" class="hover:underline" data-i18n="footer_privacy">سياسة الخصوصية</a>
+      <a href="terms.html" class="hover:underline" data-i18n="footer_terms">الشروط والأحكام</a>
+      <a href="contact.html" class="hover:underline" data-i18n="footer_contact">تواصل معنا</a>
     </div>
   </div>
 </footer>
-
 </body>
 </html>
