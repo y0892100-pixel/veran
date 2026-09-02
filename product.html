@@ -6,357 +6,390 @@
   <title>تفاصيل المنتج - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" type="image/png" href="varen.jpeg">
+  <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-    .modal.active { display: flex; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    html[lang="en"] { direction: ltr; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
-    .img-thumb { transition: all 0.2s; border: 2px solid transparent; }
-    .img-thumb.active { border-color: black; }
-    .size-option, .color-option { @apply border rounded-lg w-12 h-12 flex items-center justify-center cursor-pointer; }
-    .size-option.selected, .color-option.selected { @apply bg-black text-white border-black; }
-    .size-option.unavailable { @apply opacity-40 cursor-not-allowed; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    .color-option.selected { border: 3px solid black; }
+    .size-option.selected { background: black; color: white; }
+    .main-image { cursor: zoom-in; }
+    .thumbnail { cursor: pointer; border: 2px solid transparent; }
+    .thumbnail.active { border-color: black; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, collection, query, where, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import firebaseConfig from './firebase-config.js';
-    import * as Store from './store.js';
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const googleProvider = new GoogleAuthProvider();
-    window.app = { auth, db, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile, doc, getDoc, collection, query, where, limit, getDocs };
-    window.Store = Store;
-  </script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
+<script>
+const translations = {
+  ar: {
+    page_title: "تفاصيل المنتج - VAREN",
+    back: "الرجوع",
+    price: "السعر",
+    original_price: "السعر الأصلي",
+    color: "اللون",
+    size: "المقاس",
+    stock: "المتوفر",
+    qty: "الكمية",
+    add_to_cart: "أضف إلى السلة",
+    added: "✅ تمت الإضافة إلى السلة",
+    no_color_size: "الرجاء اختيار اللون والمقاس أولاً",
+    out_of_stock: "⚠️ غير متوفر حالياً",
+    max_qty: "⚠️ الكمية تتجاوز المخزون المتاح",
+    not_found: "المنتج غير موجود"
+  },
+  en: {
+    page_title: "Product Details - VAREN",
+    back: "Back",
+    price: "Price",
+    original_price: "Original Price",
+    color: "Color",
+    size: "Size",
+    stock: "In Stock",
+    qty: "Quantity",
+    add_to_cart: "Add to Cart",
+    added: "✅ Added to Cart",
+    no_color_size: "Please select color and size first",
+    out_of_stock: "⚠️ Out of stock",
+    max_qty: "⚠️ Exceeds available stock",
+    not_found: "Product not found"
+  }
+};
+
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+}
+
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+
+function t(key) {
+  return translations[getCurrentLanguage()][key] || key;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+});
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
+  authDomain: "varen-f7756.firebaseapp.com",
+  projectId: "varen-f7756",
+  storageBucket: "varen-f7756.firebasestorage.app",
+  messagingSenderId: "648684291842",
+  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
+  measurementId: "G-SV7DKGPH2M"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+</script>
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <div class="hidden md:flex gap-8">
-      <a href="index.html" class="hover:text-gray-600">الرئيسية</a>
-      <a href="category.html?gender=women" class="hover:text-gray-600">نسائي</a>
-      <a href="category.html?gender=men" class="hover:text-gray-600">رجالي</a>
-      <a href="category.html?gender=girls" class="hover:text-gray-600">بنات</a>
-      <a href="category.html?gender=boys" class="hover:text-gray-600">أولاد</a>
-    </div>
-    <div class="flex items-center gap-4">
-      <a href="cart.html" class="text-xl relative">
-        <i class="fa-solid fa-cart-shopping"></i>
-        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-      </a>
-      <div id="user-area">
-        <button id="login-btn" onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>
-      </div>
-    </div>
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
+    </a>
+    <a href="javascript:history.back()" class="text-sm text-gray-600 hover:text-black">
+      <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="back">الرجوع</span>
+    </a>
   </div>
 </nav>
 
 <main class="max-w-7xl mx-auto px-4 py-8">
-  <button onclick="history.back()" class="mb-6 flex items-center gap-2 text-gray-600 hover:text-black">
-    <i class="fa-solid fa-arrow-right"></i>
-    <span>الرجوع للمنتجات</span>
-  </button>
-
-  <div id="product-content" class="grid md:grid-cols-2 gap-10">
-    <p class="col-span-full text-center py-10">جاري التحميل...</p>
+  <div id="loading" class="text-center py-16">
+    <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
   </div>
 
-  <section id="related-section" class="mt-16 pt-10 border-t hidden">
-    <h2 class="text-2xl font-bold mb-6">منتجات مشابهة قد تعجبك</h2>
-    <div id="related-products" class="grid sm:grid-cols-2 md:grid-cols-4 gap-6"></div>
-  </section>
-</main>
-
-<div id="login-modal" class="modal">
-  <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">تسجيل الدخول</h2>
-      <button onclick="closeModal('login-modal')" class="text-gray-500 text-2xl">&times;</button>
+  <div id="product-content" class="hidden grid md:grid-cols-2 gap-8">
+    <!-- الصور -->
+    <div>
+      <div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-4">
+        <img id="main-image" src="" alt="" class="main-image w-full h-96 object-contain bg-gray-50">
+      </div>
+      <div id="thumbnails" class="flex gap-2 overflow-x-auto pb-2">
+        <!-- الصور المصغرة -->
+      </div>
     </div>
-    <div id="login-options">
-      <button onclick="loginWithGoogle()" class="w-full flex items-center justify-center gap-2 border border-gray-300 py-3 rounded-lg mb-4 hover:bg-gray-50">
-        <i class="fa-brands fa-google text-red-500"></i> الدخول بحساب قوقل
+
+    <!-- التفاصيل -->
+    <div class="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+      <h1 id="prod-name" class="text-3xl font-bold"></h1>
+      
+      <div class="flex items-baseline gap-3">
+        <span class="text-2xl font-bold text-black" data-i18n="price">السعر</span>
+        <span id="prod-price" class="text-2xl font-bold"></span>
+        <span id="prod-price-orig" class="text-lg text-gray-400 line-through hidden"></span>
+      </div>
+
+      <!-- الألوان -->
+      <div id="colors-section">
+        <h3 class="font-semibold mb-2" data-i18n="color">اللون</h3>
+        <div id="colors-list" class="flex flex-wrap gap-2">
+          <!-- خيارات الألوان -->
+        </div>
+      </div>
+
+      <!-- المقاسات -->
+      <div id="sizes-section">
+        <h3 class="font-semibold mb-2" data-i18n="size">المقاس</h3>
+        <div id="sizes-list" class="flex flex-wrap gap-2">
+          <!-- خيارات المقاسات -->
+        </div>
+      </div>
+
+      <!-- المخزون -->
+      <div>
+        <span class="font-semibold" data-i18n="stock">المتوفر</span>: 
+        <span id="stock-count" class="text-green-600 font-bold">-</span>
+      </div>
+
+      <!-- الكمية -->
+      <div class="flex items-center gap-4">
+        <span class="font-semibold" data-i18n="qty">الكمية</span>
+        <div class="flex items-center border rounded-lg overflow-hidden">
+          <button id="qty-minus" class="px-4 py-2 hover:bg-gray-100">-</button>
+          <input id="qty-input" type="number" value="1" min="1" class="w-12 text-center border-0 focus:outline-none">
+          <button id="qty-plus" class="px-4 py-2 hover:bg-gray-100">+</button>
+        </div>
+      </div>
+
+      <!-- زر الإضافة -->
+      <button id="add-cart-btn" class="w-full bg-black text-white py-3 rounded-lg font-semibold text-lg hover:bg-gray-800 mt-4">
+        <i class="fa-solid fa-cart-plus ml-2"></i> <span data-i18n="add_to_cart">أضف إلى السلة</span>
       </button>
-      <div class="flex items-center gap-4 my-4"><hr class="flex-1"><span>أو</span><hr class="flex-1"></div>
-      <button onclick="showEmailLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">الدخول بالإيميل</button>
-      <p class="text-center mt-4">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب جديد</button></p>
-    </div>
-    <div id="email-login" class="hidden">
-      <input type="email" id="login-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border border-gray-300 rounded-lg p-3 mb-4">
-      <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
-      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
-    </div>
-    <div id="register-form" class="hidden">
-      <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف على الأقل)" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="tel" id="reg-phone" placeholder="رقم الهاتف" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <textarea id="reg-address" placeholder="العنوان بالتفصيل" class="w-full border border-gray-300 rounded-lg p-3 mb-4" rows="2"></textarea>
-      <button onclick="registerUser()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">إنشاء حساب</button>
-      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
     </div>
   </div>
-</div>
+</main>
 
 <div id="toast" class="toast"></div>
 
 <script>
-let selectedSize = null;
+let productData = null;
 let selectedColor = null;
+let selectedSize = null;
+let maxStock = 0;
 
-window.openModal = id => { document.getElementById(id).classList.add('active'); };
-window.closeModal = id => { document.getElementById(id).classList.remove('active'); };
-window.showEmailLogin = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('email-login').classList.remove('hidden');
-};
-window.showRegister = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('register-form').classList.remove('hidden');
-};
-window.backToOptions = () => {
-  document.getElementById('login-options').classList.remove('hidden');
-  document.getElementById('email-login').classList.add('hidden');
-  document.getElementById('register-form').classList.add('hidden');
-};
-
-window.selectImage = src => {
-  document.getElementById('main-img').src = src;
-  document.querySelectorAll('.img-thumb').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-};
-
-window.selectColor = (colorName, el) => {
-  selectedColor = colorName;
-  document.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-};
-
-window.selectSize = (sizeName, el) => {
-  if (el.classList.contains('unavailable')) return;
-  selectedSize = sizeName;
-  document.querySelectorAll('.size-option').forEach(s => s.classList.remove('selected'));
-  el.classList.add('selected');
-};
-
-window.addToCart = (id, name, price, img) => {
-  if (!selectedSize) {
-    alert('الرجاء اختيار المقاس أولاً');
-    return;
-  }
-  window.Store.addToCart(id, name, price, img, selectedSize, selectedColor || 'غير محدد');
-};
-
-function updateUI(user) {
-  const area = document.getElementById('user-area');
-  if (user) {
-    area.innerHTML = `
-      <div class="relative" id="account-menu-container">
-        <button id="account-menu-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
-          <i class="fa-solid fa-user"></i>
-          <span>${user.displayName || 'حسابي'}</span>
-          <i class="fa-solid fa-chevron-down text-xs"></i>
-        </button>
-        <div id="account-menu" class="absolute left-0 bottom-full mb-2 w-48 bg-white shadow-lg rounded-lg p-2 hidden z-50">
-          <a href="account.html" class="block px-4 py-2 hover:bg-gray-100 rounded">حسابي</a>
-          <a href="orders.html" class="block px-4 py-2 hover:bg-gray-100 rounded">طلباتي</a>
-          <a href="returns.html" class="block px-4 py-2 hover:bg-gray-100 rounded">الاسترجاعات</a>
-          <hr class="my-2">
-          <button onclick="logout()" class="block w-full text-right px-4 py-2 text-red-500 hover:bg-gray-100 rounded">تسجيل الخروج</button>
-        </div>
-      </div>
-    `;
-    setTimeout(() => {
-      const btn = document.getElementById('account-menu-btn');
-      const menu = document.getElementById('account-menu');
-      if (!btn || !menu) return;
-      btn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); };
-      document.onclick = () => menu.classList.add('hidden');
-      menu.onclick = (e) => e.stopPropagation();
-    }, 10);
-  } else {
-    area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
-  }
-  window.Store.updateCartCount();
+function showToast(msg, type='success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-window.loginWithGoogle = async () => {
-  try {
-    await window.app.signInWithPopup(window.app.auth, window.app.googleProvider);
-    closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول بنجاح!');
-  } catch (e) {
-    window.Store.showToast(e.message, 'error');
-  }
-};
+function getCart() {
+  return JSON.parse(localStorage.getItem('varen_cart_v1') || '[]');
+}
 
-window.registerUser = async () => {
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const pass = document.getElementById('reg-password').value;
-  if (!name || !email || pass.length < 6) {
-    return window.Store.showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
-  }
-  try {
-    const cred = await window.app.createUserWithEmailAndPassword(window.app.auth, email, pass);
-    await window.app.updateProfile(cred.user, { displayName: name });
-    closeModal('login-modal');
-    window.Store.showToast('تم إنشاء الحساب بنجاح! ✅');
-  } catch (e) {
-    window.Store.showToast(e.message, 'error');
-  }
-};
+function saveCart(cart) {
+  localStorage.setItem('varen_cart_v1', JSON.stringify(cart));
+}
 
-window.loginWithEmail = async () => {
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-password').value;
-  try {
-    await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
-    closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول! ✅');
-  } catch (e) {
-    window.Store.showToast('إيميل أو كلمة مرور خاطئة', 'error');
-  }
-};
+function formatPrice(amount) {
+  const lang = getCurrentLanguage();
+  return `${amount.toFixed(2)} ${lang === 'ar' ? 'درهم' : 'AED'}`;
+}
 
-window.logout = async () => {
-  await window.app.signOut(window.app.auth);
-  window.Store.showToast('تم تسجيل الخروج');
-};
+// عرض الصور
+function setupImages(images) {
+  const mainImg = document.getElementById('main-image');
+  const thumbs = document.getElementById('thumbnails');
+  thumbs.innerHTML = '';
 
-document.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search);
-  const productId = params.get('id');
-  const contentEl = document.getElementById('product-content');
-  const relatedSection = document.getElementById('related-section');
-  const relatedEl = document.getElementById('related-products');
-
-  if (!productId) {
-    contentEl.innerHTML = '<p class="col-span-full text-center text-red-500">لم يتم تحديد المنتج</p>';
+  if (!images || images.length === 0) {
+    mainImg.src = 'https://via.placeholder.com/400';
     return;
   }
 
-  window.app.onAuthStateChanged(window.app.auth, updateUI);
-  loadProduct(productId);
+  mainImg.src = images[0];
+  thumbs.innerHTML = images.map((img, i) => `
+    <img src="${img}" alt="" class="thumbnail w-20 h-20 object-cover rounded ${i===0?'active':''}" 
+         onclick="changeMainImage('${img}', this)">
+  `).join('');
+}
 
-  async function loadProduct(id) {
-    try {
-      const snap = await window.app.getDoc(window.app.doc(window.app.db, 'products', id));
-      if (!snap.exists()) throw new Error('المنتج غير موجود');
-      
-      const p = snap.data();
-      const images = p.images && Array.isArray(p.images) && p.images.length > 0 
-        ? p.images 
-        : [p.img || 'https://via.placeholder.com/600x700?text=صورة+غير+متوفرة'];
-      const hasDiscount = p.priceOriginal && p.priceOriginal > p.price;
-      const isAvailable = p.available !== false;
+window.changeMainImage = function(src, el) {
+  document.getElementById('main-image').src = src;
+  document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+};
 
-      contentEl.innerHTML = `
-        <div>
-          <img id="main-img" src="${images[0]}" class="w-full h-[450px] object-cover rounded-xl mb-4">
-          <div class="grid grid-cols-5 gap-2">
-            ${images.map((img, i) => `
-              <img src="${img}" onclick="selectImage('${img}')" 
-                  class="img-thumb w-full h-20 object-cover rounded-lg cursor-pointer ${i===0?'active':''}">
-            `).join('')}
-          </div>
-        </div>
-        <div>
-          ${!isAvailable ? `<div class="bg-red-50 text-red-600 px-4 py-2 rounded-lg mb-4 font-semibold">غير متوفر حالياً ❌</div>` : ''}
-          ${isAvailable ? `<div class="bg-green-50 text-green-600 px-4 py-2 rounded-lg mb-4 font-semibold">متوفر ✅</div>` : ''}
-          
-          <h1 class="text-3xl font-bold mb-3">${p.name || 'منتج'}</h1>
-          
-          <div class="flex items-center gap-3 mb-6">
-            <span class="text-3xl font-semibold text-black">${p.price || 0} درهم</span>
-            ${hasDiscount ? `
-              <span class="text-xl text-gray-400 line-through">${p.priceOriginal} درهم</span>
-              <span class="bg-red-500 text-white px-2 py-1 rounded text-sm font-bold">خصم ${Math.round(100 - (p.price / p.priceOriginal * 100))}%</span>
-            ` : ''}
-          </div>
-          
-          <p class="text-gray-600 mb-6">التصنيف: ${p.gender === 'women' ? 'نسائي' : p.gender === 'men' ? 'رجالي' : p.gender === 'girls' ? 'بنات' : 'أولاد'}</p>
-          
-          ${p.colors && p.colors.length > 0 ? `
-            <div class="mb-6">
-              <label class="block font-semibold mb-3">اللون:</label>
-              <div class="flex flex-wrap gap-3">
-                ${p.colors.map(c => `
-                  <button class="color-option" style="background-color: ${window.Store.getColorBg(c)}; ${c === 'أبيض' ? 'border:1px solid #ddd;' : ''}" 
-                      title="${c}" onclick="selectColor('${c}', this)"></button>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-          
-          ${p.sizes && p.sizes.length > 0 ? `
-            <div class="mb-6">
-              <label class="block font-semibold mb-3">المقاس:</label>
-              <div class="flex flex-wrap gap-3">
-                ${p.sizes.map(s => `
-                  <button class="size-option" onclick="selectSize('${s}', this)">${s}</button>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-          
-          <button onclick="addToCart('${id}','${(p.name||'').replace(/'/g, "\\'")}',${p.price||0},'${images[0]}')" 
-              class="w-full ${isAvailable ? 'bg-black hover:bg-gray-800' : 'bg-gray-400 cursor-not-allowed'} text-white py-3 rounded-lg text-lg"
-              ${!isAvailable ? 'disabled' : ''}>
-            ${isAvailable ? 'أضف للسلة' : 'غير متوفر'}
-          </button>
-        </div>
-      `;
-
-      loadRelated(p.gender, p.type, id);
-
-    } catch (e) {
-      contentEl.innerHTML = `<p class="col-span-full text-center text-red-500">خطأ: ${e.message}</p>`;
-    }
+// تحديث المخزون عند اختيار اللون والمقاس
+function updateStock() {
+  if (!selectedColor || !selectedSize || !productData.variants) {
+    document.getElementById('stock-count').textContent = '-';
+    maxStock = 0;
+    return;
   }
 
-  async function loadRelated(gender, type, excludeId) {
-    try {
-      const q = window.app.query(
-        window.app.collection(window.app.db, 'products'),
-        window.app.where('gender', '==', gender),
-        window.app.where('type', '==', type || ''),
-        window.app.limit(4)
-      );
-      const snap = await window.app.getDocs(q);
-      relatedEl.innerHTML = '';
-      let count = 0;
-      snap.forEach(d => {
-        if (d.id === excludeId) return;
-        const p = d.data();
-        const img = p.images?.[0] || p.img || '';
-        relatedEl.innerHTML += `
-          <a href="product.html?id=${d.id}" class="block bg-white rounded-xl shadow-sm overflow-hidden group">
-            <img src="${img}" class="w-full h-48 object-cover group-hover:scale-105 transition">
-            <div class="p-3">
-              <h3 class="font-bold">${p.name || 'منتج'}</h3>
-              <p class="font-semibold">${p.price || 0} درهم</p>
-              ${p.priceOriginal && p.priceOriginal > p.price ? `<span class="text-xs text-red-500">خصم!</span>` : ''}
-            </div>
-          </a>
-        `;
-        count++;
-      });
-      if (count > 0) relatedSection.classList.remove('hidden');
-    } catch (e) {
-      console.log('لا يوجد منتجات مشابهة');
-    }
+  const variant = productData.variants.find(v => 
+    (v.color || '').trim() === selectedColor.trim() && 
+    (v.size || '').trim() === selectedSize.trim()
+  );
+
+  maxStock = variant ? (variant.stock || 0) : 0;
+  document.getElementById('stock-count').textContent = maxStock;
+  
+  const qtyInput = document.getElementById('qty-input');
+  if (parseInt(qtyInput.value) > maxStock) {
+    qtyInput.value = Math.max(1, maxStock);
   }
+  qtyInput.max = maxStock;
+}
+
+// تحميل بيانات المنتج
+async function loadProduct() {
+  const params = new URLSearchParams(window.location.search);
+  const productId = params.get('id');
+  
+  if (!productId) {
+    document.getElementById('loading').innerHTML = `<p class="text-red-500">${t('not_found')}</p>`;
+    return;
+  }
+
+  try {
+    const doc = await db.collection('products').doc(productId).get();
+    if (!doc.exists) {
+      document.getElementById('loading').innerHTML = `<p class="text-red-500">${t('not_found')}</p>`;
+      return;
+    }
+
+    productData = { id: doc.id, ...doc.data() };
+    
+    // عرض البيانات
+    document.getElementById('prod-name').textContent = productData.name || 'منتج';
+    document.getElementById('prod-price').textContent = formatPrice(productData.price);
+    
+    if (productData.priceOriginal && productData.priceOriginal > productData.price) {
+      document.getElementById('prod-price-orig').textContent = formatPrice(productData.priceOriginal);
+      document.getElementById('prod-price-orig').classList.remove('hidden');
+    }
+
+    // عرض الصور
+    setupImages(productData.images);
+
+    // استخراج الألوان والمقاسات الفريدة
+    const variants = productData.variants || [];
+    const colors = [...new Set(variants.map(v => v.color).filter(Boolean))];
+    const sizes = [...new Set(variants.map(v => v.size).filter(Boolean))];
+
+    // عرض الألوان
+    const colorsList = document.getElementById('colors-list');
+    if (colors.length > 0) {
+      colorsList.innerHTML = colors.map(c => `
+        <button class="color-option px-4 py-2 border rounded-lg hover:bg-gray-100" 
+                data-color="${c}" onclick="selectColor('${c}', this)">${c}</button>
+      `).join('');
+    } else {
+      document.getElementById('colors-section').style.display = 'none';
+    }
+
+    // عرض المقاسات
+    const sizesList = document.getElementById('sizes-list');
+    if (sizes.length > 0) {
+      sizesList.innerHTML = sizes.map(s => `
+        <button class="size-option px-4 py-2 border rounded-lg hover:bg-gray-100" 
+                data-size="${s}" onclick="selectSize('${s}', this)">${s}</button>
+      `).join('');
+    } else {
+      document.getElementById('sizes-section').style.display = 'none';
+    }
+
+    // إظهار المحتوى
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('product-content').classList.remove('hidden');
+
+  } catch (err) {
+    document.getElementById('loading').innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
+  }
+}
+
+window.selectColor = function(color, el) {
+  selectedColor = color;
+  document.querySelectorAll('.color-option').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  updateStock();
+};
+
+window.selectSize = function(size, el) {
+  selectedSize = size;
+  document.querySelectorAll('.size-option').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  updateStock();
+};
+
+// التحكم في الكمية
+document.getElementById('qty-minus').addEventListener('click', () => {
+  const input = document.getElementById('qty-input');
+  const val = parseInt(input.value);
+  if (val > 1) input.value = val - 1;
 });
+
+document.getElementById('qty-plus').addEventListener('click', () => {
+  const input = document.getElementById('qty-input');
+  const val = parseInt(input.value);
+  if (!maxStock || val < maxStock) input.value = val + 1;
+});
+
+// إضافة إلى السلة
+document.getElementById('add-cart-btn').addEventListener('click', () => {
+  const qty = parseInt(document.getElementById('qty-input').value) || 1;
+
+  // التحقق من الاختيار
+  const hasColors = document.getElementById('colors-section').style.display !== 'none';
+  const hasSizes = document.getElementById('sizes-section').style.display !== 'none';
+
+  if ((hasColors && !selectedColor) || (hasSizes && !selectedSize)) {
+    showToast(t('no_color_size'), 'error');
+    return;
+  }
+
+  if (maxStock === 0) {
+    showToast(t('out_of_stock'), 'error');
+    return;
+  }
+
+  if (qty > maxStock) {
+    showToast(t('max_qty'), 'error');
+    return;
+  }
+
+  // إضافة العنصر للسلة
+  const cart = getCart();
+  cart.push({
+    productId: productData.id,
+    name: productData.name,
+    price: productData.price,
+    image: productData.images?.[0] || '',
+    color: selectedColor || '-',
+    size: selectedSize || '-',
+    qty: qty,
+    variantStock: maxStock
+  });
+
+  saveCart(cart);
+  showToast(t('added'));
+});
+
+// تحميل المنتج عند فتح الصفحة
+document.addEventListener('DOMContentLoaded', loadProduct);
 </script>
+
 </body>
 </html>
