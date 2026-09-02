@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
   
-  <!-- ✅ خريطة OpenStreetMap + Leaflet (مجانية 100% بدون مفتاح!) -->
+  <!-- ✅ خريطة OpenStreetMap مجانية بدون مفتاح -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
@@ -24,18 +24,20 @@
     * { font-family: 'Cairo', sans-serif; }
     html[lang="en"] { direction: ltr; }
     html[lang="en"] * { font-family: 'Cairo', sans-serif; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
-    .toast.show { display: block; }
-    .toast.success { background: #16a34a; }
-    .toast.error { background: #dc2626; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; padding: 14px 28px; border-radius: 12px; z-index: 9999; display: none; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+    .toast.show { display: block; animation: fadeInUp 0.35s ease; }
+    .toast.success { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .toast.error { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .toast.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    @keyframes fadeInUp { from { opacity:0; transform: translate(-50%, 25px); } to { opacity:1; transform: translate(-50%, 0); } }
     .lang-option:hover { background: #f3f4f6; }
     .lang-option.active { background: #e5e7eb; font-weight: bold; }
     #map { height: 350px; border-radius: 8px; border: 1px solid #d1d5db; }
     .map-hint { font-size: 0.875rem; color: #6b7280; margin-top: 0.25rem; }
+    input:disabled, button:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
-
 <script>
 const translations = {
   ar: {
@@ -102,7 +104,9 @@ const translations = {
     returns: "الاسترجاع",
     logout: "تسجيل الخروج",
     language: "اللغة",
-    sent_already: "تم الإرسال"
+    sent_already: "تم الإرسال",
+    out_of_stock: "نفذ من المخزون",
+    insufficient_stock: "الكمية المطلوبة غير متوفرة. المتوفر: {count} فقط"
   },
   en: {
     page_title: "Checkout - VAREN",
@@ -134,7 +138,7 @@ const translations = {
     notes_placeholder: "Any special delivery instructions",
     confirm_order: "Confirm Order",
     order_received: "Order Received!",
-    order_number: "Order Number:",
+    order_number: "Order #:",
     order_success_msg: "We will contact you shortly to confirm delivery. Order details have been sent to your email.",
     back_home: "Back to Home",
     cart_empty: "Your cart is empty",
@@ -168,34 +172,30 @@ const translations = {
     returns: "Returns",
     logout: "Sign Out",
     language: "Language",
-    sent_already: "Sent"
+    sent_already: "Sent",
+    out_of_stock: "Out of stock",
+    insufficient_stock: "Requested quantity unavailable. Available: {count} only"
   }
 };
-
 function setLanguage(lang) {
   if (!translations[lang]) return;
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   localStorage.setItem('varen_lang', lang);
-  
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (translations[lang][key]) el.textContent = translations[lang][key];
   });
-  
   updateLangUI(lang);
 }
-
 function updateLangUI(lang) {
   document.querySelectorAll('.lang-option').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === lang);
   });
 }
-
 function getCurrentLanguage() {
   return localStorage.getItem('varen_lang') || 'ar';
 }
-
 function t(key, params = {}) {
   const lang = getCurrentLanguage();
   let text = translations[lang][key] || key;
@@ -204,21 +204,16 @@ function t(key, params = {}) {
   });
   return text;
 }
-
 document.addEventListener('DOMContentLoaded', () => {
   setLanguage(getCurrentLanguage());
 });
 </script>
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    
-    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
     <a href="index.html" class="flex items-center gap-3">
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
       <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
     </a>
-
     <div class="flex items-center gap-6">
       <a href="cart.html" class="text-sm text-gray-600 hover:text-black">
         <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="back_to_cart">الرجوع للسلة</span>
@@ -228,19 +223,16 @@ document.addEventListener('DOMContentLoaded', () => {
           <span data-i18n="account">حسابي</span> <i class="fa-solid fa-chevron-down text-xs"></i>
         </button>
         <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800" data-i18n="login">تسجيل الدخول</button>
-        
         <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
           <a href="account.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_info">معلوماتي</a>
           <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_orders">طلباتي</a>
           <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="returns">الاسترجاع</a>
-          
           <hr class="mx-3">
           <div class="px-4 py-2">
             <p class="text-sm font-semibold text-gray-500 mb-2" data-i18n="language">اللغة</p>
             <button onclick="setLanguage('ar')" class="lang-option w-full text-right px-3 py-2 rounded text-sm" data-lang="ar">العربية</button>
             <button onclick="setLanguage('en')" class="lang-option w-full text-right px-3 py-2 rounded text-sm mt-1" data-lang="en">English</button>
           </div>
-          
           <hr class="mx-3 mt-2">
           <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100" data-i18n="logout">تسجيل الخروج</button>
         </div>
@@ -248,12 +240,10 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </nav>
-
 <main class="max-w-3xl mx-auto px-4 py-8">
   <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center" data-i18n="checkout_title">إتمام الطلب</h1>
   <div id="toast" class="toast"></div>
 
-  <!-- ملخص الطلب -->
   <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
     <h2 class="text-xl font-bold mb-4" data-i18n="order_summary">ملخص الطلب</h2>
     <div id="order-items" class="space-y-3"></div>
@@ -264,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <!-- ⚠️ تنبيهات مهمة -->
   <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
     <div class="flex items-start gap-3">
       <i class="fa-solid fa-circle-info text-amber-500 text-xl mt-0.5"></i>
@@ -279,46 +268,39 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <!-- بيانات العميل -->
   <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
     <h2 class="text-xl font-bold mb-4" data-i18n="delivery_info">بيانات التوصيل</h2>
     <form id="checkout-form" class="space-y-4">
       <div>
         <label class="block font-medium mb-1" data-i18n="full_name">الاسم الكامل *</label>
-        <input type="text" id="full_name" required class="w-full border rounded-lg p-3" data-i18n-placeholder="full_name_placeholder" placeholder="أدخل اسمك الكامل">
+        <input type="text" id="full_name" required class="w-full border rounded-lg p-3" placeholder="أدخل اسمك الكامل">
       </div>
       <div>
         <label class="block font-medium mb-1" data-i18n="phone">رقم الهاتف *</label>
-        <input type="tel" id="phone" required class="w-full border rounded-lg p-3" data-i18n-placeholder="phone_placeholder" placeholder="مثال: 0501234567">
+        <input type="tel" id="phone" required class="w-full border rounded-lg p-3" placeholder="مثال: 0501234567">
       </div>
       <div>
         <label class="block font-medium mb-1" data-i18n="email">البريد الإلكتروني *</label>
         <div class="flex gap-2">
-          <input type="email" id="customer_email" required class="flex-1 border rounded-lg p-3" data-i18n-placeholder="email_placeholder" placeholder="example@email.com">
-          <button type="button" id="send-code-btn" onclick="sendVerificationCode()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 whitespace-nowrap" data-i18n="send_code">
-            إرسال الرمز
-          </button>
+          <input type="email" id="customer_email" required class="flex-1 border rounded-lg p-3" placeholder="example@email.com">
+          <button type="button" id="send-code-btn" onclick="sendVerificationCode()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 whitespace-nowrap" data-i18n="send_code">إرسال الرمز</button>
         </div>
       </div>
-      
-      <!-- قسم التحقق من الرمز (مخفي في البداية) -->
+
       <div id="verification-section" class="hidden">
         <label class="block font-medium mb-1" data-i18n="verification_code">رمز التحقق *</label>
         <div class="flex gap-2">
-          <input type="text" id="verification_code" class="flex-1 border rounded-lg p-3" data-i18n-placeholder="code_placeholder" placeholder="أدخل 4 أرقام" maxlength="4" inputmode="numeric">
-          <button type="button" onclick="verifyCode()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 whitespace-nowrap" data-i18n="verify">
-            تحقق
-          </button>
+          <input type="text" id="verification_code" class="flex-1 border rounded-lg p-3" placeholder="أدخل 4 أرقام" maxlength="4" inputmode="numeric">
+          <button type="button" onclick="verifyCode()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 whitespace-nowrap" data-i18n="verify">تحقق</button>
         </div>
         <p id="code-status" class="text-sm mt-1"></p>
       </div>
-      
+
       <div>
         <label class="block font-medium mb-1" data-i18n="address">العنوان بالتفصيل *</label>
-        <textarea id="address" required rows="2" class="w-full border rounded-lg p-3" data-i18n-placeholder="address_placeholder" placeholder="المدينة، المنطقة، الشارع، رقم المبنى والشقة"></textarea>
+        <textarea id="address" required rows="2" class="w-full border rounded-lg p-3" placeholder="المدينة، المنطقة، الشارع، رقم المبنى والشقة"></textarea>
       </div>
-      
-      <!-- ✅ قسم الخريطة الجديد -->
+
       <div>
         <label class="block font-medium mb-1" data-i18n="set_location_on_map">📍 حدد موقعك على الخريطة</label>
         <div id="map"></div>
@@ -326,19 +308,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <p id="coords-display" class="text-sm text-gray-500 mt-1" data-i18n="location_coords">إحداثيات الموقع: —</p>
         <input type="hidden" id="location_coords" name="location_coords">
       </div>
-      
+
       <div>
         <label class="block font-medium mb-1" data-i18n="notes">ملاحظات إضافية (اختياري)</label>
-        <textarea id="notes" rows="2" class="w-full border rounded-lg p-3" data-i18n-placeholder="notes_placeholder" placeholder="أي تعليمات خاصة بالتوصيل أو الطلب"></textarea>
+        <textarea id="notes" rows="2" class="w-full border rounded-lg p-3" placeholder="أي تعليمات خاصة بالتوصيل أو الطلب"></textarea>
       </div>
-      <button type="submit" id="submit-btn" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 mt-2 disabled:opacity-50" disabled>
+      <button type="submit" id="submit-btn" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 mt-2" disabled>
         <span data-i18n="confirm_order">تأكيد الطلب</span>
         <i class="fa-solid fa-check ml-1"></i>
       </button>
     </form>
   </div>
 
-  <!-- حالة الطلب -->
   <div id="success-section" class="hidden bg-green-50 border border-green-200 rounded-xl p-8 text-center">
     <i class="fa-solid fa-circle-check text-green-500 text-5xl mb-4"></i>
     <h2 class="text-2xl font-bold text-green-700 mb-2" data-i18n="order_received">تم استلام طلبك!</h2>
@@ -349,40 +330,22 @@ document.addEventListener('DOMContentLoaded', () => {
 </main>
 
 <script>
-// ✅ تهيئة الخريطة
 let map, marker;
 document.addEventListener('DOMContentLoaded', () => {
-  // مركز الخريطة على الشارقة (المجاز تقريباً)
   const sharjahLat = 25.3538;
   const sharjahLng = 55.4048;
-  
   map = L.map('map').setView([sharjahLat, sharjahLng], 13);
-  
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
-  
   marker = L.marker([sharjahLat, sharjahLng], { draggable: true }).addTo(map);
-  
-  // تحديث الإحداثيات عند سحب الدبوس
   function updateCoordsDisplay(lat, lng) {
     const coordsText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     document.getElementById('coords-display').textContent = `${t('location_coords')} ${coordsText}`;
     document.getElementById('location_coords').value = coordsText;
   }
-  
-  marker.on('dragend', function(e) {
-    const pos = e.target.getLatLng();
-    updateCoordsDisplay(pos.lat, pos.lng);
-  });
-  
-  // النقر على الخريطة ينقل الدبوس
-  map.on('click', function(e) {
-    marker.setLatLng(e.latlng);
-    updateCoordsDisplay(e.latlng.lat, e.latlng.lng);
-  });
-  
-  // تعيين الموقع الافتراضي
+  marker.on('dragend', e => updateCoordsDisplay(e.target.getLatLng().lat, e.target.getLatLng().lng));
+  map.on('click', e => { marker.setLatLng(e.latlng); updateCoordsDisplay(e.latlng.lat, e.latlng.lng); });
   updateCoordsDisplay(sharjahLat, sharjahLng);
 });
 
@@ -399,12 +362,10 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// ✅ إعدادات EmailJS
 const EMAILJS_SERVICE_ID = 'service_3bs6onj';
 const EMAILJS_VERIFY_TEMPLATE_ID = 'template_fso5vje';
 const EMAILJS_ORDER_TEMPLATE_ID = 'template_om7zrjs';
 const EMAILJS_PUBLIC_KEY = '3A0NspFA3vlSd64jc';
-const ADMIN_EMAIL = 'y0892100@gmail.com';
 emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
 const CART_KEY = 'varen_cart_v1';
@@ -418,56 +379,39 @@ function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = `toast ${type} show`;
-  setTimeout(() => toast.classList.remove('show'), 4000);
+  setTimeout(() => toast.classList.remove('show'), 5000);
 }
-
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
-
 function generateCode() {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return String(Math.floor(1000 + Math.random() * 9000));
 }
 
-// 📧 إرسال رمز التحقق
 window.sendVerificationCode = async function() {
   const email = document.getElementById('customer_email').value.trim();
   const fullName = document.getElementById('full_name').value.trim();
-  
-  if (!fullName || fullName.length < 3) {
-    return showToast(t('enter_name_first'), 'error');
-  }
-  if (!isValidEmail(email)) {
-    return showToast(t('valid_email_required'), 'error');
-  }
-  
+  if (!fullName || fullName.length < 3) return showToast(t('enter_name_first'), 'error');
+  if (!isValidEmail(email)) return showToast(t('valid_email_required'), 'error');
+
   generatedCode = generateCode();
   codeExpiryTime = Date.now() + 15 * 60 * 1000;
-  
+
   try {
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_VERIFY_TEMPLATE_ID, {
-      email: email,
-      EmailCode: generatedCode
-    });
-    
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_VERIFY_TEMPLATE_ID, { email, EmailCode: generatedCode });
     document.getElementById('verification-section').classList.remove('hidden');
     document.getElementById('send-code-btn').disabled = true;
     document.getElementById('send-code-btn').classList.add('opacity-50', 'cursor-not-allowed');
     document.getElementById('send-code-btn').textContent = t('sent_already');
-    
     showToast(t('code_sent'));
-    
   } catch (err) {
-    console.error('❌ تفاصيل الخطأ:', err);
     showToast(t('send_failed', { error: err.text || err.message || 'خطأ غير معروف' }), 'error');
   }
 };
 
-// ✅ التحقق من صحة الرمز
 window.verifyCode = function() {
   const entered = document.getElementById('verification_code').value.trim();
   const status = document.getElementById('code-status');
-  
   if (Date.now() > codeExpiryTime) {
     status.textContent = t('code_expired');
     status.className = 'text-sm mt-1 text-red-600';
@@ -476,7 +420,6 @@ window.verifyCode = function() {
     document.getElementById('send-code-btn').textContent = t('send_code');
     return;
   }
-  
   if (entered === generatedCode) {
     isEmailVerified = true;
     status.textContent = t('verified_success');
@@ -495,7 +438,6 @@ function loadCart() {
   const saved = localStorage.getItem(CART_KEY);
   const lang = getCurrentLanguage();
   const currency = lang === 'ar' ? 'درهم' : 'AED';
-  
   if (!saved || saved === '[]') {
     document.querySelector('main').innerHTML = `
       <div class="text-center py-16">
@@ -503,8 +445,7 @@ function loadCart() {
         <h2 class="text-xl font-bold text-gray-500 mb-2" data-i18n="cart_empty">${t('cart_empty')}</h2>
         <p class="text-gray-400 mb-6" data-i18n="add_items_first">${t('add_items_first')}</p>
         <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block hover:bg-gray-800" data-i18n="browse">${t('browse')}</a>
-      </div>
-    `;
+      </div>`;
     return;
   }
   cart = JSON.parse(saved);
@@ -517,8 +458,7 @@ function renderCart() {
   const container = document.getElementById('order-items');
   container.innerHTML = '';
   total = 0;
-  
-  cart.forEach((item) => {
+  cart.forEach(item => {
     const qty = item.qty || item.quantity || 1;
     const subtotal = item.price * qty;
     total += subtotal;
@@ -527,150 +467,68 @@ function renderCart() {
         <img src="${item.image || 'https://via.placeholder.com/80x80'}" alt="${item.name}" class="w-16 h-16 object-cover rounded-lg">
         <div class="flex-1">
           <h3 class="font-semibold">${item.name}</h3>
-          <p class="text-sm text-gray-500">
-            ${t('size')}: ${item.size || '—'} | ${t('color')}: ${item.color || '—'}
-          </p>
+          <p class="text-sm text-gray-500">${t('size')}: ${item.size || '—'} | ${t('color')}: ${item.color || '—'}</p>
           <p class="text-sm">${item.price} ${currency} × ${qty} = ${subtotal.toFixed(2)} ${currency}</p>
         </div>
-      </div>
-    `;
+      </div>`;
   });
-  
   document.getElementById('order-total').textContent = `${total.toFixed(2)} ${currency}`;
 }
 
 function generateOrderNumber() {
-  const date = new Date();
-  const yy = date.getFullYear().toString().slice(-2);
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  const rand = Math.floor(Math.random() * 9000) + 1000;
-  return `VA-${yy}${mm}${dd}-${rand}`;
-}
-
-function buildOrderItemsText() {
-  const lang = getCurrentLanguage();
-  const currency = lang === 'ar' ? 'درهم' : 'AED';
-  return cart.map((item, i) => {
-    const qty = item.qty || item.quantity || 1;
-    return `${i+1}. ${item.name}
-   ${t('size')}: ${item.size || '-'} | ${t('color')}: ${item.color || '-'}
-   ${t('quantity')}: ${qty} | ${t('price')}: ${item.price} ${currency}
-   ${t('subtotal')}: ${(item.price * qty).toFixed(2)} ${currency}`;
-  }).join('\n\n');
-}
-
-async function sendOrderEmail(orderData) {
-  const orderItemsText = buildOrderItemsText();
-  const orderDate = new Date().toLocaleString(getCurrentLanguage() === 'ar' ? 'ar-AE' : 'en-AE');
-  const lang = getCurrentLanguage();
-  const currency = lang === 'ar' ? 'درهم' : 'AED';
-  
-  const templateParams = {
-    order_id: orderData.orderNumber,
-    order_date: orderDate,
-    customer_name: orderData.fullName,
-    customer_email: orderData.customerEmail,
-    customer_phone: orderData.phone,
-    customer_address: `${orderData.address}\n📍 الموقع على الخريطة: ${orderData.locationCoords || 'غير محدد'}`,
-    customer_notes: orderData.notes || (lang === 'ar' ? 'لا يوجد' : 'None'),
-    order_items: orderItemsText,
-    order_total: `${total.toFixed(2)} ${currency}`
-  };
-  
-  try {
-    const response = await emailjs.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_ORDER_TEMPLATE_ID,
-      templateParams
-    );
-    console.log('✅ تم إرسال إيميل تفاصيل الطلب بنجاح:', response);
-    return true;
-  } catch (err) {
-    console.error('❌ خطأ في إرسال إيميل الطلب:', err);
-    showToast(t('email_not_sent_warning'), 'error');
-    return false;
-  }
+  const d = new Date();
+  const yy = d.getFullYear().toString().slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const r = Math.floor(Math.random() * 9000) + 1000;
+  return `VA-${yy}${mm}${dd}-${r}`;
 }
 
 async function validateStockBeforeOrder() {
   for (const item of cart) {
     const qtyNeeded = item.qty || item.quantity || 1;
+    if (!item.id) continue;
     const productRef = db.collection('products').doc(item.id);
-    const productDoc = await productRef.get();
-    
-    if (!productDoc.exists) {
-      showToast(`❌ ${t('cart_empty')}: ${item.name}`, 'error');
-      return false;
-    }
-    
-    const productData = productDoc.data();
-    const variants = productData.variants || [];
-    const variant = variants.find(v => 
-      v.color === item.color && v.size === item.size
-    );
-    
-    if (!variant) {
-      showToast(`❌ ${t('color')} (${item.color} - ${item.size}) ${t('cart_empty')} للمنتج "${item.name}"`, 'error');
-      return false;
-    }
-    
-    if (variant.stock <= 0) {
-      showToast(`❌ نفذ من المخزون: ${item.name} (${item.color} - ${item.size})`, 'error');
-      return false;
-    }
-    
-    if (qtyNeeded > variant.stock) {
-      showToast(`⚠️ الكمية المطلوبة من "${item.name}" (${item.color} - ${item.size}) غير متوفرة. المتوفر: ${variant.stock} قطعة فقط`, 'error');
-      return false;
-    }
+    const doc = await productRef.get();
+    if (!doc.exists) { showToast(`❌ ${item.name} — ${t('cart_empty')}`, 'error'); return false; }
+    const variants = doc.data().variants || [];
+    const v = variants.find(x => String(x.color).trim() === String(item.color).trim() && String(x.size).trim() === String(item.size).trim());
+    if (!v) { showToast(`❌ ${item.name} (${item.color} / ${item.size}) — ${t('out_of_stock')}`, 'error'); return false; }
+    if (v.stock <= 0) { showToast(`❌ ${item.name} (${item.color} / ${item.size}) — ${t('out_of_stock')}`, 'error'); return false; }
+    if (qtyNeeded > v.stock) { showToast(`⚠️ ${item.name}: ${t('insufficient_stock', { count: v.stock })}`, 'error'); return false; }
   }
   return true;
 }
 
 async function reduceStockAfterOrder() {
   const batch = db.batch();
-  
   for (const item of cart) {
-    const qtyNeeded = item.qty || item.quantity || 1;
-    const productRef = db.collection('products').doc(item.id);
-    const productDoc = await productRef.get();
-    
-    if (productDoc.exists) {
-      const productData = productDoc.data();
-      const variants = productData.variants || [];
-      const variantIndex = variants.findIndex(v => 
-        v.color === item.color && v.size === item.size
-      );
-      
-      if (variantIndex !== -1) {
-        const currentStock = variants[variantIndex].stock;
-        variants[variantIndex].stock = Math.max(0, currentStock - qtyNeeded);
-        const anyInStock = variants.some(v => v.stock > 0);
-        
-        batch.update(productRef, {
-          variants: variants,
-          available: anyInStock
-        });
-      }
+    const qty = item.qty || item.quantity || 1;
+    if (!item.id) continue;
+    const ref = db.collection('products').doc(item.id);
+    const doc = await ref.get();
+    if (!doc.exists) continue;
+    const variants = doc.data().variants || [];
+    const idx = variants.findIndex(x => String(x.color).trim() === String(item.color).trim() && String(x.size).trim() === String(item.size).trim());
+    if (idx !== -1) {
+      variants[idx].stock = Math.max(0, variants[idx].stock - qty);
+      batch.update(ref, { variants });
     }
   }
-  
   await batch.commit();
 }
 
 async function saveOrderToFirebase(orderData) {
   const user = auth.currentUser;
-  const orderRef = db.collection('orders').doc(orderData.orderNumber);
-  await orderRef.set({
+  await db.collection('orders').doc(orderData.orderNumber).set({
     orderNumber: orderData.orderNumber,
     userId: user?.uid || 'guest',
     userEmail: orderData.customerEmail,
     fullName: orderData.fullName,
     phone: orderData.phone,
     address: orderData.address,
-    locationCoords: orderData.locationCoords || '',
-    notes: orderData.notes || '',
+    locationCoords: orderData.locationCoords,
+    notes: orderData.notes,
     items: cart,
     total: total,
     status: 'جديد',
@@ -678,17 +536,30 @@ async function saveOrderToFirebase(orderData) {
   });
 }
 
+async function sendOrderEmail(orderData) {
+  const lang = getCurrentLanguage();
+  const currency = lang === 'ar' ? 'درهم' : 'AED';
+  const itemsText = cart.map((it, i) => `${i+1}. ${it.name} | ${t('size')}: ${it.size || '-'} | ${t('color')}: ${it.color || '-'} | ${t('quantity')}: ${it.qty || 1} | ${t('price')}: ${it.price} ${currency}`).join('\n');
+  try {
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ORDER_TEMPLATE_ID, {
+      order_id: orderData.orderNumber,
+      customer_name: orderData.fullName,
+      customer_email: orderData.customerEmail,
+      customer_phone: orderData.phone,
+      customer_address: `${orderData.address}\n📍 ${orderData.locationCoords || ''}`,
+      order_items: itemsText,
+      order_total: `${total.toFixed(2)} ${currency}`
+    });
+  } catch {}
+}
+
 async function handleSubmit(e) {
   e.preventDefault();
-  
-  if (!isEmailVerified) {
-    return showToast(t('verify_email_first'), 'error');
-  }
-  
+  if (!isEmailVerified) return showToast(t('verify_email_first'), 'error');
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
   btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin ml-1"></i> ${t('processing')}...`;
-  
+
   const orderData = {
     orderNumber: generateOrderNumber(),
     fullName: document.getElementById('full_name').value.trim(),
@@ -698,51 +569,26 @@ async function handleSubmit(e) {
     locationCoords: document.getElementById('location_coords').value,
     notes: document.getElementById('notes').value.trim()
   };
-  
-  if (!orderData.fullName || orderData.fullName.length < 3) {
-    showToast(t('enter_valid_name'), 'error');
-    btn.disabled = false;
-    btn.innerHTML = `<span data-i18n="confirm_order">${t('confirm_order')}</span><i class="fa-solid fa-check ml-1"></i>`;
-    return;
-  }
-  
-  const cleanPhone = orderData.phone.replace(/\s/g, '');
-  if (!/^(\+9715|05)\d{7,8}$/.test(cleanPhone) && !/^\d{8,12}$/.test(cleanPhone)) {
-    showToast(t('enter_valid_phone'), 'error');
-    btn.disabled = false;
-    btn.innerHTML = `<span data-i18n="confirm_order">${t('confirm_order')}</span><i class="fa-solid fa-check ml-1"></i>`;
-    return;
-  }
-  
-  if (!orderData.address || orderData.address.length < 10) {
-    showToast(t('enter_valid_address'), 'error');
-    btn.disabled = false;
-    btn.innerHTML = `<span data-i18n="confirm_order">${t('confirm_order')}</span><i class="fa-solid fa-check ml-1"></i>`;
-    return;
-  }
-  
+
+  if (orderData.fullName.length < 3) { showToast(t('enter_valid_name'), 'error'); btn.disabled = false; btn.innerHTML = `<span data-i18n="confirm_order">${t('confirm_order')}</span><i class="fa-solid fa-check ml-1"></i>`; return; }
+  if (!/^(\+9715|05)\d{7,8}$/.test(orderData.phone.replace(/\s/g,''))) { showToast(t('enter_valid_phone'), 'error'); btn.disabled = false; btn.innerHTML = `<span data-i18n="confirm_order">${t('confirm_order')}</span><i class="fa-solid fa-check ml-1"></i>`; return; }
+  if (orderData.address.length < 10) { showToast(t('enter_valid_address'), 'error'); btn.disabled = false; btn.innerHTML = `<span data-i18n="confirm_order">${t('confirm_order')}</span><i class="fa-solid fa-check ml-1"></i>`; return; }
+
   try {
-    const stockValid = await validateStockBeforeOrder();
-    if (!stockValid) {
-      btn.disabled = false;
-      btn.innerHTML = `<span data-i18n="confirm_order">${t('confirm_order')}</span><i class="fa-solid fa-check ml-1"></i>`;
-      return;
-    }
-    
+    if (!await validateStockBeforeOrder()) { btn.disabled = false; btn.innerHTML = `<span data-i18n="confirm_order">${t('confirm_order')}</span><i class="fa-solid fa-check ml-1"></i>`; return; }
     await saveOrderToFirebase(orderData);
     await reduceStockAfterOrder();
     await sendOrderEmail(orderData);
-    
     localStorage.removeItem(CART_KEY);
-    document.getElementById('checkout-form').parentElement.classList.add('hidden');
-    document.getElementById('order-items').parentElement.classList.add('hidden');
-    document.querySelector('.bg-amber-50').classList.add('hidden');
-    document.getElementById('success-section').classList.remove('hidden');
-    document.getElementById('order-number').textContent = orderData.orderNumber;
-    showToast(t('order_success_email_sent'));
-    
+    document.querySelector('main').innerHTML = `
+      <div class="bg-green-50 border border-green-200 rounded-xl p-8 text-center mt-8">
+        <i class="fa-solid fa-circle-check text-green-500 text-5xl mb-4"></i>
+        <h2 class="text-2xl font-bold text-green-700 mb-2">${t('order_received')}</h2>
+        <p class="text-green-600 mb-4">${t('order_number')} <span class="font-bold">${orderData.orderNumber}</span></p>
+        <p class="text-gray-600 mb-6">${t('order_success_msg')}</p>
+        <a href="index.html" class="inline-block bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">${t('back_home')}</a>
+      </div>`;
   } catch (err) {
-    console.error(err);
     showToast(t('error_occurred', { error: err.message }), 'error');
     btn.disabled = false;
     btn.innerHTML = `<span data-i18n="confirm_order">${t('confirm_order')}</span><i class="fa-solid fa-check ml-1"></i>`;
@@ -750,36 +596,13 @@ async function handleSubmit(e) {
 }
 
 function updateUserUI(user) {
-  const loginBtn = document.getElementById('login-btn');
-  const accountBtn = document.getElementById('account-btn');
-  const accountMenu = document.getElementById('account-menu');
-  
-  if (user) {
-    if (loginBtn) loginBtn.classList.add('hidden');
-    if (accountBtn) { accountBtn.classList.remove('hidden'); accountBtn.classList.add('flex'); }
-  } else {
-    if (loginBtn) loginBtn.classList.remove('hidden');
-    if (accountBtn) accountBtn.classList.add('hidden');
-    if (accountMenu) accountMenu.classList.add('hidden');
-  }
+  document.getElementById('login-btn').classList.toggle('hidden', !!user);
+  document.getElementById('account-btn').classList.toggle('hidden', !user);
+  if (user) document.getElementById('account-btn').classList.add('flex');
 }
-
-window.logout = async function () {
-  await auth.signOut();
-  showToast(getCurrentLanguage() === 'ar' ? '✅ تم تسجيل الخروج' : '✅ Logged out successfully');
-  setTimeout(() => window.location.href = 'index.html', 1000);
-};
-
-const accountBtn = document.getElementById('account-btn');
-const accountMenu = document.getElementById('account-menu');
-if (accountBtn && accountMenu) {
-  accountBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    accountMenu.classList.toggle('hidden');
-  });
-  document.addEventListener('click', () => accountMenu.classList.add('hidden'));
-  accountMenu.addEventListener('click', (e) => e.stopPropagation());
-}
+window.logout = async () => { await auth.signOut(); location.href = 'index.html'; };
+document.getElementById('account-btn')?.addEventListener('click', e => { e.stopPropagation(); document.getElementById('account-menu')?.classList.toggle('hidden'); });
+document.addEventListener('click', () => document.getElementById('account-menu')?.classList.add('hidden'));
 
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(updateUserUI);
@@ -787,6 +610,5 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('checkout-form').addEventListener('submit', handleSubmit);
 });
 </script>
-
 </body>
 </html>
