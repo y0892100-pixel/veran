@@ -1,0 +1,133 @@
+!DOCTYPE html
+html lang=ar dir=rtl
+head
+  meta charset=UTF-8
+  meta name=viewport content=width=device-width, initial-scale=1.0
+  titleتواصل معنا - VARENtitle
+  script src=httpscdn.tailwindcss.comscript
+  link rel=stylesheet href=httpscdnjs.cloudflare.comajaxlibsfont-awesome6.4.0cssall.min.css
+  link rel=icon type=imagejpeg href=httpsi.imgur.comQXFR5XO.jpeg
+  style
+    @import url('httpsfonts.googleapis.comcss2family=Cairowght@400;500;600;700&display=swap');
+     { font-family 'Cairo', sans-serif; }
+  style
+head
+body class=bg-gray-50 text-gray-800
+
+nav class=bg-white shadow-md sticky top-0 z-50
+  div class=max-w-7xl mx-auto px-4 py-3 flex justify-between items-center
+    a href=index.html class=flex items-center gap-3
+      img src=httpsi.imgur.comQXFR5XO.jpeg alt=VAREN Logo class=w-10 h-10 object-contain rounded
+      span class=text-2xl font-black text-gray-900VARENspan
+    a
+    a href=index.html class=text-sm text-gray-600 hovertext-black
+      i class=fa-solid fa-arrow-right ml-1i العودة للرئيسية
+    a
+  div
+nav
+
+main class=max-w-3xl mx-auto px-4 py-12
+  h1 class=text-4xl font-bold mb-8 text-centerتواصل معناh1
+  
+  div class=grid mdgrid-cols-2 gap-8
+    !-- معلومات الاتصال --
+    div class=bg-white rounded-xl shadow-sm p-6 space-y-6
+      h2 class=text-xl font-bold mb-4معلومات التواصلh2
+      
+      div class=flex items-start gap-3
+        i class=fa-solid fa-envelope text-xl text-black mt-1i
+        div
+          h3 class=font-semiboldالبريد الإلكترونيh3
+          p class=text-gray-y0892100@gmail.com
+        div
+      div
+      
+      div class=flex items-start gap-3
+        i class=fa-solid fa-phone text-xl text-black mt-1i
+        div
+          h3 class=font-semiboldالهاتفh3
+          p class=text-gray-600+971 56 124 6463
+        div
+      div
+      
+      div class=flex items-start gap-3
+        i class=fa-solid fa-location-dot text-xl text-black mt-1i
+        div
+          h3 class=font-semiboldالموقعh3
+          p class=text-gray-600الإمارات العربية المتحدة-الشارقهp
+        div
+      div
+      
+      div class=flex items-start gap-3
+        i class=fa-solid fa-clock text-xl text-black mt-1i
+        div
+          h3 class=font-semiboldساعات العملh3
+          p class=text-gray-600الأحد - الخميس 9 صباحاً - 9 مساءًp
+        div
+      div
+      
+      hr
+      
+      h3 class=font-semiboldتابعنا علىh3
+      div class=flex gap-4 text-2xl
+        a href=# class=text-gray-700 hovertext-blacki class=fa-brands fa-instagramia
+        a href=# class=text-gray-700 hovertext-blacki class=fa-brands fa-whatsappia
+        a href=# class=text-gray-700 hovertext-blacki class=fa-brands fa-tiktokia
+      div
+    div
+    
+    !-- نموذج المراسلة --
+    div class=bg-white rounded-xl shadow-sm p-6
+      h2 class=text-xl font-bold mb-4أرسل لنا رسالةh2
+      form id=contact-form class=space-y-4
+        div
+          label class=block font-medium mb-1الاسم الكاملlabel
+          input type=text required class=w-full border rounded-lg px-4 py-2 focusoutline-none focusring-2 focusring-black
+        div
+        div
+          label class=block font-medium mb-1البريد الإلكترونيlabel
+          input type=email required class=w-full border rounded-lg px-4 py-2 focusoutline-none focusring-2 focusring-black
+        div
+        div
+          label class=block font-medium mb-1رقم الهاتفlabel
+          input type=tel class=w-full border rounded-lg px-4 py-2 focusoutline-none focusring-2 focusring-black
+        div
+        div
+          label class=block font-medium mb-1الرسالةlabel
+          textarea rows=5 required class=w-full border rounded-lg px-4 py-2 focusoutline-none focusring-2 focusring-blacktextarea
+        div
+        button type=submit class=w-full bg-black text-white py-3 rounded-lg font-semibold hoverbg-gray-800
+          إرسال الرسالة
+        button
+      form
+      p id=form-msg class=mt-3 text-center hiddenp
+    div
+  div
+main
+
+footer class=bg-gray-900 text-white py-8 mt-12
+  div class=max-w-7xl mx-auto px-4 text-center
+    p&copy; 2026 VAREN. جميع الحقوق محفوظة.p
+    div class=mt-3 flex justify-center gap-6 text-sm
+      a href=about.html class=hoverunderlineمن نحنa
+      a href=privacy.html class=hoverunderlineسياسة الخصوصيةa
+      a href=terms.html class=hoverunderlineالشروط والأحكامa
+      a href=contact.html class=hoverunderlineتواصل معناa
+    div
+  div
+footer
+
+script
+  const form = document.getElementById('contact-form');
+  const msg = document.getElementById('form-msg');
+  form.addEventListener('submit', e = {
+    e.preventDefault();
+    msg.textContent = '✅ تم استلام رسالتك، سنتواصل معك قريباً!';
+    msg.className = 'mt-3 text-center text-green-600';
+    msg.classList.remove('hidden');
+    form.reset();
+  });
+script
+
+body
+html
