@@ -16,7 +16,6 @@
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
     html[lang="en"] { direction: ltr; }
-    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
     .toast.success { background: #16a34a; }
@@ -74,7 +73,6 @@ const translations = {
     language: "Language"
   }
 };
-
 function setLanguage(lang) {
   if (!translations[lang]) return;
   document.documentElement.lang = lang;
@@ -91,33 +89,26 @@ function setLanguage(lang) {
     if (translations[lang][key]) el.placeholder = translations[lang][key];
   });
 }
-
 function getCurrentLanguage() {
   return localStorage.getItem('varen_lang') || 'ar';
 }
-
-function t(key) {
-  return translations[getCurrentLanguage()][key] || key;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   setLanguage(getCurrentLanguage());
 });
 </script>
 
+<!-- ✅ شعار التنقل -->
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    
-    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
     <a href="index.html" class="flex items-center gap-3">
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
       <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
     </a>
-
     <div id="user-area" class="relative"></div>
   </div>
 </nav>
 
+<!-- ✅ المحتوى -->
 <main class="max-w-lg mx-auto px-4 py-8">
   <h1 class="text-2xl font-bold mb-6" data-i18n="account_title">بيانات الحساب</h1>
   <div id="loading" class="text-center py-16"><i class="fa-solid fa-spinner fa-spin fa-2xl"></i></div>
@@ -143,13 +134,11 @@ document.addEventListener('DOMContentLoaded', () => {
       <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800" data-i18n="save_changes">حفظ التغييرات</button>
     </form>
   </div>
-
   <div id="no-login" class="hidden text-center py-16">
     <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
     <p class="text-xl text-gray-500 mb-4" data-i18n="please_login">سجّل الدخول أولاً</p>
     <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block" data-i18n="login">تسجيل الدخول</a>
   </div>
-
   <div id="toast" class="toast"></div>
 </main>
 
@@ -173,6 +162,10 @@ function showToast(msg, type='success') {
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function t(key) {
+  return translations[getCurrentLanguage()][key] || key;
 }
 
 function updateUserNav(user) {
@@ -272,6 +265,5 @@ auth.onAuthStateChanged(async user => {
   });
 });
 </script>
-
 </body>
 </html>
