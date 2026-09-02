@@ -17,10 +17,23 @@
     * { font-family: 'Cairo', sans-serif; }
     html[lang="en"] { direction: ltr; }
     html[lang="en"] * { font-family: 'Cairo', sans-serif; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
-    .toast.show { display: block; }
-    .toast.success { background: #16a34a; }
-    .toast.error { background: #dc2626; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; padding: 14px 28px; border-radius: 12px; z-index: 9999; display: none; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.18); }
+    .toast.show { display: block; animation: fadeInUp 0.35s ease; }
+    .toast.success { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .toast.error { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .toast.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    @keyframes fadeInUp { from { opacity:0; transform: translate(-50%, 25px); } to { opacity:1; transform: translate(-50%, 0); } }
+    
+    .status-badge { padding: 5px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+    .status-new { background: #dbeafe; color: #1e40af; }
+    .status-confirmed { background: #d1fae5; color: #065f46; }
+    .status-preparing { background: #e0e7ff; color: #3730a3; }
+    .status-shipping { background: #fef3c7; color: #92400e; }
+    .status-delivered { background: #dcfce7; color: #166534; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+    
+    .progress-bar { height: 8px; background: #e5e7eb; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #16a34a); border-radius: 4px; transition: width 0.5s ease; }
     .lang-option:hover { background: #f3f4f6; }
     .lang-option.active { background: #e5e7eb; font-weight: bold; }
   </style>
@@ -37,25 +50,25 @@ const translations = {
     please_login: "سجّل الدخول أولاً",
     login: "تسجيل الدخول",
     order_number: "رقم الطلب",
-    date: "التاريخ",
+    date: "تاريخ الطلب",
     delivery_date: "📅 تاريخ استلام الطلب المتوقع",
     customer_name: "الاسم",
     phone: "الهاتف",
     address: "العنوان",
-    products: "المشتريات",
+    products: "المنتجات",
     total: "المجموع الكلي",
     AED: "درهم",
-    status_pending: "قيد المعالجة",
     status_new: "جديد",
-    status_confirmed: "مؤكد",
-    status_preparing: "يتم تجهيز طلبك",
-    status_shipping: "يتم تجهيز توصيل طلبك",
-    status_cancelled: "ملغي",
+    status_confirmed: "✅ مؤكد",
+    status_preparing: "🔄 جاري التجهيز",
+    status_shipping: "🚚 جاري التوصيل",
+    status_delivered: "✅ تم التسليم",
+    status_cancelled: "❌ ملغي",
     cancel_order: "إلغاء الطلب",
-    hours_remaining: "ساعات متبقية",
+    hours_remaining: "ساعات متبقية للإلغاء",
     cancellation_expired: "⏱️ انتهت مدة الإلغاء (6 ساعات)",
     request_return: "طلب استرجاع",
-    confirm_cancel: "هل أنت متأكد من إلغاء الطلب؟ لا يمكن التراجع عن هذا الإجراء.",
+    confirm_cancel: "هل أنت متأكد من إلغاء الطلب؟ سيتم إرجاع الكميات للمخزون تلقائيًا.",
     cancel_success: "✅ تم إلغاء الطلب وإرجاع الكميات للمخزون",
     cancel_error: "❌ خطأ في الإلغاء: ",
     load_error: "خطأ في تحميل الطلبات: ",
@@ -78,25 +91,25 @@ const translations = {
     please_login: "Please sign in first",
     login: "Sign In",
     order_number: "Order #",
-    date: "Date",
+    date: "Order Date",
     delivery_date: "📅 Expected Delivery Date",
     customer_name: "Name",
     phone: "Phone",
-    address: "Address",
-    products: "Items Purchased",
+    address: "Delivery Address",
+    products: "Items",
     total: "Total",
     AED: "AED",
-    status_pending: "Processing",
     status_new: "New",
-    status_confirmed: "Confirmed",
-    status_preparing: "Preparing your order",
-    status_shipping: "Preparing for delivery",
-    status_cancelled: "Cancelled",
+    status_confirmed: "✅ Confirmed",
+    status_preparing: "🔄 Preparing",
+    status_shipping: "🚚 Out for Delivery",
+    status_delivered: "✅ Delivered",
+    status_cancelled: "❌ Cancelled",
     cancel_order: "Cancel Order",
-    hours_remaining: "hours remaining",
+    hours_remaining: "hours left to cancel",
     cancellation_expired: "⏱️ Cancellation period expired (6 hours)",
     request_return: "Request Return",
-    confirm_cancel: "Are you sure you want to cancel this order? This action cannot be undone.",
+    confirm_cancel: "Are you sure you want to cancel this order? Stock will be restored automatically.",
     cancel_success: "✅ Order cancelled and stock restored",
     cancel_error: "❌ Cancellation error: ",
     load_error: "Error loading orders: ",
@@ -116,7 +129,6 @@ function setLanguage(lang) {
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   localStorage.setItem('varen_lang', lang);
-  
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (translations[lang][key]) el.textContent = translations[lang][key];
@@ -134,8 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    
-    <!-- ✅ الشعار: الصورة + كلمة VAREN بنفس الحجم -->
     <a href="index.html" class="flex items-center gap-3">
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
       <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
@@ -165,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <a href="login.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block" data-i18n="login">تسجيل الدخول</a>
   </div>
 </main>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
@@ -179,11 +190,12 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const ADMIN_EMAIL = 'y0892100@gmail.com';
+
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove('show'), 4000);
+  setTimeout(() => t.classList.remove('show'), 5000);
 }
 function formatDate(timestamp) {
   if (!timestamp) return t('undefined');
@@ -205,26 +217,31 @@ function getHoursRemaining(createdAt) {
   const hoursDiff = (now - orderDate) / (1000 * 60 * 60);
   return Math.max(0, 6 - hoursDiff).toFixed(1);
 }
+
+// ❌ إلغاء الطلب + إرجاع الكمية للمخزون
 window.cancelOrder = async function(orderId, orderItems) {
   if (!confirm(t('confirm_cancel'))) return;
   try {
     const batch = db.batch();
     const orderRef = db.collection('orders').doc(orderId);
-    batch.update(orderRef, { status: 'ملغي' });
+    batch.update(orderRef, { status: 'ملغي', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+    // إرجاع كل كميات المنتجات للمخزون
     for (const item of orderItems) {
+      if (!item.productId || !item.color || !item.size) continue;
       const qty = item.qty || item.quantity || 1;
-      const productRef = db.collection('products').doc(item.id);
+      const productRef = db.collection('products').doc(item.productId);
       const productDoc = await productRef.get();
       if (productDoc.exists) {
         const data = productDoc.data();
         const variants = data.variants || [];
         const idx = variants.findIndex(v => 
-          v.color === (item.color || '') && v.size === (item.size || '')
+          String(v.color).trim() === String(item.color).trim() && 
+          String(v.size).trim() === String(item.size).trim()
         );
         if (idx !== -1) {
-          variants[idx].stock += qty;
-          const anyInStock = variants.some(v => v.stock > 0);
-          batch.update(productRef, { variants, available: anyInStock });
+          variants[idx].stock = (variants[idx].stock || 0) + qty;
+          batch.update(productRef, { variants });
         }
       }
     }
@@ -236,6 +253,26 @@ window.cancelOrder = async function(orderId, orderItems) {
     showToast(t('cancel_error') + err.message, 'error');
   }
 };
+
+// 🧭 شريط التقدم حسب الحالة
+function getProgressPercent(status) {
+  const map = {
+    'جديد': 15,
+    'pending': 15,
+    'مؤكد': 35,
+    'confirmed': 35,
+    'يتم تجهيز طلبك': 60,
+    'preparing': 60,
+    'يتم تجهيز توصيل طلبك': 85,
+    'shipping': 85,
+    'تم التسليم': 100,
+    'delivered': 100,
+    'ملغي': 0,
+    'cancelled': 0
+  };
+  return map[status] || 10;
+}
+
 function updateUserNav(user) {
   const lang = getCurrentLanguage();
   const area = document.getElementById('user-area');
@@ -290,10 +327,12 @@ function updateUserNav(user) {
     }
   }, 0);
 }
+
 window.logout = async () => {
   await auth.signOut();
   window.location.href = 'index.html';
 };
+
 auth.onAuthStateChanged(async user => {
   document.getElementById('loading').classList.add('hidden');
   
@@ -306,101 +345,110 @@ auth.onAuthStateChanged(async user => {
   updateUserNav(user);
   
   try {
-    const snapshot = await db.collection('orders')
+    const unsubscribe = db.collection('orders')
       .where('userId', '==', user.uid)
-      .get();
-    const list = document.getElementById('orders-list');
-    
-    if (snapshot.empty) {
-      document.getElementById('no-orders').classList.remove('hidden');
-      return;
-    }
-    let orders = [];
-    snapshot.forEach(doc => {
-      orders.push({ id: doc.id, ...doc.data() });
-    });
-    orders.sort((a, b) => {
-      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
-      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
-      return dateB - dateA;
-    });
-    orders.forEach(order => {
-      const canCancel = order.status !== 'ملغي' && isWithinCancellationWindow(order.createdAt);
-      const hoursLeft = getHoursRemaining(order.createdAt);
-      
-      // تحديد لون ونص الحالة
-      let statusClass, statusText;
-      if (order.status === 'جديد' || order.status === 'New') {
-        statusClass = 'bg-blue-100 text-blue-700';
-        statusText = t('status_new');
-      } else if (order.status === 'مؤكد' || order.status === 'Confirmed') {
-        statusClass = 'bg-green-100 text-green-700';
-        statusText = t('status_confirmed');
-      } else if (order.status === 'يتم تجهيز طلبك') {
-        statusClass = 'bg-yellow-100 text-yellow-700';
-        statusText = t('status_preparing');
-      } else if (order.status === 'يتم تجهيز توصيل طلبك') {
-        statusClass = 'bg-orange-100 text-orange-700';
-        statusText = t('status_shipping');
-      } else if (order.status === 'ملغي' || order.status === 'Cancelled') {
-        statusClass = 'bg-red-100 text-red-700';
-        statusText = t('status_cancelled');
-      } else {
-        statusClass = 'bg-gray-100 text-gray-700';
-        statusText = t('status_pending');
-      }
-      
-      // عرض تاريخ التوصيل لو موجود
-      const deliveryDateLine = order.deliveryDate ? 
-        `<p class="text-sm text-green-700 font-medium mb-2">📅 ${t('delivery_date')}: ${order.deliveryDate}</p>` : '';
-      
-      list.innerHTML += `
-        <div class="bg-white p-5 rounded-xl shadow-sm mb-4 border">
-          <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
-            <span class="font-bold">${t('order_number')}: ${order.orderNumber || order.id}</span>
-            <span class="px-3 py-1 rounded-full text-sm font-medium ${statusClass}">${statusText}</span>
-          </div>
-          <p class="text-sm text-gray-600 mb-1">${t('date')}: ${formatDate(order.createdAt)}</p>
-          ${deliveryDateLine}
-          <p class="text-sm text-gray-600 mb-1">${t('customer_name')}: ${order.fullName || order.name || t('not_provided')}</p>
-          <p class="text-sm text-gray-600 mb-1">${t('phone')}: ${order.phone || t('not_provided')}</p>
-          <p class="text-sm text-gray-600 mb-3">${t('address')}: ${order.address || t('not_provided')}</p>
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        const list = document.getElementById('orders-list');
+        list.innerHTML = '';
+        
+        if (snapshot.empty) {
+          document.getElementById('no-orders').classList.remove('hidden');
+          return;
+        }
+        document.getElementById('no-orders').classList.add('hidden');
+        
+        snapshot.forEach(doc => {
+          const order = { id: doc.id, ...doc.data() };
+          const canCancel = (order.status !== 'ملغي' && order.status !== 'cancelled') && isWithinCancellationWindow(order.createdAt);
+          const hoursLeft = getHoursRemaining(order.createdAt);
+          const progress = getProgressPercent(order.status);
           
-          <div class="border-t pt-3 mb-3">
-            <p class="font-semibold mb-2">${t('products')}:</p>
-            ${(order.items || []).map(item => {
-              const qty = item.qty || item.quantity || 1;
-              return `
-                <div class="flex justify-between text-sm py-1">
-                  <span>${item.name} — ${t('size')}: ${item.size || '-'} — ${t('color')}: ${item.color || '-'} × ${qty}</span>
-                  <span class="font-medium">${((item.price || 0) * qty).toFixed(2)} ${t('AED')}</span>
+          // تحديد لون ونص الحالة
+          let statusClass, statusText;
+          if (order.status === 'جديد' || order.status === 'pending' || order.status === 'New') {
+            statusClass = 'status-new';
+            statusText = t('status_new');
+          } else if (order.status === 'مؤكد' || order.status === 'confirmed' || order.status === 'Confirmed') {
+            statusClass = 'status-confirmed';
+            statusText = t('status_confirmed');
+          } else if (order.status === 'يتم تجهيز طلبك' || order.status === 'preparing') {
+            statusClass = 'status-preparing';
+            statusText = t('status_preparing');
+          } else if (order.status === 'يتم تجهيز توصيل طلبك' || order.status === 'shipping') {
+            statusClass = 'status-shipping';
+            statusText = t('status_shipping');
+          } else if (order.status === 'تم التسليم' || order.status === 'delivered' || order.status === 'Delivered') {
+            statusClass = 'status-delivered';
+            statusText = t('status_delivered');
+          } else if (order.status === 'ملغي' || order.status === 'cancelled' || order.status === 'Cancelled') {
+            statusClass = 'status-cancelled';
+            statusText = t('status_cancelled');
+          } else {
+            statusClass = 'bg-gray-100 text-gray-700';
+            statusText = order.status || t('status_new');
+          }
+          
+          // عرض تاريخ التوصيل لو موجود
+          const deliveryDateLine = order.deliveryDate ? 
+            `<p class="text-sm text-green-700 font-medium mb-2">📅 ${t('delivery_date')}: ${order.deliveryDate}</p>` : '';
+          
+          list.innerHTML += `
+            <div class="bg-white p-5 rounded-xl shadow-sm mb-4 border">
+              <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
+                <span class="font-bold">${t('order_number')}: ${(order.orderNumber || order.id).slice(0, 12)}</span>
+                <span class="status-badge ${statusClass}">${statusText}</span>
+              </div>
+              
+              <!-- شريط التقدم -->
+              <div class="progress-bar mb-3">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+              </div>
+              
+              <p class="text-sm text-gray-600 mb-1">${t('date')}: ${formatDate(order.createdAt)}</p>
+              ${deliveryDateLine}
+              <p class="text-sm text-gray-600 mb-1">${t('customer_name')}: ${order.fullName || order.customerName || order.name || t('not_provided')}</p>
+              <p class="text-sm text-gray-600 mb-1">${t('phone')}: ${order.phone || order.customerPhone || t('not_provided')}</p>
+              <p class="text-sm text-gray-600 mb-3">${t('address')}: ${order.address || t('not_provided')}</p>
+              
+              <div class="border-t pt-3 mb-3">
+                <p class="font-semibold mb-2">${t('products')}:</p>
+                ${(order.items || []).map(item => {
+                  const qty = item.qty || item.quantity || 1;
+                  return `
+                    <div class="flex justify-between text-sm py-1">
+                      <span>${item.name} — ${t('size')}: ${item.size || '-'} — ${t('color')}: ${item.color || '-'} × ${qty}</span>
+                      <span class="font-medium">${((item.price || 0) * qty).toFixed(2)} ${t('AED')}</span>
+                    </div>
+                  `;
+                }).join('')}
+                <div class="flex justify-between font-bold mt-2 pt-2 border-t">
+                  <span>${t('total')}</span>
+                  <span>${(order.totalPrice || order.total || 0).toFixed(2)} ${t('AED')}</span>
                 </div>
-              `;
-            }).join('')}
-            <div class="flex justify-between font-bold mt-2 pt-2 border-t">
-              <span>${t('total')}</span>
-              <span>${(order.total || 0).toFixed(2)} ${t('AED')}</span>
+              </div>
+              
+              ${(order.status !== 'ملغي' && order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'تم التسليم') ? `
+                <div class="flex flex-wrap gap-2 pt-2 border-t">
+                  ${canCancel ? `
+                    <button onclick="cancelOrder('${order.id}', ${JSON.stringify(order.items || []).replace(/"/g, '&quot;')})" 
+                      class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">
+                      <i class="fa-solid fa-xmark ml-1"></i> ${t('cancel_order')} (${hoursLeft} ${t('hours_remaining')})
+                    </button>
+                  ` : `
+                    <span class="text-sm text-gray-500 px-2 py-2">${t('cancellation_expired')}</span>
+                  `}
+                  <a href="returns.html?order=${encodeURIComponent(order.orderNumber || order.id)}" 
+                    class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                    <i class="fa-solid fa-rotate-left ml-1"></i> ${t('request_return')}
+                  </a>
+                </div>
+              ` : ''}
             </div>
-          </div>
-          ${order.status !== 'ملغي' && order.status !== 'Cancelled' ? `
-            <div class="flex flex-wrap gap-2 pt-2 border-t">
-              ${canCancel ? `
-                <button onclick="cancelOrder('${order.id}', ${JSON.stringify(order.items || []).replace(/"/g, '&quot;')})" 
-                  class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">
-                  <i class="fa-solid fa-xmark ml-1"></i> ${t('cancel_order')} (${hoursLeft} ${t('hours_remaining')})
-                </button>
-              ` : `
-                <span class="text-sm text-gray-500 px-2 py-2">${t('cancellation_expired')}</span>
-              `}
-              <a href="returns.html?order=${encodeURIComponent(order.orderNumber || order.id)}" 
-                class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                <i class="fa-solid fa-rotate-left ml-1"></i> ${t('request_return')}
-              </a>
-            </div>
-          ` : ''}
-        </div>
-      `;
-    });
+          `;
+        });
+      });
+    };
   } catch (err) {
     console.error(err);
     document.getElementById('orders-list').innerHTML = `<p class="text-red-500">${t('load_error')} ${err.message}</p>`;
