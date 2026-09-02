@@ -6,299 +6,347 @@
   <title>لوحة التحكم - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" type="image/png" href="varen.jpeg">
+  <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-    .modal.active { display: flex; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    .tab-btn.active { background: black; color: white; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import firebaseConfig from './firebase-config.js';
-    import * as Store from './store.js';
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const googleProvider = new GoogleAuthProvider();
-
-    window.app = { 
-      auth, db, googleProvider, 
-      signInWithEmailAndPassword, createUserWithEmailAndPassword,
-      signInWithPopup, signOut, onAuthStateChanged, updateProfile,
-      collection, addDoc, getDocs
-    };
-    window.Store = Store;
-  </script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
+  authDomain: "varen-f7756.firebaseapp.com",
+  projectId: "varen-f7756",
+  storageBucket: "varen-f7756.firebasestorage.app",
+  messagingSenderId: "648684291842",
+  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
+  measurementId: "G-SV7DKGPH2M"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const ADMIN_EMAIL = 'y0892100@gmail.com';
+</script>
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <div class="hidden md:flex gap-8">
-      <a href="index.html" class="hover:text-gray-600">الرئيسية</a>
-      <a href="category.html?gender=women" class="hover:text-gray-600">نسائي</a>
-      <a href="category.html?gender=men" class="hover:text-gray-600">رجالي</a>
-      <a href="category.html?gender=girls" class="hover:text-gray-600">بنات</a>
-      <a href="category.html?gender=boys" class="hover:text-gray-600">أولاد</a>
-    </div>
-    <div class="flex items-center gap-4">
-      <a href="cart.html" class="text-xl relative">
-        <i class="fa-solid fa-cart-shopping"></i>
-        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-      </a>
-      <div id="user-area">
-        <button id="login-btn" onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>
-      </div>
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-2xl font-black text-gray-900">لوحة التحكم — VAREN</span>
+    </a>
+    <div>
+      <button onclick="logout()" class="text-red-500 hover:text-red-700 font-medium">
+        <i class="fa-solid fa-right-from-bracket ml-1"></i> تسجيل الخروج
+      </button>
     </div>
   </div>
 </nav>
 
-<main class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-6">لوحة التحكم — إضافة منتج</h1>
-  
-  <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md space-y-4">
-    <div class="grid md:grid-cols-2 gap-4">
-      <div>
-        <label class="block font-semibold mb-1">اسم المنتج</label>
-        <input type="text" id="p-name" class="w-full border rounded-lg p-3" required>
-      </div>
+<!-- شاشة رفض الوصول -->
+<div id="access-denied" class="hidden max-w-md mx-auto px-4 py-20 text-center">
+  <i class="fa-solid fa-lock text-6xl text-red-400 mb-4"></i>
+  <h1 class="text-2xl font-bold text-red-600 mb-2">غير مصرّح لك بالدخول</h1>
+  <p class="text-gray-500 mb-6">هذه الصفحة خاصة بصاحب المتجر فقط</p>
+  <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block">العودة للرئيسية</a>
+</div>
 
-      <div>
-        <label class="block font-semibold mb-1">السعر الأصلي (قبل الخصم)</label>
-        <input type="number" id="p-price-original" class="w-full border rounded-lg p-3" placeholder="اختياري">
-      </div>
+<!-- محتوى لوحة التحكم -->
+<div id="admin-content" class="hidden max-w-7xl mx-auto px-4 py-6">
+  <!-- التبويبات -->
+  <div class="flex flex-wrap gap-2 mb-6 border-b pb-2">
+    <button class="tab-btn active px-4 py-2 rounded-t-lg border-t border-l border-r" onclick="showTab('products')">
+      <i class="fa-solid fa-box ml-1"></i> المنتجات
+    </button>
+    <button class="tab-btn px-4 py-2 rounded-t-lg border-t border-l border-r" onclick="showTab('orders')">
+      <i class="fa-solid fa-file-invoice ml-1"></i> الطلبات
+    </button>
+  </div>
 
-      <div>
-        <label class="block font-semibold mb-1">السعر بعد الخصم (السعر الحالي)</label>
-        <input type="number" id="p-price" class="w-full border rounded-lg p-3" required>
-      </div>
-
-      <div>
-        <label class="block font-semibold mb-1">التصنيف</label>
-        <select id="p-gender" class="w-full border rounded-lg p-3">
-          <option value="women">نسائي</option>
-          <option value="men">رجالي</option>
-          <option value="girls">بنات</option>
-          <option value="boys">أولاد</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block font-semibold mb-1">النوع</label>
-        <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان...">
-      </div>
-
-      <div>
-        <label class="block font-semibold mb-1">حالة التوفر</label>
-        <select id="p-available" class="w-full border rounded-lg p-3">
-          <option value="true" selected>متوفر ✅</option>
-          <option value="false">غير متوفر ❌</option>
-        </select>
-      </div>
-
-      <div class="md:col-span-2">
-        <label class="block font-semibold mb-2">الألوان المتاحة</label>
-        <div class="flex flex-wrap gap-3">
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أحمر"> أحمر</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أسود"> أسود</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أبيض"> أبيض</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="بيج"> بيج</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="رمادي"> رمادي</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أزرق"> أزرق</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أخضر"> أخضر</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="وردي"> وردي</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="بني"> بني</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="برتقالي"> برتقالي</label>
+  <!-- قسم المنتجات -->
+  <div id="tab-products" class="tab-content">
+    <button onclick="showAddForm()" class="bg-black text-white px-4 py-2 rounded-lg mb-6">
+      <i class="fa-solid fa-plus ml-1"></i> إضافة منتج جديد
+    </button>
+    
+    <!-- نموذج إضافة/تعديل منتج -->
+    <div id="product-form" class="hidden bg-white rounded-xl shadow-sm p-6 mb-8 border">
+      <h3 class="text-xl font-bold mb-4" id="form-title">إضافة منتج جديد</h3>
+      <form id="prod-form" class="space-y-4">
+        <input type="hidden" id="prod-id">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-medium mb-1">اسم المنتج</label>
+            <input type="text" id="prod-name" required class="w-full border rounded-lg px-4 py-2">
+          </div>
+          <div>
+            <label class="block font-medium mb-1">السعر (درهم)</label>
+            <input type="number" step="0.01" id="prod-price" required class="w-full border rounded-lg px-4 py-2">
+          </div>
+          <div>
+            <label class="block font-medium mb-1">السعر الأصلي (اختياري)</label>
+            <input type="number" step="0.01" id="prod-price-orig" class="w-full border rounded-lg px-4 py-2">
+          </div>
+          <div>
+            <label class="block font-medium mb-1">التصنيف</label>
+            <select id="prod-gender" class="w-full border rounded-lg px-4 py-2">
+              <option value="men">رجالي</option>
+              <option value="women">نسائي</option>
+              <option value="kids">أطفال</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium mb-1">النوع</label>
+            <input type="text" id="prod-type" placeholder="هودي، تيشيرت، بنطلون..." class="w-full border rounded-lg px-4 py-2">
+          </div>
+          <div>
+            <label class="block font-medium mb-1">الموسم</label>
+            <select id="prod-season" class="w-full border rounded-lg px-4 py-2">
+              <option value="">عام</option>
+              <option value="winter">شتوي</option>
+              <option value="summer">صيفي</option>
+            </select>
+          </div>
         </div>
-      </div>
-
-      <div class="md:col-span-2">
-        <label class="block font-semibold mb-2">المقاسات المتاحة</label>
-        <div class="flex flex-wrap gap-3">
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XS"> XS</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="S"> S</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="M"> M</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="L"> L</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XL"> XL</label>
-          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XXL"> XXL</label>
+        <div>
+          <label class="block font-medium mb-1">روابط الصور (افصل بينها بفاصلة)</label>
+          <textarea id="prod-images" rows="2" placeholder="رابط1, رابط2..." class="w-full border rounded-lg px-4 py-2"></textarea>
         </div>
-      </div>
-
-      <div class="md:col-span-2">
-        <label class="block font-semibold mb-1">روابط الصور (كل رابط في سطر)</label>
-        <textarea id="p-images" class="w-full border rounded-lg p-3" rows="5" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
-      </div>
+        <div>
+          <label class="block font-medium mb-1">المخزون — اللون | المقاس | الكمية (كل سطر)</label>
+          <textarea id="prod-variants" rows="5" placeholder="أسود | M | 10&#10;أسود | L | 5&#10;أبيض | M | 8" class="w-full border rounded-lg px-4 py-2"></textarea>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg">حفظ</button>
+          <button type="button" onclick="hideForm()" class="bg-gray-300 px-6 py-2 rounded-lg">إلغاء</button>
+        </div>
+      </form>
     </div>
 
-    <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full">إضافة المنتج</button>
-  </form>
-</main>
+    <!-- قائمة المنتجات -->
+    <div id="products-list" class="space-y-3"></div>
+  </div>
 
-<!-- نافذة تسجيل الدخول -->
-<div id="login-modal" class="modal">
-  <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">تسجيل الدخول</h2>
-      <button onclick="closeModal('login-modal')" class="text-gray-500 text-2xl">&times;</button>
-    </div>
-    <div id="login-options">
-      <button onclick="loginWithGoogle()" class="w-full flex items-center justify-center gap-2 border border-gray-300 py-3 rounded-lg mb-4 hover:bg-gray-50">
-        <i class="fa-brands fa-google text-red-500"></i> الدخول بحساب قوقل
-      </button>
-      <div class="flex items-center gap-4 my-4"><hr class="flex-1"><span>أو</span><hr class="flex-1"></div>
-      <button onclick="showEmailLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">الدخول بالإيميل</button>
-      <p class="text-center mt-4">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب جديد</button></p>
-    </div>
-    <div id="email-login" class="hidden">
-      <input type="email" id="login-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border border-gray-300 rounded-lg p-3 mb-4">
-      <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
-      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
-    </div>
-    <div id="register-form" class="hidden">
-      <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف على الأقل)" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <button onclick="registerUser()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">إنشاء حساب</button>
-      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
-    </div>
+  <!-- قسم الطلبات -->
+  <div id="tab-orders" class="tab-content hidden">
+    <h2 class="text-xl font-bold mb-4">إدارة الطلبات</h2>
+    <div id="orders-list" class="space-y-3"></div>
   </div>
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-window.openModal = id => { document.getElementById(id).classList.add('active'); };
-window.closeModal = id => { document.getElementById(id).classList.remove('active'); };
-window.showEmailLogin = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('email-login').classList.remove('hidden');
-};
-window.showRegister = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('register-form').classList.remove('hidden');
-};
-window.backToOptions = () => {
-  document.getElementById('login-options').classList.remove('hidden');
-  document.getElementById('email-login').classList.add('hidden');
-  document.getElementById('register-form').classList.add('hidden');
-};
-
-function updateUI(user) {
-  const area = document.getElementById('user-area');
-  if (user) {
-    area.innerHTML = `
-      <div class="relative" id="account-menu-container">
-        <button id="account-menu-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
-          <i class="fa-solid fa-user"></i>
-          <span>${user.displayName || 'حسابي'}</span>
-          <i class="fa-solid fa-chevron-down text-xs"></i>
-        </button>
-        <div id="account-menu" class="absolute left-0 bottom-full mb-2 w-48 bg-white shadow-lg rounded-lg p-2 hidden z-50">
-          <a href="account.html" class="block px-4 py-2 hover:bg-gray-100 rounded">حسابي</a>
-          <a href="orders.html" class="block px-4 py-2 hover:bg-gray-100 rounded">طلباتي</a>
-          <a href="returns.html" class="block px-4 py-2 hover:bg-gray-100 rounded">الاسترجاعات</a>
-          <hr class="my-2">
-          <button onclick="logout()" class="block w-full text-right px-4 py-2 text-red-500 hover:bg-gray-100 rounded">تسجيل الخروج</button>
-        </div>
-      </div>
-    `;
-    setTimeout(() => {
-      const btn = document.getElementById('account-menu-btn');
-      const menu = document.getElementById('account-menu');
-      if (!btn || !menu) return;
-      btn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); };
-      document.onclick = () => menu.classList.add('hidden');
-      menu.onclick = (e) => e.stopPropagation();
-    }, 10);
-  } else {
-    area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
-  }
-  window.Store.updateCartCount();
+function showToast(msg, type='success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
-window.loginWithGoogle = async () => {
+function showTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+  document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+  
+  if (tabName === 'products') loadProducts();
+  if (tabName === 'orders') loadOrders();
+}
+
+function showAddForm() {
+  document.getElementById('product-form').classList.remove('hidden');
+  document.getElementById('form-title').textContent = 'إضافة منتج جديد';
+  document.getElementById('prod-form').reset();
+  document.getElementById('prod-id').value = '';
+}
+
+function hideForm() {
+  document.getElementById('product-form').classList.add('hidden');
+}
+
+function parseVariants(text) {
+  if (!text) return [];
+  return text.split('\n').map(line => {
+    const parts = line.split('|').map(p => p.trim());
+    if (parts.length >= 3) {
+      return { color: parts[0], size: parts[1], stock: parseInt(parts[2]) || 0 };
+    }
+    return null;
+  }).filter(Boolean);
+}
+
+function parseImages(text) {
+  if (!text) return [];
+  return text.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+// حفظ منتج
+document.getElementById('prod-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('prod-id').value;
+  const data = {
+    name: document.getElementById('prod-name').value,
+    price: parseFloat(document.getElementById('prod-price').value),
+    priceOriginal: document.getElementById('prod-price-orig').value ? parseFloat(document.getElementById('prod-price-orig').value) : null,
+    gender: document.getElementById('prod-gender').value,
+    type: document.getElementById('prod-type').value,
+    season: document.getElementById('prod-season').value,
+    images: parseImages(document.getElementById('prod-images').value),
+    variants: parseVariants(document.getElementById('prod-variants').value),
+    available: true,
+    updatedAt: new Date()
+  };
+
   try {
-    await window.app.signInWithPopup(window.app.auth, window.app.googleProvider);
-    closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول بنجاح! ✅');
-  } catch (e) {
-    window.Store.showToast(e.message, 'error');
+    if (id) {
+      await db.collection('products').doc(id).update(data);
+      showToast('✅ تم تحديث المنتج');
+    } else {
+      data.createdAt = new Date();
+      await db.collection('products').add(data);
+      showToast('✅ تم إضافة المنتج');
+    }
+    hideForm();
+    loadProducts();
+  } catch (err) {
+    showToast('❌ خطأ: ' + err.message, 'error');
   }
+});
+
+// تحميل المنتجات
+async function loadProducts() {
+  const list = document.getElementById('products-list');
+  try {
+    const snap = await db.collection('products').orderBy('createdAt','desc').get();
+    list.innerHTML = '';
+    snap.forEach(doc => {
+      const p = { id: doc.id, ...doc.data() };
+      const totalStock = (p.variants || []).reduce((sum,v) => sum + (v.stock||0), 0);
+      list.innerHTML += `
+        <div class="bg-white rounded-xl shadow-sm p-4 border flex justify-between items-center">
+          <div>
+            <h4 class="font-bold text-lg">${p.name}</h4>
+            <p class="text-sm text-gray-500">${p.price} درهم | المخزون: ${totalStock} قطعة</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="editProduct('${doc.id}')" class="bg-blue-500 text-white px-3 py-1 rounded">تعديل</button>
+            <button onclick="deleteProduct('${doc.id}')" class="bg-red-500 text-white px-3 py-1 rounded">حذف</button>
+          </div>
+        </div>
+      `;
+    });
+  } catch (err) {
+    list.innerHTML = `<p class="text-red-500">خطأ في التحميل: ${err.message}</p>`;
+  }
+}
+
+window.editProduct = async function(id) {
+  const doc = await db.collection('products').doc(id).get();
+  if (!doc.exists) return;
+  const p = { id: doc.id, ...doc.data() };
+  
+  document.getElementById('product-form').classList.remove('hidden');
+  document.getElementById('form-title').textContent = 'تعديل المنتج';
+  document.getElementById('prod-id').value = p.id;
+  document.getElementById('prod-name').value = p.name || '';
+  document.getElementById('prod-price').value = p.price || '';
+  document.getElementById('prod-price-orig').value = p.priceOriginal || '';
+  document.getElementById('prod-gender').value = p.gender || 'men';
+  document.getElementById('prod-type').value = p.type || '';
+  document.getElementById('prod-season').value = p.season || '';
+  document.getElementById('prod-images').value = (p.images || []).join(', ');
+  
+  const vars = (p.variants || []).map(v => `${v.color} | ${v.size} | ${v.stock}`).join('\n');
+  document.getElementById('prod-variants').value = vars;
 };
 
-window.registerUser = async () => {
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const pass = document.getElementById('reg-password').value;
-  if (!name || !email || pass.length < 6) {
-    return window.Store.showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
-  }
-  try {
-    const cred = await window.app.createUserWithEmailAndPassword(window.app.auth, email, pass);
-    await window.app.updateProfile(cred.user, { displayName: name });
-    closeModal('login-modal');
-    window.Store.showToast('تم إنشاء الحساب بنجاح! ✅');
-  } catch (e) {
-    window.Store.showToast(e.message, 'error');
-  }
+window.deleteProduct = async function(id) {
+  if (!confirm('متأكد من الحذف؟')) return;
+  await db.collection('products').doc(id).delete();
+  showToast('✅ تم الحذف');
+  loadProducts();
 };
 
-window.loginWithEmail = async () => {
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-password').value;
+// تحميل الطلبات
+async function loadOrders() {
+  const list = document.getElementById('orders-list');
   try {
-    await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
-    closeModal('login-modal');
-    window.Store.showToast('تم تسجيل الدخول! ✅');
-  } catch (e) {
-    window.Store.showToast('إيميل أو كلمة مرور خاطئة', 'error');
+    const snap = await db.collection('orders').orderBy('createdAt','desc').limit(50).get();
+    list.innerHTML = '';
+    if (snap.empty) {
+      list.innerHTML = '<p class="text-gray-500">لا توجد طلبات بعد</p>';
+      return;
+    }
+    snap.forEach(doc => {
+      const o = { id: doc.id, ...doc.data() };
+      list.innerHTML += `
+        <div class="bg-white rounded-xl shadow-sm p-4 border">
+          <div class="flex justify-between items-start mb-2">
+            <span class="font-bold">طلب #${o.id.slice(0,8)}</span>
+            <span class="px-2 py-1 rounded text-sm font-medium ${
+              o.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+              o.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
+              o.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+              'bg-yellow-100 text-yellow-700'
+            }">${o.status || 'pending'}</span>
+          </div>
+          <p class="text-sm text-gray-600">الاسم: ${o.fullName || '-'}</p>
+          <p class="text-sm text-gray-600">الإيميل: ${o.email || '-'}</p>
+          <p class="text-sm text-gray-600">المجموع: ${o.total || 0} درهم</p>
+        </div>
+      `;
+    });
+  } catch (err) {
+    list.innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
   }
+}
+
+// تسجيل الخروج
+window.logout = async function() {
+  await auth.signOut();
+  window.location.href = 'index.html';
 };
 
-window.logout = async () => {
-  await window.app.signOut(window.app.auth);
-  window.Store.showToast('تم تسجيل الخروج');
-};
+// فحص الصلاحية
+function checkAdminAccess(user) {
+  const accessDenied = document.getElementById('access-denied');
+  const adminContent = document.getElementById('admin-content');
+  
+  if (user && user.email === ADMIN_EMAIL) {
+    accessDenied.classList.add('hidden');
+    adminContent.classList.remove('hidden');
+    loadProducts();
+  } else {
+    accessDenied.classList.remove('hidden');
+    adminContent.classList.add('hidden');
+    if (user) {
+      setTimeout(() => auth.signOut(), 3000);
+    }
+  }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-  window.app.onAuthStateChanged(window.app.auth, updateUI);
-
-  const form = document.getElementById('add-product-form');
-  form.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const selectedColors = Array.from(document.querySelectorAll('input[name="colors"]:checked')).map(cb => cb.value);
-    const selectedSizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked')).map(cb => cb.value);
-    const images = document.getElementById('p-images').value.trim().split('\n').map(s => s.trim()).filter(s => s);
-
-    try {
-      await window.app.addDoc(window.app.collection(window.app.db, 'products'), {
-        name: document.getElementById('p-name').value.trim(),
-        priceOriginal: Number(document.getElementById('p-price-original').value) || null,
-        price: Number(document.getElementById('p-price').value),
-        gender: document.getElementById('p-gender').value,
-        type: document.getElementById('p-type').value.trim(),
-        available: document.getElementById('p-available').value === 'true',
-        colors: selectedColors,
-        sizes: selectedSizes,
-        images: images
-      });
-      
-      window.Store.showToast('تم إضافة المنتج بنجاح ✅');
-      form.reset();
-    } catch (err) {
-      window.Store.showToast('خطأ: ' + err.message, 'error');
+  auth.onAuthStateChanged(user => {
+    if (!user) {
+      window.location.href = 'login.html?redirect=admin.html';
+      return;
     }
+    checkAdminAccess(user);
   });
 });
 </script>
+
 </body>
 </html>
