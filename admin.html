@@ -22,7 +22,6 @@
     html[lang="en"] { direction: ltr; }
     html { scroll-behavior: smooth; }
     
-    /* رسائل التنبيه */
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; padding: 14px 28px; border-radius: 12px; z-index: 9999; display: none; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.18); max-width: 90%; width: fit-content; }
     .toast.show { display: block; animation: fadeInUp 0.35s ease; }
     .toast.success { background: linear-gradient(135deg, #16a34a, #15803d); }
@@ -31,13 +30,11 @@
     .toast.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
     @keyframes fadeInUp { from { opacity:0; transform: translate(-50%, 25px); } to { opacity:1; transform: translate(-50%, 0); } }
     
-    /* التبويبات */
     .tab-btn.active { background-color: black; color: white; }
     .tab-content { display: none; }
     .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
     
-    /* بطاقات وعناصر */
     .card { background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #f3f4f6; }
     .status-badge { padding: 4px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
     .status-pending { background: #fef3c7; color: #92400e; }
@@ -47,12 +44,10 @@
     .status-delivered { background: #dcfce7; color: #166534; }
     .status-cancelled { background: #fee2e2; color: #991b1b; }
     
-    /* حقول الإدخال */
     input, select, textarea { border: 2px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; width: 100%; font-size: 1rem; transition: border 0.2s; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: black; }
     label { font-weight: 600; color: #374151; margin-bottom: 6px; display: block; }
     
-    /* زر الإجراء */
     .btn { padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 0.95rem; }
     .btn-primary { background: black; color: white; }
     .btn-primary:hover { background: #374151; }
@@ -64,22 +59,18 @@
     .btn-danger:hover { background: #b91c1c; }
     .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
     
-    /* شاشة الحماية */
     .auth-screen { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
 <script>
-// ==============================================
-// إعدادات الترجمة
-// ==============================================
 const translations = {
   ar: {
     page_title: "لوحة التحكم - VAREN",
     loading: "جاري التحميل...",
     no_access: "غير مسموح لك بالوصول إلى هذه الصفحة",
-    logging_in: "جاري تسجيل الدخول...",
+    logging_in: "جاري التحقق من الصلاحية...",
     welcome: "مرحباً بك في لوحة تحكم VAREN",
     logout: "تسجيل الخروج",
     tab_products: "المنتجات",
@@ -237,9 +228,6 @@ const translations = {
   }
 };
 
-// ==============================================
-// دوال اللغة
-// ==============================================
 function setLanguage(lang) {
   if (!translations[lang]) lang = 'ar';
   document.documentElement.lang = lang;
@@ -257,9 +245,6 @@ function t(key) {
   return translations[getCurrentLanguage()][key] || key;
 }
 
-// ==============================================
-// إعدادات Firebase
-// ==============================================
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -273,16 +258,10 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ==============================================
-// إعدادات EmailJS
-// ==============================================
 const EMAILJS_SERVICE_ID = "service_3bs6onj";
 const EMAILJS_TEMPLATE_CONFIRM = "template_om7zrjs";
 const ADMIN_EMAIL = "y0892100@gmail.com";
 
-// ==============================================
-// متغيرات عامة
-// ==============================================
 let currentEditProductId = null;
 let variantsList = [];
 let allProducts = [];
@@ -290,7 +269,6 @@ let allOrders = [];
 let filteredOrders = [];
 </script>
 
-<!-- شريط التنقل -->
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <div class="flex items-center gap-3">
@@ -310,7 +288,6 @@ let filteredOrders = [];
   </div>
 </nav>
 
-<!-- شاشة التحقق من الصلاحية -->
 <div id="auth-screen" class="auth-screen">
   <div class="card p-8 text-center max-w-md">
     <i class="fa-solid fa-shield-halved fa-3xl text-gray-400 mb-4"></i>
@@ -319,10 +296,8 @@ let filteredOrders = [];
   </div>
 </div>
 
-<!-- المحتوى الرئيسي — مخفي حتى التحقق -->
 <div id="admin-content" class="hidden max-w-7xl mx-auto px-4 py-6">
   
-  <!-- التبويبات -->
   <div class="flex flex-wrap gap-2 mb-6 border-b pb-2">
     <button class="tab-btn btn btn-primary active" data-tab="products">
       <i class="fa-solid fa-boxes-stacked ml-1"></i>
@@ -338,18 +313,15 @@ let filteredOrders = [];
     </button>
   </div>
 
-  <!-- تبويب المنتجات -->
   <div id="tab-products" class="tab-content active">
     <div class="card p-6 mb-6">
       <h2 class="text-xl font-bold mb-4">قائمة المنتجات</h2>
       <div id="products-list" class="space-y-3">
-        <!-- منتجات تُضاف هنا -->
         <p class="text-center text-gray-400 py-4" data-i18n="loading">جاري التحميل...</p>
       </div>
     </div>
   </div>
 
-  <!-- تبويب إضافة/تعديل منتج -->
   <div id="tab-add-product" class="tab-content">
     <div class="card p-6">
       <h2 id="form-title" class="text-xl font-bold mb-6" data-i18n="tab_add_product">إضافة منتج جديد</h2>
@@ -404,8 +376,6 @@ let filteredOrders = [];
           <label data-i18n="product_desc">وصف المنتج</label>
           <textarea id="prod-desc" rows="3" placeholder="أدخل وصفاً للمنتج..."></textarea>
         </div>
-
-        <!-- خيارات الألوان والمقاسات والمخزون -->
         <div class="border-2 border-dashed border-gray-200 p-4 rounded-lg">
           <div class="flex justify-between items-center mb-3">
             <h3 class="font-bold text-lg" data-i18n="add_variant">خيارات المنتج (لون - مقاس - كمية) *</h3>
@@ -413,12 +383,8 @@ let filteredOrders = [];
               <i class="fa-solid fa-plus ml-1"></i> إضافة صف
             </button>
           </div>
-          <div id="variants-container" class="space-y-2">
-            <!-- صفوف الخيارات تُضاف هنا -->
-          </div>
+          <div id="variants-container" class="space-y-2"></div>
         </div>
-
-        <!-- أزرار الحفظ -->
         <div class="flex gap-3 mt-4">
           <button type="submit" id="save-btn" class="btn btn-primary">
             <i class="fa-solid fa-save ml-1"></i>
@@ -429,15 +395,13 @@ let filteredOrders = [];
             <span data-i18n="delete_product">حذف المنتج</span>
           </button>
           <button type="reset" class="btn" onclick="resetForm()">
-            <i class="fa-solid fa-undo ml-1"></i>
-            إعادة تعيين
+            <i class="fa-solid fa-undo ml-1"></i> إعادة تعيين
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- تبويب الطلبات -->
   <div id="tab-orders" class="tab-content">
     <div class="card p-6 mb-4">
       <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4">
@@ -445,28 +409,21 @@ let filteredOrders = [];
         <input type="text" id="search-orders" placeholder="ابحث برقم الطلب أو اسم العميل..." class="max-w-sm" oninput="filterOrders(this.value)">
       </div>
       <div id="orders-list" class="space-y-4">
-        <!-- طلبات تُضاف هنا -->
         <p class="text-center text-gray-400 py-4" data-i18n="loading">جاري التحميل...</p>
       </div>
     </div>
   </div>
-
 </div>
 
-<!-- رسائل التنبيه -->
 <div id="toast" class="toast"></div>
 
 <script>
-// ==============================================
-// دوال مساعدة
-// ==============================================
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = `toast ${type} show`;
   setTimeout(() => toast.classList.remove('show'), 5000);
 }
-
 function toggleLanguage() {
   const current = getCurrentLanguage();
   const newLang = current === 'ar' ? 'en' : 'ar';
@@ -475,7 +432,6 @@ function toggleLanguage() {
   renderProductsList();
   renderOrdersList();
 }
-
 function getStatusClass(status) {
   const map = {
     pending: 'status-pending',
@@ -487,7 +443,6 @@ function getStatusClass(status) {
   };
   return map[status] || 'status-pending';
 }
-
 function getStatusText(status) {
   const map = {
     pending: t('status_pending'),
@@ -501,41 +456,56 @@ function getStatusText(status) {
 }
 
 // ==============================================
-// حماية الصفحة والتحقق من المدير
+// ✅ التحقق من الصلاحية مع مهلة زمنية — الحل الجديد
 // ==============================================
-auth.onAuthStateChanged(user => {
-  setTimeout(() => {
-    document.getElementById('auth-screen').classList.add('hidden');
-  }, 800);
+let authChecked = false;
+const ADMIN_EMAIL_LOWER = ADMIN_EMAIL.trim().toLowerCase();
 
-  if (user && user.email === ADMIN_EMAIL) {
-    // دخول صحيح — عرض المحتوى
+// ⏱️ مهلة قصوى 3 ثوانٍ فقط — إذا ما رد الفايربيز نخرج
+const authTimeout = setTimeout(() => {
+  if (!authChecked) {
+    authChecked = true;
+    showAccessDenied();
+  }
+}, 3000);
+
+auth.onAuthStateChanged(user => {
+  authChecked = true;
+  clearTimeout(authTimeout);
+  
+  // ✅ أخفِ شاشة التحقق فوراً — لا تنتظر
+  document.getElementById('auth-screen').classList.add('hidden');
+
+  if (user && user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL_LOWER) {
+    // ✅ دخول صحيح — عرض المحتوى
     document.getElementById('admin-content').classList.remove('hidden');
-    document.getElementById('auth-screen').classList.add('hidden');
     setLanguage(getCurrentLanguage());
     document.getElementById('lang-btn').textContent = getCurrentLanguage() === 'ar' ? 'English' : 'العربية';
     
-    // تحميل البيانات
     loadProducts();
     loadOrders();
-    
-    // إضافة صف افتراضي للخيارات
     addVariantRow();
   } else {
-    // دخول غير مسموح — تسجيل خروج وإخفاء كل شيء
+    // ❌ دخول غير مسموح
     if (user) auth.signOut();
-    document.getElementById('auth-screen').innerHTML = `
-      <div class="card p-8 text-center max-w-md">
-        <i class="fa-solid fa-lock fa-3xl text-red-400 mb-4"></i>
-        <h2 class="text-xl font-bold mb-2 text-red-600" data-i18n="no_access">غير مسموح لك بالوصول</h2>
-        <p class="text-gray-500 mb-4">سجل الدخول باستخدام حساب المدير فقط</p>
-        <a href="login.html" class="btn btn-primary">
-          <i class="fa-solid fa-sign-in-alt ml-1"></i> تسجيل الدخول
-        </a>
-      </div>
-    `;
+    showAccessDenied();
   }
 });
+
+function showAccessDenied() {
+  document.getElementById('auth-screen').classList.remove('hidden');
+  document.getElementById('admin-content').classList.add('hidden');
+  document.getElementById('auth-screen').innerHTML = `
+    <div class="card p-8 text-center max-w-md">
+      <i class="fa-solid fa-lock fa-3xl text-red-400 mb-4"></i>
+      <h2 class="text-xl font-bold mb-2 text-red-600" data-i18n="no_access">غير مسموح لك بالوصول</h2>
+      <p class="text-gray-500 mb-4">سجل الدخول باستخدام حساب المدير فقط</p>
+      <a href="login.html" class="btn btn-primary">
+        <i class="fa-solid fa-sign-in-alt ml-1"></i> تسجيل الدخول
+      </a>
+    </div>
+  `;
+}
 
 function logout() {
   auth.signOut().then(() => {
@@ -543,9 +513,6 @@ function logout() {
   });
 }
 
-// ==============================================
-// التبويبات
-// ==============================================
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tabId = btn.dataset.tab;
@@ -553,19 +520,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${tabId}`).classList.add('active');
-    
-    if (tabId === 'add-product') {
-      resetForm();
-    }
+    if (tabId === 'add-product') resetForm();
   });
 });
 
-// ==============================================
-// إدارة صفوف الخيارات (لون - مقاس - مخزون)
-// ==============================================
 function addVariantRow(color='', size='', stock=1) {
   const container = document.getElementById('variants-container');
-  const rowId = Date.now();
   const row = document.createElement('div');
   row.className = 'flex flex-wrap gap-2 items-center variant-row';
   row.innerHTML = `
@@ -578,26 +538,19 @@ function addVariantRow(color='', size='', stock=1) {
   `;
   container.appendChild(row);
 }
-
 function collectVariants() {
   const variants = [];
   document.querySelectorAll('.variant-row').forEach(row => {
     const color = row.querySelector('.variant-color').value.trim();
     const size = row.querySelector('.variant-size').value.trim();
     const stock = parseInt(row.querySelector('.variant-stock').value) || 0;
-    if (color && size && stock > 0) {
-      variants.push({ color, size, stock });
-    }
+    if (color && size && stock > 0) variants.push({ color, size, stock });
   });
   return variants;
 }
 
-// ==============================================
-// حفظ وتحديث المنتج
-// ==============================================
 document.getElementById('product-form').addEventListener('submit', async e => {
   e.preventDefault();
-  
   const name = document.getElementById('prod-name').value.trim();
   const price = parseFloat(document.getElementById('prod-price').value);
   const priceOriginal = parseFloat(document.getElementById('prod-price-orig').value) || null;
@@ -608,55 +561,34 @@ document.getElementById('product-form').addEventListener('submit', async e => {
   const imagesText = document.getElementById('prod-images').value.trim();
   const images = imagesText.split(',').map(u => u.trim()).filter(u => u);
   const variants = collectVariants();
-
-  // التحقق من الحقول المطلوبة
+  
   if (!name || !price || images.length === 0 || variants.length === 0) {
     showToast(t('required_fields'), 'warning');
     return;
   }
-
   const productData = {
-    name,
-    price,
-    priceOriginal,
-    description,
-    gender,
-    type,
-    season,
-    images,
-    variants,
+    name, price, priceOriginal, description, gender, type, season, images, variants,
     available: true,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-
   try {
     if (currentEditProductId) {
-      // تحديث منتج موجود
       await db.collection('products').doc(currentEditProductId).update(productData);
       showToast(t('product_updated'));
     } else {
-      // إضافة منتج جديد
       productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       await db.collection('products').add(productData);
       showToast(t('product_saved'));
     }
-
-    // إعادة تعيين النموذج وتحديث القائمة
     resetForm();
     loadProducts();
-
-    // الانتقال لقائمة المنتجات
     document.querySelector('[data-tab="products"]').click();
-
   } catch (err) {
     console.error('Save product error:', err);
     showToast(t('product_error') + ': ' + err.message, 'error');
   }
 });
 
-// ==============================================
-// تحميل قائمة المنتجات
-// ==============================================
 async function loadProducts() {
   try {
     const snap = await db.collection('products').orderBy('updatedAt', 'desc').get();
@@ -670,14 +602,12 @@ async function loadProducts() {
     document.getElementById('products-list').innerHTML = `<p class="text-red-500">خطأ في التحميل: ${err.message}</p>`;
   }
 }
-
 function renderProductsList() {
   const list = document.getElementById('products-list');
   if (allProducts.length === 0) {
     list.innerHTML = `<p class="text-center text-gray-400 py-6">${t('no_products')}</p>`;
     return;
   }
-
   list.innerHTML = allProducts.map(p => {
     const img = p.images?.[0] || 'https://via.placeholder.com/80x80?text=No+Image';
     const totalStock = (p.variants || []).reduce((sum, v) => sum + (v.stock || 0), 0);
@@ -702,19 +632,14 @@ function renderProductsList() {
   }).join('');
 }
 
-// ==============================================
-// تعديل منتج
-// ==============================================
 async function editProduct(productId) {
   const product = allProducts.find(p => p.id === productId);
   if (!product) return;
-
   currentEditProductId = productId;
   document.getElementById('form-title').textContent = t('tab_edit_product');
   document.getElementById('save-btn').querySelector('span').textContent = t('update_product');
   document.getElementById('delete-btn').classList.remove('hidden');
-
-  // ملء البيانات
+  
   document.getElementById('prod-name').value = product.name || '';
   document.getElementById('prod-price').value = product.price || '';
   document.getElementById('prod-price-orig').value = product.priceOriginal || '';
@@ -723,24 +648,15 @@ async function editProduct(productId) {
   document.getElementById('prod-type').value = product.type || 'hoodie';
   document.getElementById('prod-season').value = product.season || 'all';
   document.getElementById('prod-images').value = (product.images || []).join(', ');
-
-  // ملء الخيارات
+  
   document.getElementById('variants-container').innerHTML = '';
-  (product.variants || []).forEach(v => {
-    addVariantRow(v.color, v.size, v.stock);
-  });
-
-  // الانتقال لتبويب التعديل
+  (product.variants || []).forEach(v => addVariantRow(v.color, v.size, v.stock));
   document.querySelector('[data-tab="add-product"]').click();
 }
 
-// ==============================================
-// حذف منتج
-// ==============================================
 async function deleteProduct() {
   if (!currentEditProductId) return;
   if (!confirm(t('confirm_delete'))) return;
-
   try {
     await db.collection('products').doc(currentEditProductId).delete();
     showToast(t('product_deleted'));
@@ -752,9 +668,6 @@ async function deleteProduct() {
   }
 }
 
-// ==============================================
-// إعادة تعيين النموذج
-// ==============================================
 function resetForm() {
   currentEditProductId = null;
   document.getElementById('product-form').reset();
@@ -765,9 +678,6 @@ function resetForm() {
   addVariantRow();
 }
 
-// ==============================================
-// تحميل الطلبات
-// ==============================================
 async function loadOrders() {
   try {
     const snap = await db.collection('orders').orderBy('createdAt', 'desc').limit(100).get();
@@ -782,28 +692,21 @@ async function loadOrders() {
     document.getElementById('orders-list').innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
   }
 }
-
 function filterOrders(keyword) {
   const kw = keyword.toLowerCase().trim();
-  if (!kw) {
-    filteredOrders = [...allOrders];
-  } else {
-    filteredOrders = allOrders.filter(o => 
-      o.id.toLowerCase().includes(kw) ||
-      (o.customerName || '').toLowerCase().includes(kw) ||
-      (o.customerEmail || '').toLowerCase().includes(kw)
-    );
-  }
+  filteredOrders = kw ? allOrders.filter(o => 
+    o.id.toLowerCase().includes(kw) ||
+    (o.customerName || '').toLowerCase().includes(kw) ||
+    (o.customerEmail || '').toLowerCase().includes(kw)
+  ) : [...allOrders];
   renderOrdersList();
 }
-
 function renderOrdersList() {
   const list = document.getElementById('orders-list');
   if (filteredOrders.length === 0) {
     list.innerHTML = `<p class="text-center text-gray-400 py-6">${t('no_orders')}</p>`;
     return;
   }
-
   list.innerHTML = filteredOrders.map(order => {
     const itemsList = (order.items || []).map(i => `${i.name} × ${i.qty} (${i.color} / ${i.size})`).join('<br>');
     const statusClass = getStatusClass(order.status || 'pending');
@@ -811,7 +714,6 @@ function renderOrdersList() {
     const createdAt = order.createdAt ? new Date(order.createdAt.toDate()).toLocaleString('ar-AE') : '-';
     const deliveryDate = order.deliveryDate || '';
     const customerEmail = order.customerEmail || '';
-
     return `
       <div class="card p-4 border-l-4 border-gray-200">
         <div class="flex flex-wrap justify-between items-start gap-2 mb-3">
@@ -821,7 +723,6 @@ function renderOrdersList() {
           </div>
           <span class="status-badge ${statusClass}">${statusText}</span>
         </div>
-        
         <div class="grid md:grid-cols-2 gap-4 mb-3 text-sm">
           <div>
             <p><strong>${t('customer_name')}:</strong> ${order.customerName || '-'}</p>
@@ -834,13 +735,9 @@ function renderOrdersList() {
             <p><strong>${t('delivery_date')}:</strong> ${deliveryDate || 'غير محدد'}</p>
           </div>
         </div>
-        
         <div class="text-sm bg-gray-50 p-2 rounded mb-3">
-          <strong>${t('order_items')}:</strong><br>
-          ${itemsList}
+          <strong>${t('order_items')}:</strong><br>${itemsList}
         </div>
-
-        <!-- خطوات التحديث والإيميل -->
         <div class="border-t pt-3 space-y-3">
           <div class="flex flex-wrap gap-2">
             <button class="btn btn-sm ${order.status==='pending'?'btn-primary':'btn-success'}" 
@@ -868,22 +765,15 @@ function renderOrdersList() {
   }).join('');
 }
 
-// ==============================================
-// تحديث حالة الطلب وإرسال الإيميل
-// ==============================================
 async function updateOrderStatus(orderId, newStatus, customerEmail) {
   try {
     await db.collection('orders').doc(orderId).update({
       status: newStatus,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-
-    // خصم المخزون عند التأكيد
     if (newStatus === 'confirmed') {
       await deductStockWhenConfirmed(orderId);
     }
-
-    // إرسال إيميل فقط عند التأكيد
     if (newStatus === 'confirmed' && customerEmail && customerEmail.includes('@')) {
       try {
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
@@ -893,68 +783,52 @@ async function updateOrderStatus(orderId, newStatus, customerEmail) {
         });
         showToast(t('status_updated'));
       } catch (emailErr) {
-        console.warn('Email sent but error:', emailErr);
+        console.warn('Email error:', emailErr);
         showToast('✅ تم التحديث — فشل إرسال الإيميل', 'warning');
       }
     } else if (!customerEmail || !customerEmail.includes('@')) {
-      showToast('✅ تم التحديث — بريد العميل غير صالح، لم يُرسل', 'warning');
+      showToast('✅ تم التحديث — بريد العميل غير صالح', 'warning');
     } else {
       showToast('✅ تم تحديث الحالة');
     }
-
     loadOrders();
   } catch (err) {
-    console.error('Update status error:', err);
-    showToast('❌ خطأ في التحديث: ' + err.message, 'error');
+    console.error('Update error:', err);
+    showToast('❌ خطأ: ' + err.message, 'error');
   }
 }
 
-// ==============================================
-// خصم الكمية من المخزون عند تأكيد الطلب
-// ==============================================
 async function deductStockWhenConfirmed(orderId) {
   try {
     const orderDoc = await db.collection('orders').doc(orderId).get();
     const order = orderDoc.data();
     if (!order || !order.items) return;
-
     const batch = db.batch();
-
     for (const item of order.items) {
       if (!item.productId || !item.color || !item.size || !item.qty) continue;
-
       const productRef = db.collection('products').doc(item.productId);
       const productDoc = await productRef.get();
       if (!productDoc.exists) continue;
-
       const product = productDoc.data();
       const variants = product.variants || [];
-
-      // خصم الكمية من المتغير المطابق
       const variantIndex = variants.findIndex(v => 
         String(v.color).trim() === String(item.color).trim() && 
         String(v.size).trim() === String(item.size).trim()
       );
-
       if (variantIndex !== -1) {
         variants[variantIndex].stock = Math.max(0, (variants[variantIndex].stock || 0) - item.qty);
         batch.update(productRef, { variants });
       }
     }
-
     await batch.commit();
   } catch (err) {
     console.error('Deduct stock error:', err);
   }
 }
 
-// ==============================================
-// تحديد تاريخ التوصيل
-// ==============================================
 async function openDeliveryDateModal(orderId, customerEmail) {
   const deliveryDate = prompt(`أدخل تاريخ التوصيل المتوقع (مثال: 15 سبتمبر 2026):`);
   if (!deliveryDate || !deliveryDate.trim()) return;
-
   try {
     await db.collection('orders').doc(orderId).update({
       status: 'delivered',
@@ -968,14 +842,9 @@ async function openDeliveryDateModal(orderId, customerEmail) {
   }
 }
 
-// ==============================================
-// إلغاء الطلب وإرجاع المخزون
-// ==============================================
 async function cancelOrder(orderId, customerEmail) {
   if (!confirm('هل أنت متأكد من إلغاء هذا الطلب؟ سيتم إرجاع الكميات للمخزون')) return;
-
   try {
-    // إرجاع المخزون أولاً
     const orderDoc = await db.collection('orders').doc(orderId).get();
     const order = orderDoc.data();
     if (order && order.items) {
@@ -998,5 +867,16 @@ async function cancelOrder(orderId, customerEmail) {
       }
       await batch.commit();
     }
-
-   
+    await db.collection('orders').doc(orderId).update({
+      status: 'cancelled',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('✅ تم إلغاء الطلب وإرجاع المخزون');
+    loadOrders();
+  } catch (err) {
+    showToast('❌ خطأ: ' + err.message, 'error');
+  }
+}
+</script>
+</body>
+</html>
