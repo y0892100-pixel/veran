@@ -6,13 +6,14 @@
   <title data-i18n="page_title">VAREN — متجر الملابس</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
   
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&display=swap');
     * { font-family: 'Cairo', sans-serif; }
     html[lang="en"] { direction: ltr; }
     html[lang="en"] * { font-family: 'Cairo', sans-serif; }
@@ -123,9 +124,12 @@ function getCurrentLanguage() {
   return localStorage.getItem('varen_lang') || 'ar';
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  setLanguage(getCurrentLanguage());
-});
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
 </script>
 
 <nav class="bg-white shadow-md sticky top-0 z-50">
@@ -137,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
     </a>
 
+    <!-- روابط سطح المكتب -->
     <div class="hidden md:flex gap-6 items-center">
       <a href="index.html" class="font-medium hover:text-gray-600" data-i18n="home">الرئيسية</a>
       <a href="category.html?gender=women" class="font-medium hover:text-gray-600" data-i18n="women">نسائي</a>
@@ -153,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </a>
     </div>
 
+    <!-- أيقونات اليمين -->
     <div class="flex items-center gap-4">
       <a href="cart.html" class="text-xl relative">
         <i class="fa-solid fa-cart-shopping"></i>
@@ -184,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </nav>
 
+<!-- قسم البداية -->
 <section class="bg-gradient-to-r from-gray-900 to-gray-700 text-white py-16 md:py-24">
   <div class="max-w-7xl mx-auto px-4 text-center md:text-right">
     <h1 class="text-4xl md:text-5xl font-bold mb-4" data-i18n="latest_fashion">أحدث صيحات الموضة</h1>
@@ -192,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </section>
 
+<!-- المنتجات -->
 <section id="products" class="max-w-7xl mx-auto px-4 py-12">
   <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center" data-i18n="our_products">منتجاتنا</h2>
   <div id="categories-container">
@@ -202,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </section>
 
+<!-- ميزات المتجر -->
 <section class="bg-white py-12 border-t">
   <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
     <div><i class="fa-solid fa-truck-fast text-3xl mb-3 text-black"></i><h3 class="font-bold text-lg" data-i18n="fast_shipping">شحن سريع</h3><p class="text-gray-600" data-i18n="delivery_to_home">توصيل لباب بيتك</p></div>
@@ -210,6 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </section>
 
+<!-- تذييل -->
 <footer class="bg-gray-900 text-white py-8 text-center">
   <p>&copy; 2026 VAREN. <span data-i18n="all_rights_reserved">جميع الحقوق محفوظة.</span></p>
 </footer>
@@ -217,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="toast" class="toast"></div>
 
 <script>
+// إعدادات الفايربيز
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -229,6 +240,8 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// بريد المدير
 const ADMIN_EMAIL = 'y0892100@gmail.com';
 const CART_KEY = 'varen_cart_v1';
 
@@ -244,6 +257,7 @@ const CATEGORIES = [
   { key: 'ملابس رياضية', label: { ar: 'ملابس رياضية', en: 'Sportswear' } }
 ];
 
+// عداد السلة
 function updateCartCount() {
   const cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
   const countEl = document.getElementById('cart-count');
@@ -253,14 +267,7 @@ function updateCartCount() {
   }
 }
 
-function showToast(msg, type='success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove('show'), 4000);
-}
-
-// بطاقة المنتج
+// بطاقة منتج
 function renderProductCard(p) {
   const lang = getCurrentLanguage();
   const currency = lang === 'ar' ? 'درهم' : 'AED';
@@ -309,13 +316,13 @@ function renderCategoryRow(categoryKey, categoryLabel, products) {
   `;
 }
 
-// تمرير الصف لليمين
+// تمرير الصف
 window.scrollRow = function(rowId, distance) {
   const row = document.getElementById(rowId);
   if (row) row.scrollBy({ left: -distance, behavior: 'smooth' });
 };
 
-// تحميل المنتجات من الفايربيز
+// تحميل المنتجات
 async function loadProducts() {
   const container = document.getElementById('categories-container');
   const lang = getCurrentLanguage();
@@ -344,12 +351,12 @@ async function loadProducts() {
     CATEGORIES.forEach(cat => {
       const products = productsByCategory[cat.key];
       if (products && products.length > 0) {
-        const toShow = products.slice(0, 20); // لحد 20 منتج لكل قسم
+        const toShow = products.slice(0, 20);
         container.innerHTML += renderCategoryRow(cat.key, cat.label[lang] || cat.key, toShow);
       }
     });
     
-    // عرض أي أقسام أخرى موجودة ومش محددة
+    // عرض أي أقسام أخرى
     const knownKeys = CATEGORIES.map(c => c.key);
     Object.keys(productsByCategory).forEach(catKey => {
       if (!knownKeys.includes(catKey)) {
@@ -367,7 +374,7 @@ async function loadProducts() {
   }
 }
 
-// تحديث واجهة المستخدم حسب حالة تسجيل الدخول
+// تحديث واجهة المستخدم
 function updateUserUI(user) {
   const loginBtn = document.getElementById('login-btn');
   const accountBtn = document.getElementById('account-btn');
@@ -415,10 +422,10 @@ window.logout = async () => {
 
 // بدء التشغيل
 document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
   auth.onAuthStateChanged(updateUserUI);
   setTimeout(() => loadProducts(), 100);
 });
 </script>
-
 </body>
 </html>
