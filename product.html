@@ -3,69 +3,188 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تفاصيل المنتج - VAREN</title>
+  <title data-i18n="page_title">تفاصيل المنتج - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
   
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&display=swap');
     * { font-family: 'Cairo', sans-serif; }
     html[lang="en"] { direction: ltr; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
-    .toast.show { display: block; }
-    .toast.success { background: #16a34a; }
-    .toast.error { background: #dc2626; }
-    .color-option.selected { border: 3px solid black; }
-    .size-option.selected { background: black; color: white; }
-    .main-image { cursor: zoom-in; }
-    .thumbnail { cursor: pointer; border: 2px solid transparent; }
-    .thumbnail.active { border-color: black; }
+    html { scroll-behavior: smooth; }
+    
+    /* رسائل التنبيه */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; padding: 14px 28px; border-radius: 12px; z-index: 9999; display: none; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.18); max-width: 90%; width: fit-content; }
+    .toast.show { display: block; animation: fadeInUp 0.35s ease; }
+    .toast.success { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .toast.error { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .toast.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .toast.info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    @keyframes fadeInUp { from { opacity:0; transform: translate(-50%, 25px); } to { opacity:1; transform: translate(-50%, 0); } }
+    
+    /* الصور */
+    .main-image { cursor: zoom-in; transition: transform 0.3s ease; }
+    .main-image:hover { transform: scale(1.02); }
+    .thumbnail { cursor: pointer; border: 3px solid transparent; transition: all 0.25s ease; border-radius: 10px; }
+    .thumbnail:hover { border-color: #9ca3af; }
+    .thumbnail.active { border-color: black; box-shadow: 0 0 0 2px rgba(0,0,0,0.2); }
+    
+    /* خيارات اللون والمقاس */
+    .color-option { border: 2px solid #e5e7eb; transition: all 0.2s ease; min-width: 70px; }
+    .color-option:hover { border-color: #9ca3af; }
+    .color-option.selected { border: 3px solid black; background: #f9fafb; font-weight: 700; }
+    .size-option { border: 2px solid #e5e7eb; transition: all 0.2s ease; min-width: 60px; }
+    .size-option:hover { border-color: #9ca3af; }
+    .size-option.selected { background-color: black; color: white; border-color: black; font-weight: 700; transform: scale(1.05); }
+    .size-option.out-of-stock { background: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; text-decoration: line-through; }
+    
+    /* التكبير */
+    .image-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9998; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .image-modal.show { display: flex; }
+    .image-modal img { max-width: 95%; max-height: 90%; border-radius: 8px; object-fit: contain; }
+    .image-modal .close { position: absolute; top: 20px; right: 20px; color: white; font-size: 32px; cursor: pointer; }
+    
+    /* الأزرار والحركات */
+    .qty-btn:active { transform: scale(0.92); }
+    .add-btn { transition: all 0.25s ease; }
+    .add-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+    .add-btn:active { transform: translateY(0); }
+    .price-tag { background: linear-gradient(135deg, #111827, #374151); color: white; padding: 6px 16px; border-radius: 999px; font-weight: 700; }
+    .discount-tag { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 4px 10px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+    .stock-badge { padding: 4px 12px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
+    .in-stock { background: #dcfce7; color: #166534; }
+    .low-stock { background: #fef3c7; color: #92400e; }
+    .out-stock { background: #fee2e2; color: #991b1b; }
+    
+    /* التخطيط */
+    .product-card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #f3f4f6; overflow: hidden; }
+    .section-title { font-size: 1.1rem; font-weight: 700; color: #1f2937; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #f3f4f6; display: inline-block; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
 <script>
+// ==============================================
+// إعدادات الترجمة الكاملة
+// ==============================================
 const translations = {
   ar: {
     page_title: "تفاصيل المنتج - VAREN",
-    back: "الرجوع",
+    back: "الرجوع للخلف",
+    home: "الرئيسية",
+    products: "المنتجات",
     price: "السعر",
     original_price: "السعر الأصلي",
+    discount: "خصم",
     color: "اللون",
+    select_color: "اختر اللون",
     size: "المقاس",
-    stock: "المتوفر",
-    qty: "الكمية",
+    select_size: "اختر المقاس",
+    stock: "المتوفر في المخزون",
+    in_stock: "متوفر",
+    low_stock: "كمية محدودة",
+    out_of_stock: "غير متوفر حالياً",
+    quantity: "الكمية",
     add_to_cart: "أضف إلى السلة",
-    added: "✅ تمت الإضافة إلى السلة",
-    no_color_size: "الرجاء اختيار اللون والمقاس أولاً",
-    out_of_stock: "⚠️ غير متوفر حالياً",
-    max_qty: "⚠️ الكمية تتجاوز المخزون المتاح",
-    not_found: "المنتج غير موجود"
+    adding: "جاري الإضافة...",
+    added: "✅ تمت الإضافة إلى السلة بنجاح!",
+    updated: "✅ تم تحديث الكمية في السلة",
+    no_color_size: "⚠️ الرجاء اختيار اللون والمقاس أولاً",
+    out_of_stock_short: "⚠️ هذا الخيار غير متوفر حالياً",
+    max_qty: "⚠️ الكمية المطلوبة تتجاوز المخزون المتاح ({stock} قطعة)",
+    min_qty: "⚠️ الحد الأدنى للكمية هو 1",
+    not_found: "⚠️ المنتج غير موجود أو غير متاح حالياً",
+    error_load: "❌ حدث خطأ أثناء تحميل بيانات المنتج",
+    description: "الوصف",
+    specifications: "المواصفات",
+    category: "التصنيف",
+    gender: "القسم",
+    type: "النوع",
+    season: "الموسم",
+    men: "رجالي",
+    women: "نسائي",
+    kids: "أطفال",
+    winter: "شتوي",
+    summer: "صيفي",
+    all_season: "مناسب لكل المواسم",
+    related_products: "منتجات قد تعجبك أيضاً",
+    no_products: "لا توجد منتجات متاحة",
+    images: "صور المنتج",
+    click_to_zoom: "انقر للتكبير",
+    select_image: "اختر صورة أخرى",
+    one_left: "تبقى قطعة واحدة فقط!",
+    few_left: "تبقى {n} قطع فقط!",
+    cart_page: "الذهاب للسلة",
+    continue_shopping: "مواصلة التسوق",
+    or: "أو",
+    close: "إغلاق",
+    language: "اللغة"
   },
   en: {
     page_title: "Product Details - VAREN",
-    back: "Back",
+    back: "Go Back",
+    home: "Home",
+    products: "Products",
     price: "Price",
     original_price: "Original Price",
+    discount: "Discount",
     color: "Color",
+    select_color: "Select Color",
     size: "Size",
-    stock: "In Stock",
-    qty: "Quantity",
+    select_size: "Select Size",
+    stock: "Availability",
+    in_stock: "In Stock",
+    low_stock: "Low Stock",
+    out_of_stock: "Out of Stock",
+    quantity: "Quantity",
     add_to_cart: "Add to Cart",
-    added: "✅ Added to Cart",
-    no_color_size: "Please select color and size first",
-    out_of_stock: "⚠️ Out of stock",
-    max_qty: "⚠️ Exceeds available stock",
-    not_found: "Product not found"
+    adding: "Adding...",
+    added: "✅ Added to cart successfully!",
+    updated: "✅ Cart quantity updated",
+    no_color_size: "⚠️ Please select color and size first",
+    out_of_stock_short: "⚠️ This option is out of stock",
+    max_qty: "⚠️ Only {stock} items available in stock",
+    min_qty: "⚠️ Minimum quantity is 1",
+    not_found: "⚠️ Product not found or unavailable",
+    error_load: "❌ Error loading product data",
+    description: "Description",
+    specifications: "Specifications",
+    category: "Category",
+    gender: "Department",
+    type: "Type",
+    season: "Season",
+    men: "Men",
+    women: "Women",
+    kids: "Kids",
+    winter: "Winter",
+    summer: "Summer",
+    all_season: "All Season",
+    related_products: "You may also like",
+    no_products: "No products available",
+    images: "Product Images",
+    click_to_zoom: "Click to zoom",
+    select_image: "Select another image",
+    one_left: "Only 1 left in stock!",
+    few_left: "Only {n} left in stock!",
+    cart_page: "View Cart",
+    continue_shopping: "Continue Shopping",
+    or: "or",
+    close: "Close",
+    language: "Language"
   }
 };
 
+// ==============================================
+// دوال اللغة
+// ==============================================
 function setLanguage(lang) {
-  if (!translations[lang]) return;
+  if (!translations[lang]) lang = 'ar';
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   localStorage.setItem('varen_lang', lang);
@@ -74,19 +193,20 @@ function setLanguage(lang) {
     if (translations[lang][key]) el.textContent = translations[lang][key];
   });
 }
-
 function getCurrentLanguage() {
   return localStorage.getItem('varen_lang') || 'ar';
 }
-
-function t(key) {
-  return translations[getCurrentLanguage()][key] || key;
+function t(key, params = {}) {
+  let text = translations[getCurrentLanguage()][key] || key;
+  Object.keys(params).forEach(p => {
+    text = text.replace(new RegExp(`{${p}}`, 'g'), params[p]);
+  });
+  return text;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  setLanguage(getCurrentLanguage());
-});
-
+// ==============================================
+// إعدادات Firebase
+// ==============================================
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -100,97 +220,251 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 </script>
 
+<!-- شريط التنقل العلوي -->
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="flex items-center gap-3">
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
       <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
     </a>
-    <a href="javascript:history.back()" class="text-sm text-gray-600 hover:text-black">
-      <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="back">الرجوع</span>
-    </a>
+    <div class="flex items-center gap-3">
+      <button onclick="toggleLanguage()" class="text-sm border px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2">
+        <i class="fa-solid fa-globe"></i>
+        <span id="lang-btn">English</span>
+      </button>
+      <a href="cart.html" class="relative text-gray-700 hover:text-black transition-colors">
+        <i class="fa-solid fa-cart-shopping fa-lg"></i>
+        <span id="nav-cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold cart-counter">0</span>
+      </a>
+      <a href="javascript:history.back()" class="text-sm text-gray-600 hover:text-black transition-colors flex items-center gap-1">
+        <i class="fa-solid fa-arrow-right"></i>
+        <span data-i18n="back">الرجوع للخلف</span>
+      </a>
+    </div>
   </div>
 </nav>
 
+<!-- مسار التنقل -->
+<div class="bg-gray-50 border-b border-gray-100 py-3">
+  <div class="max-w-7xl mx-auto px-4 text-sm text-gray-500">
+    <a href="index.html" class="hover:text-black" data-i18n="home">الرئيسية</a>
+    <span class="mx-2">/</span>
+    <a href="category.html" class="hover:text-black" data-i18n="products">المنتجات</a>
+    <span class="mx-2">/</span>
+    <span id="breadcrumb-name" class="text-gray-800 font-medium">تفاصيل المنتج</span>
+  </div>
+</div>
+
+<!-- المحتوى الرئيسي -->
 <main class="max-w-7xl mx-auto px-4 py-8">
-  <div id="loading" class="text-center py-16">
-    <i class="fa-solid fa-spinner fa-spin fa-2xl"></i>
+  <div id="loading" class="text-center py-24">
+    <i class="fa-solid fa-spinner fa-spin fa-3x text-gray-400 mb-4"></i>
+    <p class="text-lg text-gray-500">جاري تحميل بيانات المنتج...</p>
   </div>
 
-  <div id="product-content" class="hidden grid md:grid-cols-2 gap-8">
-    <!-- الصور -->
-    <div>
-      <div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-4">
-        <img id="main-image" src="" alt="" class="main-image w-full h-96 object-contain bg-gray-50">
-      </div>
-      <div id="thumbnails" class="flex gap-2 overflow-x-auto pb-2">
-        <!-- الصور المصغرة -->
-      </div>
-    </div>
-
-    <!-- التفاصيل -->
-    <div class="bg-white rounded-xl shadow-sm border p-6 space-y-4">
-      <h1 id="prod-name" class="text-3xl font-bold"></h1>
+  <div id="product-content" class="hidden">
+    <div class="grid md:grid-cols-2 gap-8 lg:gap-12">
       
-      <div class="flex items-baseline gap-3">
-        <span class="text-2xl font-bold text-black" data-i18n="price">السعر</span>
-        <span id="prod-price" class="text-2xl font-bold"></span>
-        <span id="prod-price-orig" class="text-lg text-gray-400 line-through hidden"></span>
-      </div>
-
-      <!-- الألوان -->
-      <div id="colors-section">
-        <h3 class="font-semibold mb-2" data-i18n="color">اللون</h3>
-        <div id="colors-list" class="flex flex-wrap gap-2">
-          <!-- خيارات الألوان -->
+      <!-- قسم الصور -->
+      <div class="space-y-3">
+        <div class="product-card p-4">
+          <p class="text-sm text-gray-500 mb-2 text-center" data-i18n="click_to_zoom">انقر للتكبير</p>
+          <img id="main-image" src="" alt="" class="main-image w-full h-96 md:h-[500px] object-contain bg-gray-50 rounded-lg" onclick="openImageModal(this.src)">
+        </div>
+        <div id="thumbnails" class="flex gap-3 overflow-x-auto pb-2 px-1">
+          <!-- الصور المصغرة تُضاف هنا ديناميكياً -->
         </div>
       </div>
 
-      <!-- المقاسات -->
-      <div id="sizes-section">
-        <h3 class="font-semibold mb-2" data-i18n="size">المقاس</h3>
-        <div id="sizes-list" class="flex flex-wrap gap-2">
-          <!-- خيارات المقاسات -->
+      <!-- قسم التفاصيل -->
+      <div class="space-y-5">
+        <div class="product-card p-6">
+          <h1 id="prod-name" class="text-3xl md:text-4xl font-black text-gray-900 mb-4 leading-tight"></h1>
+          
+          <!-- السعر والخصم -->
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            <span class="price-tag text-xl"><span data-i18n="price">السعر</span>: <span id="prod-price">0</span></span>
+            <span id="prod-price-orig-wrap" class="hidden">
+              <span class="text-lg text-gray-400 line-through" data-i18n="original_price">السعر الأصلي</span>: 
+              <span id="prod-price-orig">0</span>
+            </span>
+            <span id="discount-badge" class="discount-tag hidden"></span>
+          </div>
+
+          <!-- حالة المخزون -->
+          <div id="stock-badge-wrap" class="mb-6">
+            <span id="stock-badge" class="stock-badge in-stock">
+              <i class="fa-solid fa-check-circle ml-1"></i>
+              <span data-i18n="in_stock">متوفر</span>
+            </span>
+            <span id="stock-count-wrap" class="text-sm text-gray-500 mr-2">
+              (<span data-i18n="stock">المتوفر</span>: <span id="stock-count">0</span> قطعة)
+            </span>
+          </div>
+
+          <!-- التصنيفات -->
+          <div class="grid grid-cols-2 gap-3 mb-6 text-sm">
+            <div class="bg-gray-50 p-3 rounded-lg">
+              <span class="font-semibold text-gray-600" data-i18n="gender">القسم</span>:
+              <span id="prod-gender" class="font-medium"> - </span>
+            </div>
+            <div class="bg-gray-50 p-3 rounded-lg">
+              <span class="font-semibold text-gray-600" data-i18n="type">النوع</span>:
+              <span id="prod-type" class="font-medium"> - </span>
+            </div>
+            <div class="bg-gray-50 p-3 rounded-lg col-span-2">
+              <span class="font-semibold text-gray-600" data-i18n="season">الموسم</span>:
+              <span id="prod-season" class="font-medium" data-i18n="all_season">مناسب لكل المواسم</span>
+            </div>
+          </div>
+
+          <!-- اختيار اللون -->
+          <div id="colors-section" class="mb-5">
+            <h3 class="section-title"><i class="fa-solid fa-palette ml-2"></i> <span data-i18n="color">اللون</span>:</h3>
+            <p class="text-sm text-gray-400 mb-2" data-i18n="select_color">اختر اللون المطلوب</p>
+            <div id="colors-list" class="flex flex-wrap gap-2">
+              <!-- ألوان تُضاف هنا -->
+            </div>
+          </div>
+
+          <!-- اختيار المقاس -->
+          <div id="sizes-section" class="mb-5">
+            <h3 class="section-title"><i class="fa-solid fa-ruler ml-2"></i> <span data-i18n="size">المقاس</span>:</h3>
+            <p class="text-sm text-gray-400 mb-2" data-i18n="select_size">اختر المقاس المطلوب</p>
+            <div id="sizes-list" class="flex flex-wrap gap-2">
+              <!-- مقاسات تُضاف هنا -->
+            </div>
+          </div>
+
+          <!-- الكمية -->
+          <div class="mb-6">
+            <h3 class="section-title"><i class="fa-solid fa-hashtag ml-2"></i> <span data-i18n="quantity">الكمية</span>:</h3>
+            <div class="flex items-center gap-4 mt-2">
+              <div class="flex items-center border-2 border-gray-200 rounded-lg overflow-hidden">
+                <button id="qty-minus" class="qty-btn px-5 py-3 bg-gray-50 hover:bg-gray-200 transition-colors text-xl font-bold">−</button>
+                <input id="qty-input" type="number" value="1" min="1" class="w-16 text-center border-0 focus:outline-none text-xl font-bold py-2">
+                <button id="qty-plus" class="qty-btn px-5 py-3 bg-gray-50 hover:bg-gray-200 transition-colors text-xl font-bold">+</button>
+              </div>
+              <span id="max-stock-text" class="text-sm text-gray-400"></span>
+            </div>
+          </div>
+
+          <!-- زر الإضافة -->
+          <button id="add-cart-btn" class="add-btn w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-all mt-2">
+            <i class="fa-solid fa-cart-plus ml-2"></i>
+            <span data-i18n="add_to_cart">أضف إلى السلة</span>
+          </button>
+          
+          <!-- روابط سريعة بعد الإضافة -->
+          <div id="after-add-buttons" class="hidden mt-4 space-y-2">
+            <div class="flex gap-3">
+              <a href="cart.html" class="flex-1 border-2 border-black text-black py-2.5 rounded-lg font-semibold text-center hover:bg-gray-50 transition-colors">
+                <i class="fa-solid fa-cart-shopping ml-1"></i> <span data-i18n="cart_page">الذهاب للسلة</span>
+              </a>
+              <a href="index.html" class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg font-semibold text-center hover:bg-gray-200 transition-colors">
+                <i class="fa-solid fa-store ml-1"></i> <span data-i18n="continue_shopping">مواصلة التسوق</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- وصف المنتج -->
+        <div class="product-card p-6 mt-6">
+          <h3 class="section-title"><i class="fa-solid fa-circle-info ml-2"></i> <span data-i18n="description">وصف المنتج</span></h3>
+          <p id="prod-description" class="text-gray-600 leading-relaxed mt-3">
+            منتج عالي الجودة من متجر VAREN — مصمم بأفضل الخامات والمقاسات الدقيقة لضمان الراحة والأناقة.
+          </p>
         </div>
       </div>
-
-      <!-- المخزون -->
-      <div>
-        <span class="font-semibold" data-i18n="stock">المتوفر</span>: 
-        <span id="stock-count" class="text-green-600 font-bold">-</span>
-      </div>
-
-      <!-- الكمية -->
-      <div class="flex items-center gap-4">
-        <span class="font-semibold" data-i18n="qty">الكمية</span>
-        <div class="flex items-center border rounded-lg overflow-hidden">
-          <button id="qty-minus" class="px-4 py-2 hover:bg-gray-100">-</button>
-          <input id="qty-input" type="number" value="1" min="1" class="w-12 text-center border-0 focus:outline-none">
-          <button id="qty-plus" class="px-4 py-2 hover:bg-gray-100">+</button>
-        </div>
-      </div>
-
-      <!-- زر الإضافة -->
-      <button id="add-cart-btn" class="w-full bg-black text-white py-3 rounded-lg font-semibold text-lg hover:bg-gray-800 mt-4">
-        <i class="fa-solid fa-cart-plus ml-2"></i> <span data-i18n="add_to_cart">أضف إلى السلة</span>
-      </button>
     </div>
+
+    <!-- منتجات مقترحة -->
+    <section class="mt-16">
+      <h2 class="text-2xl font-bold mb-6 border-b-2 border-black pb-2 inline-block">
+        <i class="fa-solid fa-thumbs-up ml-2"></i>
+        <span data-i18n="related_products">منتجات قد تعجبك أيضاً</span>
+      </h2>
+      <div id="related-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- منتجات مقترحة تُضاف هنا -->
+      </div>
+    </section>
   </div>
 </main>
 
+<!-- نافذة تكبير الصورة -->
+<div id="image-modal" class="image-modal" onclick="closeImageModal()">
+  <span class="close" onclick="closeImageModal()">&times;</span>
+  <img id="modal-img" src="" alt="صورة مكبرة">
+</div>
+
+<!-- رسائل التنبيه -->
 <div id="toast" class="toast"></div>
 
+<!-- تذييل الصفحة -->
+<footer class="bg-gray-900 text-white py-10 mt-16">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="grid md:grid-cols-4 gap-8">
+      <div class="md:col-span-2">
+        <h3 class="text-2xl font-black mb-3">VAREN</h3>
+        <p class="text-gray-400 leading-relaxed">متجر VAREN — وجهتك المثالية للملابس العصرية بجودة عالية وتصاميم مميزة. نقدم أحدث صيحات الموضة بأسعار مناسبة للجميع.</p>
+      </div>
+      <div>
+        <h4 class="font-bold mb-3">روابط سريعة</h4>
+        <ul class="space-y-2 text-gray-400 text-sm">
+          <li><a href="index.html" class="hover:text-white transition-colors">الرئيسية</a></li>
+          <li><a href="category.html" class="hover:text-white transition-colors">الأقسام</a></li>
+          <li><a href="cart.html" class="hover:text-white transition-colors">سلة التسوق</a></li>
+          <li><a href="my-orders.html" class="hover:text-white transition-colors">طلباتي</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold mb-3">مساعدة</h4>
+        <ul class="space-y-2 text-gray-400 text-sm">
+          <li><a href="about.html" class="hover:text-white transition-colors">من نحن</a></li>
+          <li><a href="shipping.html" class="hover:text-white transition-colors">سياسة التوصيل</a></li>
+          <li><a href="returns.html" class="hover:text-white transition-colors">سياسة الإرجاع والاسترجاع</a></li>
+          <li><a href="contact.html" class="hover:text-white transition-colors">تواصل معنا</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-gray-800 mt-8 pt-6 text-center text-gray-500 text-sm">
+      <p>VAREN © 2026 — جميع الحقوق محفوظة</p>
+    </div>
+  </div>
+</footer>
+
 <script>
+// ==============================================
+// متغيرات عامة
+// ==============================================
 let productData = null;
 let selectedColor = null;
 let selectedSize = null;
 let maxStock = 0;
+let allVariants = [];
 
+// ==============================================
+// دوال مساعدة
+// ==============================================
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = `toast ${type} show`;
-  setTimeout(() => toast.classList.remove('show'), 3000);
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function toggleLanguage() {
+  const current = getCurrentLanguage();
+  const newLang = current === 'ar' ? 'en' : 'ar';
+  setLanguage(newLang);
+  document.getElementById('lang-btn').textContent = newLang === 'ar' ? 'English' : 'العربية';
+  renderProductData();
+}
+
+function formatPrice(amount) {
+  const lang = getCurrentLanguage();
+  const num = Number(amount) || 0;
+  return `${num.toFixed(2)} ${lang === 'ar' ? 'درهم' : 'AED'}`;
 }
 
 function getCart() {
@@ -199,196 +473,381 @@ function getCart() {
 
 function saveCart(cart) {
   localStorage.setItem('varen_cart_v1', JSON.stringify(cart));
+  updateCartCounter();
 }
 
-function formatPrice(amount) {
-  const lang = getCurrentLanguage();
-  return `${amount.toFixed(2)} ${lang === 'ar' ? 'درهم' : 'AED'}`;
+function updateCartCounter() {
+  const cart = getCart();
+  const total = cart.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+  document.querySelectorAll('.cart-counter').forEach(el => el.textContent = total);
 }
 
-// عرض الصور
+// ==============================================
+// دوال الصور والتكبير
+// ==============================================
+function openImageModal(src) {
+  document.getElementById('modal-img').src = src;
+  document.getElementById('image-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+  document.getElementById('image-modal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
 function setupImages(images) {
   const mainImg = document.getElementById('main-image');
   const thumbs = document.getElementById('thumbnails');
   thumbs.innerHTML = '';
 
   if (!images || images.length === 0) {
-    mainImg.src = 'https://via.placeholder.com/400';
+    mainImg.src = 'https://via.placeholder.com/500x600?text=No+Image';
     return;
   }
 
   mainImg.src = images[0];
   thumbs.innerHTML = images.map((img, i) => `
-    <img src="${img}" alt="" class="thumbnail w-20 h-20 object-cover rounded ${i===0?'active':''}" 
+    <img src="${img}" alt="صورة ${i+1}" class="thumbnail w-20 h-20 object-cover ${i===0?'active':''}" 
          onclick="changeMainImage('${img}', this)">
   `).join('');
 }
 
 window.changeMainImage = function(src, el) {
   document.getElementById('main-image').src = src;
+  document.getElementById('modal-img').src = src;
   document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
+  if (el) el.classList.add('active');
 };
 
-// تحديث المخزون عند اختيار اللون والمقاس
+// ==============================================
+// تحديث حالة المخزون بناءً على الاختيار
+// ==============================================
 function updateStock() {
-  if (!selectedColor || !selectedSize || !productData.variants) {
+  if (!selectedColor || !selectedSize || allVariants.length === 0) {
     document.getElementById('stock-count').textContent = '-';
     maxStock = 0;
+    document.getElementById('stock-badge').className = 'stock-badge out-stock';
+    document.getElementById('stock-badge').innerHTML = `<i class="fa-solid fa-x-circle ml-1"></i> <span data-i18n="out_of_stock">غير متوفر</span>`;
+    document.getElementById('add-cart-btn').disabled = true;
+    document.getElementById('add-cart-btn').classList.add('opacity-50', 'cursor-not-allowed');
+    document.getElementById('max-stock-text').textContent = '';
     return;
   }
 
-  const variant = productData.variants.find(v => 
-    (v.color || '').trim() === selectedColor.trim() && 
-    (v.size || '').trim() === selectedSize.trim()
+  const variant = allVariants.find(v => 
+    String(v.color || '').trim() === String(selectedColor).trim() && 
+    String(v.size || '').trim() === String(selectedSize).trim()
   );
 
-  maxStock = variant ? (variant.stock || 0) : 0;
+  maxStock = variant ? Number(variant.stock) || 0 : 0;
   document.getElementById('stock-count').textContent = maxStock;
   
   const qtyInput = document.getElementById('qty-input');
-  if (parseInt(qtyInput.value) > maxStock) {
-    qtyInput.value = Math.max(1, maxStock);
-  }
   qtyInput.max = maxStock;
-}
+  if (parseInt(qtyInput.value) > maxStock) qtyInput.value = Math.max(1, maxStock);
 
-// تحميل بيانات المنتج
-async function loadProduct() {
-  const params = new URLSearchParams(window.location.search);
-  const productId = params.get('id');
-  
-  if (!productId) {
-    document.getElementById('loading').innerHTML = `<p class="text-red-500">${t('not_found')}</p>`;
-    return;
+  // تحديث شارة المخزون
+  const badge = document.getElementById('stock-badge');
+  if (maxStock === 0) {
+    badge.className = 'stock-badge out-stock';
+    badge.innerHTML = `<i class="fa-solid fa-x-circle ml-1"></i> <span data-i18n="out_of_stock">غير متوفر</span>`;
+    document.getElementById('add-cart-btn').disabled = true;
+    document.getElementById('add-cart-btn').classList.add('opacity-50', 'cursor-not-allowed');
+  } else if (maxStock <= 3) {
+    badge.className = 'stock-badge low-stock';
+    const text = maxStock === 1 ? t('one_left') : t('few_left', {n: maxStock});
+    badge.innerHTML = `<i class="fa-solid fa-fire ml-1"></i> ${text}`;
+    document.getElementById('add-cart-btn').disabled = false;
+    document.getElementById('add-cart-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+  } else {
+    badge.className = 'stock-badge in-stock';
+    badge.innerHTML = `<i class="fa-solid fa-check-circle ml-1"></i> <span data-i18n="in_stock">متوفر</span>`;
+    document.getElementById('add-cart-btn').disabled = false;
+    document.getElementById('add-cart-btn').classList.remove('opacity-50', 'cursor-not-allowed');
   }
 
-  try {
-    const doc = await db.collection('products').doc(productId).get();
-    if (!doc.exists) {
-      document.getElementById('loading').innerHTML = `<p class="text-red-500">${t('not_found')}</p>`;
-      return;
-    }
-
-    productData = { id: doc.id, ...doc.data() };
-    
-    // عرض البيانات
-    document.getElementById('prod-name').textContent = productData.name || 'منتج';
-    document.getElementById('prod-price').textContent = formatPrice(productData.price);
-    
-    if (productData.priceOriginal && productData.priceOriginal > productData.price) {
-      document.getElementById('prod-price-orig').textContent = formatPrice(productData.priceOriginal);
-      document.getElementById('prod-price-orig').classList.remove('hidden');
-    }
-
-    // عرض الصور
-    setupImages(productData.images);
-
-    // استخراج الألوان والمقاسات الفريدة
-    const variants = productData.variants || [];
-    const colors = [...new Set(variants.map(v => v.color).filter(Boolean))];
-    const sizes = [...new Set(variants.map(v => v.size).filter(Boolean))];
-
-    // عرض الألوان
-    const colorsList = document.getElementById('colors-list');
-    if (colors.length > 0) {
-      colorsList.innerHTML = colors.map(c => `
-        <button class="color-option px-4 py-2 border rounded-lg hover:bg-gray-100" 
-                data-color="${c}" onclick="selectColor('${c}', this)">${c}</button>
-      `).join('');
-    } else {
-      document.getElementById('colors-section').style.display = 'none';
-    }
-
-    // عرض المقاسات
-    const sizesList = document.getElementById('sizes-list');
-    if (sizes.length > 0) {
-      sizesList.innerHTML = sizes.map(s => `
-        <button class="size-option px-4 py-2 border rounded-lg hover:bg-gray-100" 
-                data-size="${s}" onclick="selectSize('${s}', this)">${s}</button>
-      `).join('');
-    } else {
-      document.getElementById('sizes-section').style.display = 'none';
-    }
-
-    // إظهار المحتوى
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('product-content').classList.remove('hidden');
-
-  } catch (err) {
-    document.getElementById('loading').innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
-  }
+  document.getElementById('max-stock-text').textContent = maxStock > 0 ? `(الحد الأقصى: ${maxStock})` : '';
 }
 
+// ==============================================
+// اختيار اللون والمقاس
+// ==============================================
 window.selectColor = function(color, el) {
   selectedColor = color;
   document.querySelectorAll('.color-option').forEach(b => b.classList.remove('selected'));
-  el.classList.add('selected');
+  if (el) el.classList.add('selected');
   updateStock();
 };
 
 window.selectSize = function(size, el) {
   selectedSize = size;
   document.querySelectorAll('.size-option').forEach(b => b.classList.remove('selected'));
-  el.classList.add('selected');
+  if (el) el.classList.add('selected');
   updateStock();
 };
 
-// التحكم في الكمية
+// ==============================================
+// عرض بيانات المنتج
+// ==============================================
+function renderProductData() {
+  if (!productData) return;
+
+  document.getElementById('prod-name').textContent = productData.name || 'منتج';
+  document.getElementById('breadcrumb-name').textContent = productData.name || 'تفاصيل المنتج';
+  document.getElementById('prod-price').textContent = formatPrice(productData.price);
+
+  // السعر الأصلي والخصم
+  if (productData.priceOriginal && Number(productData.priceOriginal) > Number(productData.price)) {
+    document.getElementById('prod-price-orig-wrap').classList.remove('hidden');
+    document.getElementById('prod-price-orig').textContent = formatPrice(productData.priceOriginal);
+    const discount = Math.round((1 - productData.price / productData.priceOriginal) * 100);
+    document.getElementById('discount-badge').classList.remove('hidden');
+    document.getElementById('discount-badge').textContent = `-${discount}%`;
+  } else {
+    document.getElementById('prod-price-orig-wrap').classList.add('hidden');
+    document.getElementById('discount-badge').classList.add('hidden');
+  }
+
+  // التصنيفات
+  const gMap = { men: t('men'), women: t('women'), kids: t('kids') };
+  document.getElementById('prod-gender').textContent = gMap[productData.gender] || productData.gender || '-';
+  document.getElementById('prod-type').textContent = productData.type || '-';
+  const sMap = { winter: t('winter'), summer: t('summer') };
+  document.getElementById('prod-season').textContent = sMap[productData.season] || t('all_season');
+
+  // الوصف
+  document.getElementById('prod-description').textContent = productData.description || 'منتج عالي الجودة من متجر VAREN — مصمم بأفضل الخامات والمقاسات الدقيقة لضمان الراحة والأناقة.';
+
+  // الصور
+  setupImages(productData.images);
+
+  // معالجة المتغيرات (ألوان ومقاسات)
+  allVariants = Array.isArray(productData.variants) ? productData.variants : [];
+  const colors = [...new Set(allVariants.map(v => v.color).filter(c => c))];
+  const sizes = [...new Set(allVariants.map(v => v.size).filter(s => s))];
+
+  // عرض الألوان
+  const colorsList = document.getElementById('colors-list');
+  if (colors.length > 0) {
+    colorsList.innerHTML = colors.map(c => `
+      <button class="color-option px-4 py-2 rounded-lg" 
+              data-color="${c}" onclick="selectColor('${c}', this)">${c}</button>
+    `).join('');
+    document.getElementById('colors-section').style.display = 'block';
+  } else {
+    document.getElementById('colors-section').style.display = 'none';
+  }
+
+  // عرض المقاسات
+  const sizesList = document.getElementById('sizes-list');
+  if (sizes.length > 0) {
+    sizesList.innerHTML = sizes.map(s => {
+      const hasStock = allVariants.some(v => String(v.size).trim() === String(s).trim() && Number(v.stock) > 0);
+      return `<button class="size-option px-4 py-2 rounded-lg ${!hasStock ? 'out-of-stock' : ''}" 
+              data-size="${s}" onclick="${hasStock ? `selectSize('${s}', this)` : ''}">${s}</button>`;
+    }).join('');
+    document.getElementById('sizes-section').style.display = 'block';
+  } else {
+    document.getElementById('sizes-section').style.display = 'none';
+  }
+
+  // إعادة تعيين الاختيارات
+  selectedColor = null;
+  selectedSize = null;
+  updateStock();
+}
+
+// ==============================================
+// تحميل بيانات المنتج من Firestore
+// ==============================================
+async function loadProduct() {
+  const params = new URLSearchParams(window.location.search);
+  const productId = params.get('id');
+  
+  if (!productId) {
+    document.getElementById('loading').innerHTML = `<p class="text-red-500 text-xl">${t('not_found')}</p>`;
+    return;
+  }
+
+  try {
+    const doc = await db.collection('products').doc(productId).get();
+    if (!doc.exists) {
+      document.getElementById('loading').innerHTML = `<p class="text-red-500 text-xl">${t('not_found')}</p>`;
+      return;
+    }
+
+    productData = { id: doc.id, ...doc.data() };
+    
+    // إخفاء التحميل وعرض المحتوى
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('product-content').classList.remove('hidden');
+    
+    // عرض البيانات
+    renderProductData();
+
+    // تحميل منتجات مقترحة من نفس القسم
+    loadRelatedProducts(productData.gender, productData.type, productData.id);
+
+  } catch (err) {
+    console.error('Load product error:', err);
+    document.getElementById('loading').innerHTML = `<p class="text-red-500 text-xl">${t('error_load')}<br><small>${err.message}</small></p>`;
+  }
+}
+
+// ==============================================
+// تحميل منتجات مقترحة
+// ==============================================
+async function loadRelatedProducts(gender, type, excludeId) {
+  const grid = document.getElementById('related-grid');
+  try {
+    let query = db.collection('products').where('available', '!=', false);
+    if (gender) query = query.where('gender', '==', gender);
+    if (type) query = query.where('type', '==', type);
+    
+    const snap = await query.limit(8).get();
+    grid.innerHTML = '';
+
+    let count = 0;
+    snap.forEach(doc => {
+      if (doc.id === excludeId) return;
+      if (count >= 4) return;
+      const p = { id: doc.id, ...doc.data() };
+      const img = p.images?.[0] || 'https://via.placeholder.com/300x350?text=No+Image';
+      grid.innerHTML += `
+        <a href="product.html?id=${p.id}" class="block product-card overflow-hidden hover:shadow-md transition-shadow">
+          <img src="${img}" alt="${p.name}" class="w-full h-40 object-cover">
+          <div class="p-3">
+            <h4 class="font-bold text-sm truncate">${p.name}</h4>
+            <p class="font-semibold text-lg mt-1">${formatPrice(p.price)}</p>
+          </div>
+        </a>
+      `;
+      count++;
+    });
+
+    if (count === 0) {
+      grid.innerHTML = '<p class="col-span-full text-center text-gray-400 py-4">لا توجد منتجات مقترحة حالياً</p>';
+    }
+  } catch (err) {
+    console.error('Related products error:', err);
+  }
+}
+
+// ==============================================
+// التحكم في كمية المنتج
+// ==============================================
 document.getElementById('qty-minus').addEventListener('click', () => {
   const input = document.getElementById('qty-input');
-  const val = parseInt(input.value);
+  const val = parseInt(input.value) || 1;
   if (val > 1) input.value = val - 1;
 });
 
 document.getElementById('qty-plus').addEventListener('click', () => {
   const input = document.getElementById('qty-input');
-  const val = parseInt(input.value);
+  const val = parseInt(input.value) || 1;
   if (!maxStock || val < maxStock) input.value = val + 1;
 });
 
-// إضافة إلى السلة
-document.getElementById('add-cart-btn').addEventListener('click', () => {
+// ==============================================
+// إضافة المنتج إلى السلة
+// ==============================================
+document.getElementById('add-cart-btn').addEventListener('click', async () => {
   const qty = parseInt(document.getElementById('qty-input').value) || 1;
 
-  // التحقق من الاختيار
+  // التحقق من توفر الخيارات
   const hasColors = document.getElementById('colors-section').style.display !== 'none';
   const hasSizes = document.getElementById('sizes-section').style.display !== 'none';
 
   if ((hasColors && !selectedColor) || (hasSizes && !selectedSize)) {
-    showToast(t('no_color_size'), 'error');
+    showToast(t('no_color_size'), 'warning');
     return;
   }
 
   if (maxStock === 0) {
-    showToast(t('out_of_stock'), 'error');
+    showToast(t('out_of_stock_short'), 'error');
+    return;
+  }
+
+  if (qty < 1) {
+    showToast(t('min_qty'), 'warning');
     return;
   }
 
   if (qty > maxStock) {
-    showToast(t('max_qty'), 'error');
+    showToast(t('max_qty', { stock: maxStock }), 'warning');
+    document.getElementById('qty-input').value = maxStock;
     return;
   }
 
-  // إضافة العنصر للسلة
-  const cart = getCart();
-  cart.push({
-    productId: productData.id,
-    name: productData.name,
-    price: productData.price,
-    image: productData.images?.[0] || '',
-    color: selectedColor || '-',
-    size: selectedSize || '-',
-    qty: qty,
-    variantStock: maxStock
-  });
+  // تعطيل الزر أثناء الإضافة
+  const btn = document.getElementById('add-cart-btn');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin ml-2"></i> <span data-i18n="adding">جاري الإضافة...</span>`;
 
-  saveCart(cart);
-  showToast(t('added'));
+  try {
+    // الحصول على السلة الحالية
+    let cart = getCart();
+
+    // التحقق من وجود نفس المنتج بنفس اللون والمقاس
+    const existingIndex = cart.findIndex(item => 
+      item.productId === productData.id && 
+      String(item.color).trim() === String(selectedColor || '-').trim() && 
+      String(item.size).trim() === String(selectedSize || '-').trim()
+    );
+
+    if (existingIndex >= 0) {
+      // تحديث الكمية
+      const newQty = (Number(cart[existingIndex].qty) || 0) + qty;
+      if (newQty > maxStock) {
+        cart[existingIndex].qty = maxStock;
+        showToast(t('max_qty', { stock: maxStock }), 'warning');
+      } else {
+        cart[existingIndex].qty = newQty;
+        showToast(t('updated'));
+      }
+    } else {
+      // إضافة عنصر جديد
+      cart.push({
+        productId: productData.id,
+        name: productData.name,
+        price: Number(productData.price),
+        image: productData.images?.[0] || '',
+        color: selectedColor || '-',
+        size: selectedSize || '-',
+        qty: qty,
+        variantStock: maxStock,
+        addedAt: new Date().toISOString()
+      });
+      showToast(t('added'));
+    }
+
+    // حفظ السلة
+    saveCart(cart);
+
+    // عرض أزرار التنقل
+    document.getElementById('after-add-buttons').classList.remove('hidden');
+
+  } catch (err) {
+    console.error('Add to cart error:', err);
+    showToast('❌ حدث خطأ أثناء الإضافة، يرجى المحاولة مرة أخرى', 'error');
+  } finally {
+    // إعادة الزر لحالته
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
 });
 
-// تحميل المنتج عند فتح الصفحة
-document.addEventListener('DOMContentLoaded', loadProduct);
+// ==============================================
+// عند تحميل الصفحة بالكامل
+// ==============================================
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+  document.getElementById('lang-btn').textContent = getCurrentLanguage() === 'ar' ? 'English' : 'العربية';
+  updateCartCounter();
+  loadProduct();
+});
 </script>
 
 </body>
