@@ -3,24 +3,157 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>الأقسام - VAREN</title>
+  <title data-i18n="page_title">الأقسام - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
   
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&display=swap');
     * { font-family: 'Cairo', sans-serif; }
-    .category-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-    .category-card { transition: all 0.3s ease; }
+    html[lang="en"] { direction: ltr; }
+    html { scroll-behavior: smooth; }
+    
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; padding: 14px 28px; border-radius: 12px; z-index: 9999; display: none; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.18); max-width: 90%; width: fit-content; }
+    .toast.show { display: block; animation: fadeInUp 0.35s ease; }
+    .toast.success { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .toast.error { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    @keyframes fadeInUp { from { opacity:0; transform: translate(-50%, 25px); } to { opacity:1; transform: translate(-50%, 0); } }
+    
+    .card { background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #f3f4f6; overflow: hidden; transition: all 0.25s ease; }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    .category-card { background: linear-gradient(135deg, #111827, #374151); color: white; border-radius: 16px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; }
+    .category-card:hover { transform: scale(1.03); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+    .filter-chip { padding: 6px 14px; border-radius: 999px; border: 2px solid #e5e7eb; cursor: pointer; transition: all 0.2s ease; font-size: 0.9rem; }
+    .filter-chip:hover { border-color: #9ca3af; }
+    .filter-chip.active { background: black; color: white; border-color: black; }
+    input, select { border: 2px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; width: 100%; font-size: 1rem; transition: border 0.2s; }
+    input:focus, select:focus { outline: none; border-color: black; }
+    label { font-weight: 600; color: #374151; margin-bottom: 6px; display: block; }
+    .price-tag { background: linear-gradient(135deg, #111827, #374151); color: white; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 0.95rem; }
+    .discount-tag { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 3px solid black; display: inline-block; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
 <script>
+// ==============================================
+// الترجمة
+// ==============================================
+const translations = {
+  ar: {
+    page_title: "الأقسام - VAREN",
+    loading: "جاري التحميل...",
+    home: "الرئيسية",
+    categories: "الأقسام",
+    all_products: "جميع المنتجات",
+    men: "رجالي",
+    women: "نسائي",
+    kids: "أطفال",
+    hoodie: "هودي",
+    tshirt: "تيشيرت",
+    pants: "بناطيل",
+    formal: "لبس رسمي",
+    tracksuit: "ترينق",
+    underwear: "ملابس داخلية",
+    dress: "فساتين",
+    winter: "شتوي",
+    summer: "صيفي",
+    all_season: "مناسب لكل المواسم",
+    all_types: "جميع الأنواع",
+    all_seasons: "كل المواسم",
+    price_range: "نطاق السعر (درهم)",
+    min_price: "أقل سعر",
+    max_price: "أعلى سعر",
+    search: "ابحث باسم المنتج أو وصفه...",
+    apply_filters: "تطبيق الفلترة",
+    reset_filters: "إعادة تعيين",
+    no_products: "لا توجد منتجات مطابقة للبحث",
+    view_details: "عرض التفاصيل",
+    quick_view: "عرض سريع",
+    language: "اللغة",
+    sort_by: "ترتيب حسب",
+    sort_newest: "الأحدث أولاً",
+    sort_price_low: "السعر من الأقل للأعلى",
+    sort_price_high: "السعر من الأعلى للأقل",
+    sort_name: "الاسم أبجدياً",
+    products_count: "عدد المنتجات",
+    select_gender: "اختر القسم",
+    select_type: "اختر النوع",
+    select_season: "الموسم"
+  },
+  en: {
+    page_title: "Categories - VAREN",
+    loading: "Loading...",
+    home: "Home",
+    categories: "Categories",
+    all_products: "All Products",
+    men: "Men",
+    women: "Women",
+    kids: "Kids",
+    hoodie: "Hoodie",
+    tshirt: "T-Shirt",
+    pants: "Pants",
+    formal: "Formal Wear",
+    tracksuit: "Tracksuit",
+    underwear: "Underwear",
+    dress: "Dress",
+    winter: "Winter",
+    summer: "Summer",
+    all_season: "All Season",
+    all_types: "All Types",
+    all_seasons: "All Seasons",
+    price_range: "Price Range (AED)",
+    min_price: "Min Price",
+    max_price: "Max Price",
+    search: "Search product name or description...",
+    apply_filters: "Apply Filters",
+    reset_filters: "Reset",
+    no_products: "No products match your search",
+    view_details: "View Details",
+    quick_view: "Quick View",
+    language: "Language",
+    sort_by: "Sort By",
+    sort_newest: "Newest First",
+    sort_price_low: "Price: Low to High",
+    sort_price_high: "Price: High to Low",
+    sort_name: "Name A-Z",
+    products_count: "Products",
+    select_gender: "Select Department",
+    select_type: "Select Type",
+    select_season: "Season"
+  }
+};
+
+// ==============================================
+// دوال اللغة
+// ==============================================
+function setLanguage(lang) {
+  if (!translations[lang]) lang = 'ar';
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+  renderProducts();
+}
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+function t(key) {
+  return translations[getCurrentLanguage()][key] || key;
+}
+
+// ==============================================
+// إعدادات Firebase
+// ==============================================
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -32,185 +165,411 @@ const firebaseConfig = {
 };
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// ==============================================
+// متغيرات عامة
+// ==============================================
+let allProducts = [];
+let filteredProducts = [];
+let activeGender = 'all';
+let activeType = 'all';
+let activeSeason = 'all';
+let minPrice = 0;
+let maxPrice = 99999;
+let searchKeyword = '';
+let sortBy = 'newest';
 </script>
 
+<!-- شريط التنقل -->
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="flex items-center gap-3">
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
-      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
+      <span class="text-2xl font-black text-gray-900">VAREN</span>
     </a>
-    <a href="index.html" class="text-sm text-gray-600 hover:text-black">
-      <i class="fa-solid fa-arrow-right ml-1"></i> العودة للرئيسية
-    </a>
+    <div class="flex items-center gap-3">
+      <button onclick="toggleLanguage()" class="text-sm border px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2">
+        <i class="fa-solid fa-globe"></i>
+        <span id="lang-btn">English</span>
+      </button>
+      <a href="cart.html" class="relative text-gray-700 hover:text-black transition-colors">
+        <i class="fa-solid fa-cart-shopping fa-lg"></i>
+        <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold cart-counter">0</span>
+      </a>
+      <a href="index.html" class="text-sm text-gray-600 hover:text-black transition-colors">
+        <i class="fa-solid fa-home ml-1"></i> <span data-i18n="home">الرئيسية</span>
+      </a>
+    </div>
   </div>
 </nav>
 
-<main class="max-w-7xl mx-auto px-4 py-8">
-  <h1 class="text-4xl font-bold mb-8 text-center">الأقسام</h1>
+<!-- مسار التنقل -->
+<div class="bg-gray-50 border-b border-gray-100 py-3">
+  <div class="max-w-7xl mx-auto px-4 text-sm text-gray-500">
+    <a href="index.html" class="hover:text-black" data-i18n="home">الرئيسية</a>
+    <span class="mx-2">/</span>
+    <span class="text-gray-800 font-medium" data-i18n="categories">الأقسام</span>
+  </div>
+</div>
 
-  <!-- أقسام الرجال -->
-  <section class="mb-12">
-    <h2 class="text-2xl font-bold mb-6 border-b-2 border-black pb-2">ملابس رجالية</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <a href="#men-hoodies" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-tshirt text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">الهودي</h3>
-      </a>
-      <a href="#men-tshirts" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-shirt text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">تيشيرت</h3>
-      </a>
-      <a href="#men-pants" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-pants text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">بناطيل</h3>
-      </a>
-      <a href="#men-formal" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-user-tie text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">لبس رسمي</h3>
-      </a>
-      <a href="#men-tracksuit" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-running text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">ترينق</h3>
-      </a>
-      <a href="#men-underwear" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-vest text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">ملابس داخلية</h3>
-      </a>
+<!-- المحتوى الرئيسي -->
+<main class="max-w-7xl mx-auto px-4 py-6">
+
+  <!-- بطاقات الأقسام الرئيسية -->
+  <section class="mb-10">
+    <h2 class="section-title" data-i18n="select_gender">اختر القسم</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div class="category-card" data-gender="men" onclick="selectGender('men')">
+        <i class="fa-solid fa-mars fa-3xl mb-3"></i>
+        <h3 class="text-xl font-bold" data-i18n="men">رجالي</h3>
+      </div>
+      <div class="category-card" data-gender="women" onclick="selectGender('women')">
+        <i class="fa-solid fa-venus fa-3xl mb-3"></i>
+        <h3 class="text-xl font-bold" data-i18n="women">نسائي</h3>
+      </div>
+      <div class="category-card" data-gender="kids" onclick="selectGender('kids')">
+        <i class="fa-solid fa-child fa-3xl mb-3"></i>
+        <h3 class="text-xl font-bold" data-i18n="kids">أطفال</h3>
+      </div>
     </div>
   </section>
 
-  <!-- أقسام النساء -->
-  <section class="mb-12">
-    <h2 class="text-2xl font-bold mb-6 border-b-2 border-black pb-2">ملابس نسائية</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <a href="#women-hoodies" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-tshirt text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">الهودي</h3>
-      </a>
-      <a href="#women-tshirts" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-shirt text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">تيشيرت</h3>
-      </a>
-      <a href="#women-pants" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-pants text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">بناطيل</h3>
-      </a>
-      <a href="#women-dresses" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-gown text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">فساتين</h3>
-      </a>
-      <a href="#women-tracksuit" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-running text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">ترينق</h3>
-      </a>
-      <a href="#women-underwear" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-vest text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">ملابس داخلية</h3>
-      </a>
+  <!-- منطقة الفلترة -->
+  <section class="card p-6 mb-8">
+    <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+      <i class="fa-solid fa-filter"></i>
+      <span data-i18n="all_products">جميع المنتجات</span>
+      <span id="products-count" class="text-sm font-normal text-gray-500">()</span>
+    </h2>
+
+    <!-- البحث -->
+    <div class="mb-4">
+      <input type="text" id="search-input" placeholder="🔍 ابحث باسم المنتج..." 
+             oninput="updateSearch(this.value)" class="max-w-lg">
+    </div>
+
+    <!-- الفلترة حسب النوع والموسم -->
+    <div class="grid md:grid-cols-3 gap-4 mb-4">
+      <div>
+        <label data-i18n="select_type">النوع</label>
+        <select id="filter-type" onchange="updateType(this.value)">
+          <option value="all" data-i18n="all_types">جميع الأنواع</option>
+          <option value="hoodie" data-i18n="hoodie">هودي</option>
+          <option value="tshirt" data-i18n="tshirt">تيشيرت</option>
+          <option value="pants" data-i18n="pants">بناطيل</option>
+          <option value="formal" data-i18n="formal">لبس رسمي</option>
+          <option value="tracksuit" data-i18n="tracksuit">ترينق</option>
+          <option value="underwear" data-i18n="underwear">ملابس داخلية</option>
+          <option value="dress" data-i18n="dress">فساتين</option>
+        </select>
+      </div>
+      <div>
+        <label data-i18n="select_season">الموسم</label>
+        <select id="filter-season" onchange="updateSeason(this.value)">
+          <option value="all" data-i18n="all_seasons">كل المواسم</option>
+          <option value="winter" data-i18n="winter">شتوي</option>
+          <option value="summer" data-i18n="summer">صيفي</option>
+          <option value="all" data-i18n="all_season">مناسب لكل المواسم</option>
+        </select>
+      </div>
+      <div>
+        <label data-i18n="sort_by">الترتيب</label>
+        <select id="sort-select" onchange="updateSort(this.value)">
+          <option value="newest" data-i18n="sort_newest">الأحدث أولاً</option>
+          <option value="price_low" data-i18n="sort_price_low">السعر: من الأقل للأعلى</option>
+          <option value="price_high" data-i18n="sort_price_high">السعر: من الأعلى للأقل</option>
+          <option value="name" data-i18n="sort_name">الاسم أبجدياً</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- نطاق السعر -->
+    <div class="grid md:grid-cols-2 gap-4 items-end">
+      <div>
+        <label data-i18n="price_range">نطاق السعر (درهم)</label>
+        <div class="flex gap-2">
+          <input type="number" id="price-min" placeholder="أقل سعر" oninput="updatePriceRange()">
+          <span class="self-center">—</span>
+          <input type="number" id="price-max" placeholder="أعلى سعر" oninput="updatePriceRange()">
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="applyAllFilters()" class="bg-black text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-gray-800 transition-colors">
+          <i class="fa-solid fa-check ml-1"></i> <span data-i18n="apply_filters">تطبيق</span>
+        </button>
+        <button onclick="resetAllFilters()" class="border-2 border-gray-300 px-6 py-2.5 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+          <i class="fa-solid fa-undo ml-1"></i> <span data-i18n="reset_filters">إعادة تعيين</span>
+        </button>
+      </div>
     </div>
   </section>
 
-  <!-- أقسام الأطفال -->
-  <section class="mb-12">
-    <h2 class="text-2xl font-bold mb-6 border-b-2 border-black pb-2">ملابس أطفال</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <a href="#kids-tshirts" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-shirt text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">تيشيرت</h3>
-      </a>
-      <a href="#kids-pants" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-pants text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">بناطيل</h3>
-      </a>
-      <a href="#kids-tracksuit" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-running text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">ترينق</h3>
-      </a>
-      <a href="#kids-underwear" class="category-card bg-white rounded-xl shadow-sm p-6 text-center border">
-        <i class="fa-solid fa-vest text-3xl mb-3 text-gray-700"></i>
-        <h3 class="font-bold">ملابس داخلية</h3>
-      </a>
+  <!-- عرض المنتجات -->
+  <section>
+    <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div class="col-span-full text-center py-12 text-gray-400">
+        <i class="fa-solid fa-spinner fa-spin fa-2xl mb-3"></i>
+        <p data-i18n="loading">جاري تحميل المنتجات...</p>
+      </div>
     </div>
   </section>
 
-  <!-- منطقة عرض المنتجات حسب القسم -->
-  <section id="products-area" class="mt-12">
-    <h2 class="text-2xl font-bold mb-6" id="section-title">اختر قسماً لعرض المنتجات</h2>
-    <div id="products-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <!-- سيتم تحميل المنتجات هنا -->
-    </div>
-  </section>
 </main>
 
+<!-- تذييل الصفحة -->
+<footer class="bg-gray-900 text-white py-10 mt-16">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="grid md:grid-cols-4 gap-8">
+      <div class="md:col-span-2">
+        <h3 class="text-2xl font-black mb-3">VAREN</h3>
+        <p class="text-gray-400 leading-relaxed">متجر VAREN — وجهتك المثالية للملابس العصرية بجودة عالية وتصاميم مميزة. نقدم أحدث صيحات الموضة بأسعار مناسبة للجميع.</p>
+      </div>
+      <div>
+        <h4 class="font-bold mb-3">روابط سريعة</h4>
+        <ul class="space-y-2 text-gray-400 text-sm">
+          <li><a href="index.html" class="hover:text-white transition-colors">الرئيسية</a></li>
+          <li><a href="category.html" class="hover:text-white transition-colors">الأقسام</a></li>
+          <li><a href="cart.html" class="hover:text-white transition-colors">سلة التسوق</a></li>
+          <li><a href="my-orders.html" class="hover:text-white transition-colors">طلباتي</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold mb-3">مساعدة</h4>
+        <ul class="space-y-2 text-gray-400 text-sm">
+          <li><a href="about.html" class="hover:text-white transition-colors">من نحن</a></li>
+          <li><a href="shipping.html" class="hover:text-white transition-colors">سياسة التوصيل</a></li>
+          <li><a href="returns.html" class="hover:text-white transition-colors">سياسة الإرجاع</a></li>
+          <li><a href="contact.html" class="hover:text-white transition-colors">تواصل معنا</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-gray-800 mt-8 pt-6 text-center text-gray-500 text-sm">
+      <p>VAREN © 2026 — جميع الحقوق محفوظة</p>
+    </div>
+  </div>
+</footer>
+
 <script>
-// تحميل منتجات حسب القسم
-async function loadProductsByCategory(gender, type, sectionTitle) {
-  const grid = document.getElementById('products-grid');
-  document.getElementById('section-title').textContent = sectionTitle;
-  grid.innerHTML = '<p class="col-span-full text-center py-8"><i class="fa-solid fa-spinner fa-spin fa-xl"></i></p>';
+// ==============================================
+// دوال مساعدة
+// ==============================================
+function toggleLanguage() {
+  const current = getCurrentLanguage();
+  const newLang = current === 'ar' ? 'en' : 'ar';
+  setLanguage(newLang);
+  document.getElementById('lang-btn').textContent = newLang === 'ar' ? 'English' : 'العربية';
+}
 
-  try {
-    let query = db.collection('products').where('available', '!=', false);
-    if (gender) query = query.where('gender', '==', gender);
-    if (type) query = query.where('type', '==', type);
+function formatPrice(amount) {
+  const lang = getCurrentLanguage();
+  return lang === 'ar' ? `${amount} درهم` : `AED ${amount}`;
+}
+
+function updateCartCounter() {
+  const cart = JSON.parse(localStorage.getItem('varen_cart') || '[]');
+  const total = cart.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+  document.querySelectorAll('.cart-counter').forEach(el => el.textContent = total);
+}
+
+// ==============================================
+// دوال الفلترة
+// ==============================================
+function selectGender(gender) {
+  activeGender = gender;
+  document.querySelectorAll('.category-card').forEach(card => {
+    card.style.opacity = card.dataset.gender === gender ? '1' : '0.6';
+    card.style.outline = card.dataset.gender === gender ? '3px solid white' : 'none';
+  });
+  applyAllFilters();
+}
+
+function updateType(type) {
+  activeType = type;
+}
+
+function updateSeason(season) {
+  activeSeason = season;
+}
+
+function updateSearch(keyword) {
+  searchKeyword = keyword.toLowerCase().trim();
+}
+
+function updateSort(sortVal) {
+  sortBy = sortVal;
+}
+
+function updatePriceRange() {
+  minPrice = parseFloat(document.getElementById('price-min').value) || 0;
+  maxPrice = parseFloat(document.getElementById('price-max').value) || 99999;
+}
+
+function resetAllFilters() {
+  activeGender = 'all';
+  activeType = 'all';
+  activeSeason = 'all';
+  minPrice = 0;
+  maxPrice = 99999;
+  searchKeyword = '';
+  sortBy = 'newest';
+  
+  document.getElementById('search-input').value = '';
+  document.getElementById('filter-type').value = 'all';
+  document.getElementById('filter-season').value = 'all';
+  document.getElementById('sort-select').value = 'newest';
+  document.getElementById('price-min').value = '';
+  document.getElementById('price-max').value = '';
+  
+  document.querySelectorAll('.category-card').forEach(card => {
+    card.style.opacity = '1';
+    card.style.outline = 'none';
+  });
+  
+  filteredProducts = [...allProducts];
+  sortProducts();
+  renderProductsGrid();
+}
+
+function applyAllFilters() {
+  updatePriceRange();
+  
+  filteredProducts = allProducts.filter(p => {
+    // قسم (رجالي / نسائي / أطفال)
+    if (activeGender !== 'all' && p.gender !== activeGender) return false;
     
-    const snap = await query.limit(20).get();
-    grid.innerHTML = '';
-
-    if (snap.empty) {
-      grid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8">لا توجد منتجات في هذا القسم حالياً</p>';
-      return;
+    // النوع
+    if (activeType !== 'all' && p.type !== activeType) return false;
+    
+    // الموسم
+    if (activeSeason !== 'all' && p.season !== activeSeason && activeSeason !== 'all') return false;
+    
+    // السعر
+    const price = Number(p.price) || 0;
+    if (price < minPrice || price > maxPrice) return false;
+    
+    // البحث
+    if (searchKeyword) {
+      const name = (p.name || '').toLowerCase();
+      const desc = (p.description || '').toLowerCase();
+      const type = (p.type || '').toLowerCase();
+      if (!name.includes(searchKeyword) && !desc.includes(searchKeyword) && !type.includes(searchKeyword)) {
+        return false;
+      }
     }
+    
+    return true;
+  });
 
-    snap.forEach(doc => {
-      const p = { id: doc.id, ...doc.data() };
-      const img = p.images?.[0] || 'https://via.placeholder.com/300x400';
-      grid.innerHTML += `
-        <a href="product.html?id=${p.id}" class="block bg-white rounded-xl shadow-sm overflow-hidden border hover:shadow-md transition-shadow">
-          <img src="${img}" alt="${p.name}" class="w-full h-48 object-cover">
-          <div class="p-3">
-            <h3 class="font-bold text-sm mb-1">${p.name}</h3>
-            <span class="font-semibold text-lg">${p.price} درهم</span>
-          </div>
-        </a>
-      `;
-    });
-  } catch (err) {
-    grid.innerHTML = `<p class="col-span-full text-center text-red-500">خطأ في التحميل: ${err.message}</p>`;
+  sortProducts();
+  renderProductsGrid();
+}
+
+function sortProducts() {
+  switch (sortBy) {
+    case 'price_low':
+      filteredProducts.sort((a, b) => Number(a.price) - Number(b.price));
+      break;
+    case 'price_high':
+      filteredProducts.sort((a, b) => Number(b.price) - Number(a.price));
+      break;
+    case 'name':
+      filteredProducts.sort((a, b) => (a.name || '').localeCompare(b.name || '', getCurrentLanguage() === 'ar' ? 'ar' : 'en'));
+      break;
+    case 'newest':
+    default:
+      filteredProducts.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB - dateA;
+      });
+      break;
   }
 }
 
-// روابط الأقسام
-document.addEventListener('click', e => {
-  const link = e.target.closest('a[href^="#"]');
-  if (!link) return;
-  e.preventDefault();
-  const hash = link.getAttribute('href').substring(1);
-
-  const map = {
-    'men-hoodies': { g: 'men', t: 'هودي', title: 'هودي رجالي' },
-    'men-tshirts': { g: 'men', t: 'تيشيرت', title: 'تيشيرت رجالي' },
-    'men-pants': { g: 'men', t: 'بناطيل', title: 'بناطيل رجالية' },
-    'men-formal': { g: 'men', t: 'لبس رسمي', title: 'لبس رسمي رجالي' },
-    'men-tracksuit': { g: 'men', t: 'ترينق', title: 'ترينق رجالي' },
-    'men-underwear': { g: 'men', t: 'ملابس داخلية', title: 'ملابس داخلية رجالية' },
-    'women-hoodies': { g: 'women', t: 'هودي', title: 'هودي نسائي' },
-    'women-tshirts': { g: 'women', t: 'تيشيرت', title: 'تيشيرت نسائي' },
-    'women-pants': { g: 'women', t: 'بناطيل', title: 'بناطيل نسائية' },
-    'women-dresses': { g: 'women', t: 'فساتين', title: 'فساتين نسائية' },
-    'women-tracksuit': { g: 'women', t: 'ترينق', title: 'ترينق نسائي' },
-    'women-underwear': { g: 'women', t: 'ملابس داخلية', title: 'ملابس داخلية نسائية' },
-    'kids-tshirts': { g: 'kids', t: 'تيشيرت', title: 'تيشيرت أطفال' },
-    'kids-pants': { g: 'kids', t: 'بناطيل', title: 'بناطيل أطفال' },
-    'kids-tracksuit': { g: 'kids', t: 'ترينق', title: 'ترينق أطفال' },
-    'kids-underwear': { g: 'kids', t: 'ملابس داخلية', title: 'ملابس داخلية أطفال' },
-  };
-
-  if (map[hash]) {
-    loadProductsByCategory(map[hash].g, map[hash].t, map[hash].title);
-    document.getElementById('products-area').scrollIntoView({ behavior: 'smooth' });
+// ==============================================
+// تحميل المنتجات من Firestore
+// ==============================================
+async function loadProducts() {
+  try {
+    const snap = await db.collection('products').where('available', '!=', false).orderBy('updatedAt', 'desc').limit(200).get();
+    allProducts = [];
+    snap.forEach(doc => {
+      allProducts.push({ id: doc.id, ...doc.data() });
+    });
+    filteredProducts = [...allProducts];
+    renderProducts();
+  } catch (err) {
+    console.error('Load products error:', err);
+    document.getElementById('products-grid').innerHTML = `
+      <div class="col-span-full text-center py-12 text-red-500">
+        <i class="fa-solid fa-triangle-exclamation fa-2xl mb-3"></i>
+        <p>خطأ في تحميل المنتجات: ${err.message}</p>
+      </div>
+    `;
   }
+}
+
+// ==============================================
+// عرض المنتجات
+// ==============================================
+function renderProducts() {
+  applyAllFilters();
+}
+
+function renderProductsGrid() {
+  const grid = document.getElementById('products-grid');
+  document.getElementById('products-count').textContent = `(${filteredProducts.length})`;
+
+  if (filteredProducts.length === 0) {
+    grid.innerHTML = `
+      <div class="col-span-full text-center py-16 text-gray-400">
+        <i class="fa-solid fa-box-open fa-3xl mb-4"></i>
+        <p class="text-lg" data-i18n="no_products">لا توجد منتجات مطابقة للبحث</p>
+        <button onclick="resetAllFilters()" class="mt-4 bg-black text-white px-4 py-2 rounded-lg">
+          إعادة تعيين الفلترة
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = filteredProducts.map(p => {
+    const img = p.images?.[0] || 'https://via.placeholder.com/300x350?text=No+Image';
+    const price = Number(p.price) || 0;
+    const priceOrig = Number(p.priceOriginal) || 0;
+    const hasDiscount = priceOrig > price;
+    const discount = hasDiscount ? Math.round((1 - price / priceOrig) * 100) : 0;
+    const totalStock = (p.variants || []).reduce((sum, v) => sum + (v.stock || 0), 0);
+    const lowStock = totalStock > 0 && totalStock <= 3;
+
+    return `
+      <a href="product.html?id=${p.id}" class="card group">
+        <div class="relative overflow-hidden">
+          <img src="${img}" alt="${p.name}" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+          ${hasDiscount ? `<span class="absolute top-2 start-2 discount-tag">-${discount}%</span>` : ''}
+          ${lowStock ? `<span class="absolute top-2 end-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">كمية محدودة</span>` : ''}
+          ${totalStock === 0 ? `<span class="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold">غير متوفر</span>` : ''}
+        </div>
+        <div class="p-3">
+          <h3 class="font-bold text-sm truncate mb-2">${p.name}</h3>
+          <div class="flex items-center justify-between">
+            <span class="price-tag text-sm">${formatPrice(price)}</span>
+            ${hasDiscount ? `<span class="text-xs text-gray-400 line-through">${formatPrice(priceOrig)}</span>` : ''}
+          </div>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+// ==============================================
+// عند تحميل الصفحة
+// ==============================================
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+  document.getElementById('lang-btn').textContent = getCurrentLanguage() === 'ar' ? 'English' : 'العربية';
+  updateCartCounter();
+  loadProducts();
 });
 </script>
 
