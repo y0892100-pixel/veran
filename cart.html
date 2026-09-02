@@ -3,383 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-i18n="page_title">سلة التسوق - VAREN</title>
-  
-  <!-- ✅ الأيقونة في المكان الصحيح -->
-  <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
-  
+  <title>سلة التسوق - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  
+  <link rel="icon" type="image/png" href="varen.jpeg">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
-    html[lang="en"] { direction: ltr; }
-    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
-    .toast.success { background: #16a34a; }
-    .toast.error { background: #dc2626; }
-    .lang-option:hover { background: #f3f4f6; }
-    .lang-option.active { background: #e5e7eb; font-weight: bold; }
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import firebaseConfig from './firebase-config.js';
+    import * as Store from './store.js';
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const googleProvider = new GoogleAuthProvider();
+    window.app = { auth, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile };
+    window.Store = Store;
+  </script>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen">
-<script>
-const translations = {
-  ar: {
-    page_title: "سلة التسوق - VAREN",
-    continue_shopping: "متابعة التسوق",
-    cart_title: "سلة التسوق",
-    empty_cart: "السلة فارغة",
-    add_items_first: "أضف منتجات للسلة أولاً",
-    browse: "التصفح",
-    subtotal: "المجموع الفرعي:",
-    total: "المجموع الكلي:",
-    proceed_payment: "متابعة الدفع",
-    fix_quantities_first: "أصلح الكميات أولاً",
-    size: "المقاس",
-    color: "اللون",
-    deleted_success: "✅ تم حذف المنتج",
-    unavailable_product: "❌ المنتج \"{name}\" غير متوفر حالياً",
-    unavailable_option: "❌ الخيار ({color} - {size}) غير متوفر حالياً",
-    stock_exceeded: "⚠️ المتوفر فقط لهذا الخيار: {stock} قطعة — لا يمكن زيادة الكمية",
-    check_stock_error: "❌ خطأ في التحقق من المخزون",
-    option_unavailable: "❌ هذا الخيار غير متوفر — ربما تم حذفه أو نفذ تماماً",
-    out_of_stock: "❌ نفذ من المخزون — المتوفر: 0 قطع",
-    qty_exceeds_stock: "⚠️ الكمية المطلوبة ({qty}) أكثر من المتوفر ({stock})",
-    low_stock_warning: "⚠️ تبقى فقط {stock} قطع لهذا الخيار",
-    account: "حسابي",
-    login: "تسجيل الدخول",
-    my_info: "معلوماتي",
-    my_orders: "طلباتي",
-    returns: "الاسترجاع",
-    logout: "تسجيل الخروج",
-    language: "اللغة"
-  },
-  en: {
-    page_title: "Shopping Cart - VAREN",
-    continue_shopping: "Continue Shopping",
-    cart_title: "Shopping Cart",
-    empty_cart: "Your cart is empty",
-    add_items_first: "Add products to your cart first",
-    browse: "Browse",
-    subtotal: "Subtotal:",
-    total: "Total:",
-    proceed_payment: "Proceed to Checkout",
-    fix_quantities_first: "Fix quantities first",
-    size: "Size",
-    color: "Color",
-    deleted_success: "✅ Item removed successfully",
-    unavailable_product: "❌ Product \"{name}\" is currently unavailable",
-    unavailable_option: "❌ Option ({color} - {size}) is currently unavailable",
-    stock_exceeded: "⚠️ Only {stock} items available for this option — cannot increase quantity",
-    check_stock_error: "❌ Error checking stock availability",
-    option_unavailable: "❌ This option is unavailable — it may have been removed or sold out",
-    out_of_stock: "❌ Out of stock — Available: 0 pcs",
-    qty_exceeds_stock: "⚠️ Requested quantity ({qty}) exceeds available stock ({stock})",
-    low_stock_warning: "⚠️ Only {stock} left for this option",
-    account: "My Account",
-    login: "Sign In",
-    my_info: "My Information",
-    my_orders: "My Orders",
-    returns: "Returns",
-    logout: "Sign Out",
-    language: "Language"
-  }
-};
-function setLanguage(lang) {
-  if (!translations[lang]) return;
-  document.documentElement.lang = lang;
-  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  localStorage.setItem('varen_lang', lang);
-  
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (translations[lang][key]) el.textContent = translations[lang][key];
-  });
-  
-  updateLangUI(lang);
-}
-function updateLangUI(lang) {
-  document.querySelectorAll('.lang-option').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.lang === lang);
-  });
-}
-function getCurrentLanguage() {
-  return localStorage.getItem('varen_lang') || 'ar';
-}
-function t(key, params = {}) {
-  const lang = getCurrentLanguage();
-  let text = translations[lang][key] || key;
-  Object.keys(params).forEach(p => {
-    text = text.replace(`{${p}}`, params[p]);
-  });
-  return text;
-}
-document.addEventListener('DOMContentLoaded', () => {
-  setLanguage(getCurrentLanguage());
-});
-</script>
+<body class="bg-gray-50 text-gray-800">
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    
-    <!-- الشعار: الصورة + كلمة VAREN -->
-    <a href="index.html" class="flex items-center gap-3">
-      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
-      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
-    </a>
-    <div class="flex items-center gap-6">
-      <a href="index.html" class="text-sm text-gray-600 hover:text-black">
-        <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="continue_shopping">متابعة التسوق</span>
+    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
+    <div class="hidden md:flex gap-8">
+      <a href="index.html" class="hover:text-gray-600">الرئيسية</a>
+      <a href="category.html?gender=women" class="hover:text-gray-600">نسائي</a>
+      <a href="category.html?gender=men" class="hover:text-gray-600">رجالي</a>
+      <a href="category.html?gender=girls" class="hover:text-gray-600">بنات</a>
+      <a href="category.html?gender=boys" class="hover:text-gray-600">أولاد</a>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="cart.html" class="text-xl relative">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
-      <div id="user-area" class="relative">
-        <button id="account-btn" class="hidden items-center gap-1 font-medium hover:text-gray-600">
-          <span data-i18n="account">حسابي</span> <i class="fa-solid fa-chevron-down text-xs"></i>
-        </button>
-        <button id="login-btn" onclick="location.href='login.html'" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800" data-i18n="login">تسجيل الدخول</button>
-        
-        <div id="account-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
-          <a href="account.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_info">معلوماتي</a>
-          <a href="orders.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="my_orders">طلباتي</a>
-          <a href="returns.html" class="block px-4 py-3 hover:bg-gray-100" data-i18n="returns">الاسترجاع</a>
-          
-          <hr class="mx-3">
-          <div class="px-4 py-2">
-            <p class="text-sm font-semibold text-gray-500 mb-2" data-i18n="language">اللغة</p>
-            <button onclick="setLanguage('ar')" class="lang-option w-full text-right px-3 py-2 rounded text-sm" data-lang="ar">العربية</button>
-            <button onclick="setLanguage('en')" class="lang-option w-full text-right px-3 py-2 rounded text-sm mt-1" data-lang="en">English</button>
-          </div>
-          
-          <hr class="mx-3 mt-2">
-          <button onclick="logout()" class="w-full text-right px-4 py-3 text-red-500 hover:bg-gray-100" data-i18n="logout">تسجيل الخروج</button>
-        </div>
+      <div id="user-area">
+        <button id="login-btn" onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>
       </div>
     </div>
   </div>
 </nav>
-<main class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center" data-i18n="cart_title">سلة التسوق</h1>
-  <div id="toast" class="toast"></div>
-  <!-- السلة فارغة -->
-  <div id="empty-cart" class="hidden text-center py-16">
-    <i class="fa-solid fa-cart-shopping text-gray-300 text-6xl mb-4"></i>
-    <h2 class="text-xl font-bold text-gray-500 mb-2" data-i18n="empty_cart">السلة فارغة</h2>
-    <p class="text-gray-400 mb-6" data-i18n="add_items_first">أضف منتجات للسلة أولاً</p>
-    <a href="index.html" class="bg-black text-white px-6 py-2 rounded-lg inline-block hover:bg-gray-800" data-i18n="browse">التصفح</a>
+
+<main class="max-w-4xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6">سلة التسوق</h1>
+  <div id="cart-items" class="space-y-4"></div>
+  <div id="cart-empty" class="text-center py-16 hidden">
+    <i class="fa-solid fa-cart-shopping text-6xl text-gray-300 mb-4"></i>
+    <p class="text-gray-500 text-xl">السلة فارغة</p>
+    <a href="category.html" class="inline-block mt-4 bg-black text-white px-6 py-2 rounded-lg">ابدأ التسوق</a>
   </div>
-  <!-- محتوى السلة -->
-  <div id="cart-content" class="hidden">
-    <div id="cart-items" class="space-y-4 mb-8"></div>
-    <div class="bg-white rounded-xl shadow-sm p-6">
-      <div class="flex justify-between text-lg mb-2">
-        <span data-i18n="subtotal">المجموع الفرعي:</span>
-        <span id="subtotal">0.00 درهم</span>
-      </div>
-      <div class="flex justify-between text-lg font-bold border-t pt-3 mb-4">
-        <span data-i18n="total">المجموع الكلي:</span>
-        <span id="total">0.00 درهم</span>
-      </div>
-      <a href="checkout.html" id="checkout-link" class="block w-full bg-black text-white text-center py-3 rounded-lg font-semibold hover:bg-gray-800">
-        <span data-i18n="proceed_payment">متابعة الدفع</span> <i class="fa-solid fa-arrow-left ml-1"></i>
-      </a>
+  <div id="cart-summary" class="mt-8 border-t pt-6 hidden">
+    <div class="flex justify-between text-xl font-bold mb-4">
+      <span>المجموع:</span>
+      <span id="cart-total">0 درهم</span>
     </div>
+    <a href="checkout.html" class="block w-full bg-black text-white text-center py-3 rounded-lg text-lg">إتمام الطلب</a>
   </div>
 </main>
+
+<div id="login-modal" class="modal">
+  <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold">تسجيل الدخول</h2>
+      <button onclick="closeModal('login-modal')" class="text-gray-500 text-2xl">&times;</button>
+    </div>
+    <div id="login-options">
+      <button onclick="loginWithGoogle()" class="w-full flex items-center justify-center gap-2 border border-gray-300 py-3 rounded-lg mb-4 hover:bg-gray-50">
+        <i class="fa-brands fa-google text-red-500"></i> الدخول بحساب قوقل
+      </button>
+      <div class="flex items-center gap-4 my-4"><hr class="flex-1"><span>أو</span><hr class="flex-1"></div>
+      <button onclick="showEmailLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">الدخول بالإيميل</button>
+      <p class="text-center mt-4">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب جديد</button></p>
+    </div>
+    <div id="email-login" class="hidden">
+      <input type="email" id="login-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border border-gray-300 rounded-lg p-3 mb-4">
+      <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
+      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
+    </div>
+    <div id="register-form" class="hidden">
+      <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف على الأقل)" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <input type="tel" id="reg-phone" placeholder="رقم الهاتف" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <textarea id="reg-address" placeholder="العنوان بالتفصيل" class="w-full border border-gray-300 rounded-lg p-3 mb-4" rows="2"></textarea>
+      <button onclick="registerUser()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">إنشاء حساب</button>
+      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-  authDomain: "varen-f7756.firebaseapp.com",
-  projectId: "varen-f7756",
-  storageBucket: "varen-f7756.firebasestorage.app",
-  messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
-  measurementId: "G-SV7DKGPH2M"
+window.openModal = id => { document.getElementById(id).classList.add('active'); };
+window.closeModal = id => { document.getElementById(id).classList.remove('active'); };
+window.showEmailLogin = () => {
+  document.getElementById('login-options').classList.add('hidden');
+  document.getElementById('email-login').classList.remove('hidden');
 };
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-const ADMIN_EMAIL = 'y0892100@gmail.com';
-const CART_KEY = 'varen_cart_v1';
-function showToast(msg, type = 'success') {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.className = `toast ${type} show`;
-  setTimeout(() => toast.classList.remove('show'), 3000);
-}
-function getCart() {
-  const data = localStorage.getItem(CART_KEY);
-  return data ? JSON.parse(data) : [];
-}
-function saveCart(cart) {
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  renderCart();
-}
-window.removeItem = function(index) {
-  const cart = getCart();
-  cart.splice(index, 1);
-  saveCart(cart);
-  showToast(t('deleted_success'));
+window.showRegister = () => {
+  document.getElementById('login-options').classList.add('hidden');
+  document.getElementById('register-form').classList.remove('hidden');
 };
-window.changeQty = async function(index, delta) {
-  const cart = getCart();
-  const item = cart[index];
-  const key = item.qty !== undefined ? 'qty' : 'quantity';
-  const currentQty = item[key] || 1;
-  const newQty = currentQty + delta;
-  
-  if (newQty < 1) return;
-  
-  try {
-    const productDoc = await db.collection('products').doc(item.id).get();
-    if (!productDoc.exists) {
-      showToast(t('unavailable_product', { name: item.name }), 'error');
-      return;
-    }
-    const productData = productDoc.data();
-    const variants = productData.variants || [];
-    const variant = variants.find(v => 
-      v.color === item.color && v.size === item.size
-    );
-    if (!variant) {
-      showToast(t('unavailable_option', { color: item.color, size: item.size }), 'error');
-      return;
-    }
-    if (newQty > variant.stock) {
-      showToast(t('stock_exceeded', { stock: variant.stock }), 'error');
-      return;
-    }
-    cart[index][key] = newQty;
-    saveCart(cart);
-  } catch (err) {
-    console.error(err);
-    showToast(t('check_stock_error'), 'error');
-  }
+window.backToOptions = () => {
+  document.getElementById('login-options').classList.remove('hidden');
+  document.getElementById('email-login').classList.add('hidden');
+  document.getElementById('register-form').classList.add('hidden');
 };
-async function renderCart() {
-  const cart = getCart();
-  const lang = getCurrentLanguage();
-  const currency = lang === 'ar' ? 'درهم' : 'AED';
-  const emptyState = document.getElementById('empty-cart');
-  const content = document.getElementById('cart-content');
-  const itemsCont = document.getElementById('cart-items');
-  
-  if (cart.length === 0) {
-    emptyState.classList.remove('hidden');
-    content.classList.add('hidden');
-    return;
-  }
-  
-  emptyState.classList.add('hidden');
-  content.classList.remove('hidden');
-  itemsCont.innerHTML = '';
-  let total = 0;
-  let hasStockIssue = false;
-  for (let index = 0; index < cart.length; index++) {
-    const item = cart[index];
-    const qty = item.qty || item.quantity || 1;
-    const price = Number(item.price);
-    const subtotal = price * qty;
-    total += subtotal;
-    let stockWarning = '';
-    let isUnavailable = false;
-    try {
-      const productDoc = await db.collection('products').doc(item.id).get();
-      if (productDoc.exists) {
-        const productData = productDoc.data();
-        const variants = productData.variants || [];
-        const variant = variants.find(v => 
-          v.color === item.color && v.size === item.size
-        );
-        if (!variant) {
-          stockWarning = `<p class="text-red-500 text-xs mt-1">${t('option_unavailable')}</p>`;
-          isUnavailable = true;
-          hasStockIssue = true;
-        } else if (variant.stock <= 0) {
-          stockWarning = `<p class="text-red-500 text-xs mt-1">${t('out_of_stock')}</p>`;
-          isUnavailable = true;
-          hasStockIssue = true;
-        } else if (qty > variant.stock) {
-          stockWarning = `<p class="text-red-500 text-xs mt-1">${t('qty_exceeds_stock', { qty, stock: variant.stock })}</p>`;
-          hasStockIssue = true;
-        } else if (variant.stock <= 3) {
-          stockWarning = `<p class="text-orange-500 text-xs mt-1">${t('low_stock_warning', { stock: variant.stock })}</p>`;
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    itemsCont.innerHTML += `
-      <div class="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 ${isUnavailable?'opacity-60':''}">
-        <img src="${item.image || item.img || 'https://via.placeholder.com/100x100'}" alt="${item.name}" class="w-20 h-20 object-cover rounded-lg">
-        <div class="flex-1">
-          <h3 class="font-bold text-lg">${item.name}</h3>
-          <p class="text-sm text-gray-600">${t('size')}: ${item.size || '—'} | ${t('color')}: ${item.color || '—'}</p>
-          <p class="font-semibold mt-1">${price.toFixed(2)} ${currency}</p>
-          ${stockWarning}
-        </div>
-        <div class="flex flex-col items-center gap-1">
-          <button onclick="changeQty(${index}, 1)" class="w-8 h-8 border rounded flex items-center justify-center hover:bg-gray-100 ${isUnavailable?'opacity-50 cursor-not-allowed':''}" ${isUnavailable?'disabled':''}>+</button>
-          <span class="font-medium">${qty}</span>
-          <button onclick="changeQty(${index}, -1)" class="w-8 h-8 border rounded flex items-center justify-center hover:bg-gray-100 ${isUnavailable?'opacity-50 cursor-not-allowed':''}" ${isUnavailable?'disabled':''}>-</button>
-        </div>
-        <div class="text-right min-w-[100px]">
-          <p class="font-bold">${subtotal.toFixed(2)} ${currency}</p>
-          <button onclick="removeItem(${index})" class="text-red-500 text-sm mt-1 hover:text-red-700">
-            <i class="fa-solid fa-trash-can"></i> ${lang === 'ar' ? 'حذف' : 'Remove'}
-          </button>
-        </div>
-      </div>
-    `;
-  }
-  const checkoutLink = document.getElementById('checkout-link');
-  if (hasStockIssue) {
-    checkoutLink.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-    checkoutLink.innerHTML = `<i class="fa-solid fa-exclamation-triangle ml-1"></i> ${t('fix_quantities_first')}`;
-  } else {
-    checkoutLink.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-    checkoutLink.innerHTML = `<span data-i18n="proceed_payment">${t('proceed_payment')}</span> <i class="fa-solid fa-arrow-left ml-1"></i>`;
-  }
-  document.getElementById('subtotal').textContent = `${total.toFixed(2)} ${currency}`;
-  document.getElementById('total').textContent = `${total.toFixed(2)} ${currency}`;
-}
-function updateUserUI(user) {
-  const loginBtn = document.getElementById('login-btn');
-  const accountBtn = document.getElementById('account-btn');
-  const accountMenu = document.getElementById('account-menu');
-  
+
+function updateUI(user) {
+  const area = document.getElementById('user-area');
   if (user) {
-    if (loginBtn) loginBtn.classList.add('hidden');
-    if (accountBtn) { accountBtn.classList.remove('hidden'); accountBtn.classList.add('flex'); }
-  } else {
-    if (loginBtn) loginBtn.classList.remove('hidden');
-    if (accountBtn) accountBtn.classList.add('hidden');
-    if (accountMenu) accountMenu.classList.add('hidden');
-  }
-}
-window.logout = async function () {
-  await auth.signOut();
-  showToast(getCurrentLanguage() === 'ar' ? '✅ تم تسجيل الخروج' : '✅ Logged out successfully');
-  setTimeout(() => window.location.href = 'index.html', 1000);
-};
-const accountBtn = document.getElementById('account-btn');
-const accountMenu = document.getElementById('account-menu');
-if (accountBtn && accountMenu) {
-  accountBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    accountMenu.classList.toggle('hidden');
-  });
-  document.addEventListener('click', () => accountMenu.classList.add('hidden'));
-  accountMenu.addEventListener('click', (e) => e.stopPropagation());
-}
-document.addEventListener('DOMContentLoaded', () => {
-  auth.onAuthStateChanged(updateUserUI);
-  renderCart();
-});
-</script>
-</body>
-</html>
+    area.innerHTML = `
+      <div class="relative" id="account-menu-container">
+        <button id="account-menu-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
+          <i class="fa-solid fa-user"></i>
+          <span>${user.displayName || 'حسابي'}</span>
+          <i class="fa-solid fa-chevron-down text-xs"></i>
+        </button>
+        <div id="account-menu" class="absolute left-0 bottom-full mb-2 w-48 bg-white shadow-lg rounded-lg p-2 hidden z-50">
+          <a href="account.html" class="block px-4 py-2 hover:bg-gray-100 rounded">حسابي</a>
+          <a href="orders.html" class="block px-4 py-2 hover:bg-gray-100 rounded">طلباتي</a>
+          <a href="returns.html" class="block px-4 py-2 hover:bg-gray-100 rounded">الاسترجاعات</a

@@ -6,151 +6,141 @@
   <title>لوحة التحكم - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
-  
-  <!-- EmailJS -->
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  
+  <link rel="icon" type="image/png" href="varen.jpeg">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
-    html[lang="en"] { direction: ltr; }
-    html[lang="en"] * { font-family: 'Cairo', sans-serif; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
-    .toast.show { display: block; }
-    .toast.success { background: #16a34a; }
-    .toast.error { background: #dc2626; }
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
     .modal.active { display: flex; }
-    .variant-row { border-bottom: 1px solid #eee; padding: 12px 0; }
-    .tab-btn.active { background: black; color: white; }
-    /* ✅ ضمان ظهور أيقونة السلة مهما تغيّر الاتجاه */
-    .cart-icon { direction: ltr !important; display: inline-flex !important; visibility: visible !important; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    .toast.show { display: block; }
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import firebaseConfig from './firebase-config.js';
+    import * as Store from './store.js';
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const googleProvider = new GoogleAuthProvider();
+
+    window.app = { 
+      auth, db, googleProvider, 
+      signInWithEmailAndPassword, createUserWithEmailAndPassword,
+      signInWithPopup, signOut, onAuthStateChanged, updateProfile,
+      collection, addDoc, getDocs
+    };
+    window.Store = Store;
+  </script>
 </head>
 <body class="bg-gray-50 text-gray-800">
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
     <div class="hidden md:flex gap-8">
-      <a href="index.html" class="font-medium hover:text-gray-600">الرئيسية</a>
-      <a href="category.html?gender=women" class="font-medium hover:text-gray-600">نسائي</a>
-      <a href="category.html?gender=men" class="font-medium hover:text-gray-600">رجالي</a>
-      <a href="category.html?gender=girls" class="font-medium hover:text-gray-600">بنات</a>
-      <a href="category.html?gender=boys" class="font-medium hover:text-gray-600">أولاد</a>
+      <a href="index.html" class="hover:text-gray-600">الرئيسية</a>
+      <a href="category.html?gender=women" class="hover:text-gray-600">نسائي</a>
+      <a href="category.html?gender=men" class="hover:text-gray-600">رجالي</a>
+      <a href="category.html?gender=girls" class="hover:text-gray-600">بنات</a>
+      <a href="category.html?gender=boys" class="hover:text-gray-600">أولاد</a>
     </div>
     <div class="flex items-center gap-4">
-      <a href="cart.html" class="text-xl relative cart-icon">
+      <a href="cart.html" class="text-xl relative">
         <i class="fa-solid fa-cart-shopping"></i>
         <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </a>
-      <div id="user-area"></div>
+      <div id="user-area">
+        <button id="login-btn" onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>
+      </div>
     </div>
   </div>
 </nav>
-<main class="max-w-5xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-6">لوحة التحكم</h1>
-  <!-- أزرار التبويب -->
-  <div id="admin-tabs" class="hidden flex flex-wrap gap-2 mb-8 border-b pb-2">
-    <button onclick="switchTab('products')" class="tab-btn active px-4 py-2 rounded-t-lg hover:bg-gray-100" data-tab="products">
-      <i class="fa-solid fa-box mr-1"></i> المنتجات
-    </button>
-    <button onclick="switchTab('orders')" class="tab-btn px-4 py-2 rounded-t-lg hover:bg-gray-100" data-tab="orders">
-      <i class="fa-solid fa-file-invoice mr-1"></i> الطلبات
-    </button>
-    <button onclick="switchTab('returns')" class="tab-btn px-4 py-2 rounded-t-lg hover:bg-gray-100" data-tab="returns">
-      <i class="fa-solid fa-rotate-left mr-1"></i> طلبات الاسترجاع
-    </button>
-  </div>
-  <!-- 📦 قسم المنتجات -->
-  <div id="tab-products" class="tab-content">
-    <div class="flex flex-wrap gap-4 mb-6">
-      <button onclick="showForm('add')" class="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800">إضافة منتج جديد</button>
-    </div>
-    <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md space-y-4 mb-8 hidden">
-      <h2 class="text-xl font-bold mb-4">إضافة منتج جديد</h2>
-      <div class="grid md:grid-cols-2 gap-4">
-        <div>
-          <label class="block font-semibold mb-1">اسم المنتج *</label>
-          <input type="text" id="p-name" class="w-full border rounded-lg p-3" required>
-        </div>
-        <div>
-          <label class="block font-semibold mb-1">السعر الأصلي (قبل الخصم)</label>
-          <input type="number" id="p-price-original" class="w-full border rounded-lg p-3" placeholder="اختياري">
-        </div>
-        <div>
-          <label class="block font-semibold mb-1">السعر الحالي (بالدرهم) *</label>
-          <input type="number" id="p-price" class="w-full border rounded-lg p-3" required>
-        </div>
-        <div>
-          <label class="block font-semibold mb-1">التصنيف *</label>
-          <select id="p-gender" class="w-full border rounded-lg p-3">
-            <option value="women">نسائي</option>
-            <option value="men">رجالي</option>
-            <option value="girls">بنات</option>
-            <option value="boys">أولاد</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold mb-1">النوع</label>
-          <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان / عطر / حذاء...">
-        </div>
-        <div>
-          <label class="block font-semibold mb-1">الموسم</label>
-          <select id="p-season" class="w-full border rounded-lg p-3">
-            <option value="">غير محدد</option>
-            <option value="winter">شتوي</option>
-            <option value="summer">صيفي</option>
-            <option value="formal">رسمي</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold mb-1">حالة التوفر</label>
-          <select id="p-available" class="w-full border rounded-lg p-3">
-            <option value="true" selected>متوفر ✅</option>
-            <option value="false">غير متوفر ❌</option>
-          </select>
-        </div>
-        <div class="md:col-span-2">
-          <label class="block font-semibold mb-1">روابط الصور (كل رابط في سطر)</label>
-          <textarea id="p-images" class="w-full border rounded-lg p-3" rows="3" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
+
+<main class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6">لوحة التحكم — إضافة منتج</h1>
+  
+  <form id="add-product-form" class="bg-white p-6 rounded-xl shadow-md space-y-4">
+    <div class="grid md:grid-cols-2 gap-4">
+      <div>
+        <label class="block font-semibold mb-1">اسم المنتج</label>
+        <input type="text" id="p-name" class="w-full border rounded-lg p-3" required>
+      </div>
+
+      <div>
+        <label class="block font-semibold mb-1">السعر الأصلي (قبل الخصم)</label>
+        <input type="number" id="p-price-original" class="w-full border rounded-lg p-3" placeholder="اختياري">
+      </div>
+
+      <div>
+        <label class="block font-semibold mb-1">السعر بعد الخصم (السعر الحالي)</label>
+        <input type="number" id="p-price" class="w-full border rounded-lg p-3" required>
+      </div>
+
+      <div>
+        <label class="block font-semibold mb-1">التصنيف</label>
+        <select id="p-gender" class="w-full border rounded-lg p-3">
+          <option value="women">نسائي</option>
+          <option value="men">رجالي</option>
+          <option value="girls">بنات</option>
+          <option value="boys">أولاد</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-semibold mb-1">النوع</label>
+        <input type="text" id="p-type" class="w-full border rounded-lg p-3" placeholder="هودي / تيشيرت / فستان...">
+      </div>
+
+      <div>
+        <label class="block font-semibold mb-1">حالة التوفر</label>
+        <select id="p-available" class="w-full border rounded-lg p-3">
+          <option value="true" selected>متوفر ✅</option>
+          <option value="false">غير متوفر ❌</option>
+        </select>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="block font-semibold mb-2">الألوان المتاحة</label>
+        <div class="flex flex-wrap gap-3">
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أحمر"> أحمر</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أسود"> أسود</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أبيض"> أبيض</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="بيج"> بيج</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="رمادي"> رمادي</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أزرق"> أزرق</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="أخضر"> أخضر</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="وردي"> وردي</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="بني"> بني</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="colors" value="برتقالي"> برتقالي</label>
         </div>
       </div>
-      <div class="border-t pt-4">
-        <h3 class="text-lg font-bold mb-3">المخزون حسب اللون والمقاس</h3>
-        <div id="variants-list" class="space-y-2 mb-4"></div>
-        <button type="button" onclick="addVariantRow()" class="bg-gray-100 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">
-          <i class="fa-solid fa-plus mr-1"></i> إضافة خيار جديد
-        </button>
+
+      <div class="md:col-span-2">
+        <label class="block font-semibold mb-2">المقاسات المتاحة</label>
+        <div class="flex flex-wrap gap-3">
+          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XS"> XS</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="S"> S</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="M"> M</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="L"> L</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XL"> XL</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="sizes" value="XXL"> XXL</label>
+        </div>
       </div>
-      <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full mt-4">إضافة المنتج</button>
-    </form>
-    <div id="products-section">
-      <h2 class="text-xl font-bold mb-4">المنتجات المضافة</h2>
-      <div id="products-list" class="space-y-4"></div>
+
+      <div class="md:col-span-2">
+        <label class="block font-semibold mb-1">روابط الصور (كل رابط في سطر)</label>
+        <textarea id="p-images" class="w-full border rounded-lg p-3" rows="5" placeholder="أدخل رابط كل صورة في سطر منفصل"></textarea>
+      </div>
     </div>
-  </div>
-  <!-- 📋 قسم الطلبات -->
-  <div id="tab-orders" class="tab-content hidden">
-    <h2 class="text-xl font-bold mb-4">جميع الطلبات</h2>
-    <div id="orders-list" class="space-y-4"></div>
-  </div>
-  <!-- 🔄 قسم طلبات الاسترجاع -->
-  <div id="tab-returns" class="tab-content hidden">
-    <h2 class="text-xl font-bold mb-4">طلبات الاسترجاع</h2>
-    <div id="returns-list" class="space-y-4"></div>
-  </div>
-  <!-- رسالة لغير المصرح لهم -->
-  <div id="not-admin-message" class="text-center py-16 hidden">
-    <i class="fa-solid fa-lock text-6xl text-gray-300 mb-4"></i>
-    <p class="text-xl text-gray-500">سجّل دخولك كمدير للوصول للوحة التحكم</p>
-    <button onclick="openModal('login-modal')" class="mt-4 bg-black text-white px-6 py-2 rounded-lg">تسجيل الدخول</button>
-  </div>
+
+    <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg text-lg hover:bg-gray-800 w-full">إضافة المنتج</button>
+  </form>
 </main>
+
 <!-- نافذة تسجيل الدخول -->
 <div id="login-modal" class="modal">
   <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
@@ -160,498 +150,152 @@
     </div>
     <div id="login-options">
       <button onclick="loginWithGoogle()" class="w-full flex items-center justify-center gap-2 border border-gray-300 py-3 rounded-lg mb-4 hover:bg-gray-50">
-        <i class="fa-brands fa-google text-red-500"></i> الدخول بقوقل
+        <i class="fa-brands fa-google text-red-500"></i> الدخول بحساب قوقل
       </button>
       <div class="flex items-center gap-4 my-4"><hr class="flex-1"><span>أو</span><hr class="flex-1"></div>
       <button onclick="showEmailLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">الدخول بالإيميل</button>
+      <p class="text-center mt-4">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب جديد</button></p>
     </div>
     <div id="email-login" class="hidden">
-      <input type="email" id="login-email" placeholder="الإيميل" class="w-full border rounded-lg p-3 mb-3">
-      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border rounded-lg p-3 mb-4">
+      <input type="email" id="login-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border border-gray-300 rounded-lg p-3 mb-4">
       <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
+      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
+    </div>
+    <div id="register-form" class="hidden">
+      <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف على الأقل)" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
+      <button onclick="registerUser()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">إنشاء حساب</button>
       <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
     </div>
   </div>
 </div>
+
 <div id="toast" class="toast"></div>
+
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
-  authDomain: "varen-f7756.firebaseapp.com",
-  projectId: "varen-f7756",
-  storageBucket: "varen-f7756.firebasestorage.app",
-  messagingSenderId: "648684291842",
-  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
-  measurementId: "G-SV7DKGPH2M"
+window.openModal = id => { document.getElementById(id).classList.add('active'); };
+window.closeModal = id => { document.getElementById(id).classList.remove('active'); };
+window.showEmailLogin = () => {
+  document.getElementById('login-options').classList.add('hidden');
+  document.getElementById('email-login').classList.remove('hidden');
 };
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-const googleProvider = new firebase.auth.GoogleAuthProvider();
-const ADMIN_EMAIL = 'y0892100@gmail.com';
-// ✅ إعداد EmailJS
-emailjs.init('3A0NspFA3vlSd64jc');
-const COLORS = ['أسود', 'أبيض', 'رمادي', 'بيج', 'أحمر', 'أزرق', 'أخضر', 'وردي', 'بني', 'برتقالي', 'ذهبي', 'فضي', 'بنفسجي', 'أصفر'];
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'مقاس واحد'];
-function formatDate(timestamp) {
-  if (!timestamp) return 'غير محدد';
-  const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  return d.toLocaleString('ar-AE');
-}
-function getStatusClass(status) {
-  if (status === 'جديد') return 'bg-blue-100 text-blue-700';
-  if (status === 'مؤكد') return 'bg-green-100 text-green-700';
-  if (status === 'يتم تجهيز طلبك') return 'bg-yellow-100 text-yellow-700';
-  if (status === 'يتم تجهيز توصيل طلبك') return 'bg-orange-100 text-orange-700';
-  if (status === 'ملغي') return 'bg-red-100 text-red-700';
-  return 'bg-gray-100 text-gray-700';
-}
-function getReturnStatusClass(status) {
-  if (status === 'قيد المراجعة') return 'bg-yellow-100 text-yellow-700';
-  if (status === 'مقبول') return 'bg-green-100 text-green-700';
-  if (status === 'مرفوض') return 'bg-red-100 text-red-700';
-  return 'bg-gray-100 text-gray-700';
-}
-async function checkAdminAccess(user) {
-  if (!user) return false;
-  if (user.email !== ADMIN_EMAIL) {
-    showToast('❌ ليس لديك صلاحية للدخول', 'error');
-    await auth.signOut();
-    setTimeout(() => window.location.href = 'index.html', 1500);
-    return false;
-  }
-  return true;
-}
-window.openModal = id => document.getElementById(id).classList.add('active');
-window.closeModal = id => { document.getElementById(id).classList.remove('active'); backToOptions(); };
-window.showEmailLogin = () => { 
-  document.getElementById('login-options').classList.add('hidden'); 
-  document.getElementById('email-login').classList.remove('hidden'); 
+window.showRegister = () => {
+  document.getElementById('login-options').classList.add('hidden');
+  document.getElementById('register-form').classList.remove('hidden');
 };
-window.backToOptions = () => { 
-  document.getElementById('login-options').classList.remove('hidden'); 
-  document.getElementById('email-login').classList.add('hidden'); 
+window.backToOptions = () => {
+  document.getElementById('login-options').classList.remove('hidden');
+  document.getElementById('email-login').classList.add('hidden');
+  document.getElementById('register-form').classList.add('hidden');
 };
-function showToast(msg, type='success') {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.className = `toast show ${type}`;
-  setTimeout(() => toast.classList.remove('show'), 4000);
-}
-function switchTab(tabName) {
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-  document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-  
-  if (tabName === 'products') loadProducts();
-  if (tabName === 'orders') loadAllOrders();
-  if (tabName === 'returns') loadAllReturns();
-}
-let variantCounter = 0;
-window.addVariantRow = function() {
-  const list = document.getElementById('variants-list');
-  const rowId = `variant-row-${variantCounter++}`;
-  
-  const colorOptions = COLORS.map(c => `<option value="${c}">${c}</option>`).join('');
-  const sizeOptions = SIZES.map(s => `<option value="${s}">${s}</option>`).join('');
-  
-  const row = document.createElement('div');
-  row.id = rowId;
-  row.className = 'variant-row grid grid-cols-3 md:grid-cols-8 gap-2 items-center';
-  row.innerHTML = `
-    <div class="md:col-span-2">
-      <label class="text-xs text-gray-500">اللون</label>
-      <select class="variant-color w-full border rounded p-2">${colorOptions}</select>
-    </div>
-    <div class="md:col-span-2">
-      <label class="text-xs text-gray-500">المقاس</label>
-      <select class="variant-size w-full border rounded p-2">${sizeOptions}</select>
-    </div>
-    <div class="md:col-span-2">
-      <label class="text-xs text-gray-500">الكمية</label>
-      <input type="number" class="variant-stock w-full border rounded p-2" min="0" value="1">
-    </div>
-    <div class="md:col-span-2 flex items-end justify-center">
-      <button type="button" onclick="removeVariantRow('${rowId}')" class="text-red-500 p-2 hover:text-red-700">
-        <i class="fa-solid fa-trash"></i>
-      </button>
-    </div>
-  `;
-  list.appendChild(row);
-};
-window.removeVariantRow = function(rowId) {
-  document.getElementById(rowId)?.remove();
-};
-function collectVariants() {
-  const rows = document.querySelectorAll('#variants-list .variant-row');
-  const variants = [];
-  rows.forEach(row => {
-    const color = row.querySelector('.variant-color')?.value;
-    const size = row.querySelector('.variant-size')?.value;
-    const stock = parseInt(row.querySelector('.variant-stock')?.value) || 0;
-    if (color && size) {
-      variants.push({ color, size, stock });
-    }
-  });
-  return variants;
-}
-// ✅ إرسال إيميل التأكيد بالإيميل اللي تكتبه أنت
-async function sendConfirmationEmail(orderData, deliveryDate, adminEmail) {
-  const orderNumber = orderData.orderNumber || orderData.id;
-  const orderDate = formatDate(orderData.createdAt);
-  
-  const itemsHtml = (orderData.items || []).map(i => {
-    const qty = i.qty || i.quantity || 1;
-    return `• ${i.name} — المقاس: ${i.size || '-'} — اللون: ${i.color || '-'} × ${qty} — ${((i.price || 0) * qty).toFixed(2)} درهم`;
-  }).join('\n');
-  const total = (orderData.total || 0).toFixed(2);
-  
-  // ✅ نستخدم الإيميل اللي كتبته أنت، ولو فارغ نأخذ الإيميل الأصلي من الطلب
-  const emailToUse = adminEmail || orderData.userEmail || '';
-  
-  try {
-    const response = await emailjs.send(
-      'service_3bs6onj',
-      'template_om7zrjs',
-      {
-        order_id: orderNumber,
-        order_date: orderDate,
-        customer_name: orderData.fullName || 'العميل',
-        customer_email: emailToUse, // ✅ الإيميل اللي تكتبه أنت
-        customer_phone: orderData.phone || '',
-        customer_address: orderData.address || '',
-        order_items: itemsHtml,
-        order_total: total,
-        delivery_date: deliveryDate || 'غير محدد'
-      }
-    );
-    console.log('✅ الإيميل أُرسل إلى:', emailToUse, response);
-    return { success: true, emailUsed: emailToUse };
-  } catch (err) {
-    console.error('❌ خطأ في إرسال الإيميل:', err);
-    return { success: false, error: err.message, emailUsed: emailToUse };
-  }
-}
-async function loadAllOrders() {
-  const list = document.getElementById('orders-list');
-  list.innerHTML = '<p class="text-gray-500">جاري تحميل الطلبات...</p>';
-  try {
-    const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').limit(50).get();
-    list.innerHTML = '';
-    if (snapshot.empty) {
-      list.innerHTML = '<p class="text-gray-500 text-center py-8">لا توجد طلبات حتى الآن</p>';
-      return;
-    }
-    snapshot.forEach(doc => {
-      const o = { id: doc.id, ...doc.data() };
-      const deliveryDateDisplay = o.deliveryDate ? `<p class="text-sm text-green-700 font-medium">📅 تاريخ استلام الطلب المتوقع: ${o.deliveryDate}</p>` : '';
-      const originalEmail = o.userEmail || '';
-      
-      list.innerHTML += `
-        <div class="bg-white p-5 rounded-xl shadow-sm border">
-          <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
-            <span class="font-bold">${o.orderNumber || o.id}</span>
-            <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(o.status || 'جديد')}">${o.status || 'جديد'}</span>
-          </div>
-          <p class="text-sm text-gray-600 mb-1">التاريخ: ${formatDate(o.createdAt)}</p>
-          <p class="text-sm text-gray-600 mb-1">العميل: ${o.fullName || 'غير مذكور'} | ${o.phone || 'لا يوجد رقم'}</p>
-          
-          <!-- ✅ حقل إيميل العميل تعدله أنت -->
-          <div class="mb-2 p-2 bg-blue-50 rounded-lg">
-            <label class="block text-sm font-semibold mb-1">📧 إيميل العميل (لإرسال التأكيد)</label>
-            <input type="email" id="customer-email-${o.id}" class="w-full border rounded-lg p-2 text-sm" 
-                   value="${originalEmail}" placeholder="اكتب إيميل العميل هنا">
-          </div>
-          
-          <p class="text-sm text-gray-600 mb-2">العنوان: ${o.address || 'غير مذكور'}</p>
-          ${deliveryDateDisplay}
-          <div class="border-t pt-3 mb-3">
-            <p class="font-semibold mb-2">المنتجات:</p>
-            ${(o.items || []).map(i => {
-              const qty = i.qty || i.quantity || 1;
-              return `<p class="text-sm">• ${i.name} — المقاس: ${i.size || '-'} — اللون: ${i.color || '-'} × ${qty} — ${((i.price || 0) * qty).toFixed(2)} درهم</p>`;
-            }).join('')}
-            <p class="font-bold mt-2">المجموع: ${(o.total || 0).toFixed(2)} درهم</p>
-          </div>
-          
-          <!-- حقل تاريخ التوصيل -->
-          <div class="mb-3 p-2 bg-gray-50 rounded-lg">
-            <label class="block text-sm font-semibold mb-1">📅 تاريخ استلام الطلب المتوقع</label>
-            <div class="flex gap-2">
-              <input type="date" id="delivery-date-${o.id}" class="flex-1 border rounded-lg p-2" value="${o.deliveryDate || ''}">
-              <button onclick="saveDeliveryDate('${o.id}')" class="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">حفظ التاريخ</button>
-            </div>
-          </div>
-          
-          <div class="flex flex-wrap gap-2 mt-2">
-            <button onclick="confirmOrderAndSendEmail('${o.id}')" class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600">✅ مؤكد + إرسال الإيميل</button>
-            <button onclick="updateOrderStatus('${o.id}', 'يتم تجهيز طلبك')" class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm hover:bg-yellow-200">⏳ يتم تجهيز الطلب</button>
-            <button onclick="updateOrderStatus('${o.id}', 'يتم تجهيز توصيل طلبك')" class="px-3 py-1 bg-orange-100 text-orange-700 rounded text-sm hover:bg-orange-200">🚚 جاري التوصيل</button>
-            <button onclick="updateOrderStatus('${o.id}', 'ملغي')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">❌ ملغي</button>
-          </div>
+
+function updateUI(user) {
+  const area = document.getElementById('user-area');
+  if (user) {
+    area.innerHTML = `
+      <div class="relative" id="account-menu-container">
+        <button id="account-menu-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
+          <i class="fa-solid fa-user"></i>
+          <span>${user.displayName || 'حسابي'}</span>
+          <i class="fa-solid fa-chevron-down text-xs"></i>
+        </button>
+        <div id="account-menu" class="absolute left-0 bottom-full mb-2 w-48 bg-white shadow-lg rounded-lg p-2 hidden z-50">
+          <a href="account.html" class="block px-4 py-2 hover:bg-gray-100 rounded">حسابي</a>
+          <a href="orders.html" class="block px-4 py-2 hover:bg-gray-100 rounded">طلباتي</a>
+          <a href="returns.html" class="block px-4 py-2 hover:bg-gray-100 rounded">الاسترجاعات</a>
+          <hr class="my-2">
+          <button onclick="logout()" class="block w-full text-right px-4 py-2 text-red-500 hover:bg-gray-100 rounded">تسجيل الخروج</button>
         </div>
-      `;
-    });
-  } catch (err) {
-    list.innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
+      </div>
+    `;
+    setTimeout(() => {
+      const btn = document.getElementById('account-menu-btn');
+      const menu = document.getElementById('account-menu');
+      if (!btn || !menu) return;
+      btn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); };
+      document.onclick = () => menu.classList.add('hidden');
+      menu.onclick = (e) => e.stopPropagation();
+    }, 10);
+  } else {
+    area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
   }
+  window.Store.updateCartCount();
 }
-// ✅ تأكيد الطلب + إرسال الإيميل للإيميل اللي في الحقل
-window.confirmOrderAndSendEmail = async function(orderId) {
-  try {
-    const deliveryDateInput = document.getElementById(`delivery-date-${orderId}`);
-    const deliveryDate = deliveryDateInput ? deliveryDateInput.value : '';
-    const customerEmailInput = document.getElementById(`customer-email-${orderId}`);
-    const customerEmail = customerEmailInput ? customerEmailInput.value.trim() : '';
-    
-    // جلب بيانات الطلب
-    const orderSnap = await db.collection('orders').doc(orderId).get();
-    if (!orderSnap.exists) return showToast('❌ الطلب غير موجود', 'error');
-    
-    const orderData = { id: orderId, ...orderSnap.data() };
-    
-    // ✅ حفظ الإيميل الجديد في قاعدة البيانات
-    if (customerEmail) {
-      await db.collection('orders').doc(orderId).update({ userEmail: customerEmail });
-    }
-    
-    // تحديث الحالة
-    await db.collection('orders').doc(orderId).update({ 
-      status: 'مؤكد',
-      deliveryDate: deliveryDate || null
-    });
-    
-    // إرسال الإيميل
-    const result = await sendConfirmationEmail(orderData, deliveryDate, customerEmail);
-    
-    if (result.success) {
-      showToast(`✅ تم التأكيد وإرسال الإيميل إلى: ${result.emailUsed || 'الإيميل المحدد'}`);
-    } else {
-      showToast(`⚠️ تم التأكيد لكن فشل الإرسال إلى: ${result.emailUsed} — تحقق من صحة الإيميل`, 'error');
-    }
-    
-    loadAllOrders();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-};
-// ✅ حفظ تاريخ التوصيل فقط
-window.saveDeliveryDate = async function(orderId) {
-  try {
-    const deliveryDateInput = document.getElementById(`delivery-date-${orderId}`);
-    const deliveryDate = deliveryDateInput ? deliveryDateInput.value : '';
-    
-    await db.collection('orders').doc(orderId).update({ 
-      deliveryDate: deliveryDate 
-    });
-    
-    showToast('✅ تم حفظ تاريخ التوصيل');
-    loadAllOrders();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-};
-// ✅ تحديث الحالة فقط (بدون إيميل)
-window.updateOrderStatus = async function(orderId, newStatus) {
-  try {
-    await db.collection('orders').doc(orderId).update({ status: newStatus });
-    showToast(`✅ تم تحديث الحالة إلى: ${newStatus}`);
-    loadAllOrders();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-};
-async function loadAllReturns() {
-  const list = document.getElementById('returns-list');
-  list.innerHTML = '<p class="text-gray-500">جاري تحميل الطلبات...</p>';
-  try {
-    const snapshot = await db.collection('returns').orderBy('createdAt', 'desc').limit(50).get();
-    list.innerHTML = '';
-    if (snapshot.empty) {
-      list.innerHTML = '<p class="text-gray-500 text-center py-8">لا توجد طلبات استرجاع حتى الآن</p>';
-      return;
-    }
-    snapshot.forEach(doc => {
-      const r = { id: doc.id, ...doc.data() };
-      list.innerHTML += `
-        <div class="bg-white p-5 rounded-xl shadow-sm border">
-          <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
-            <span class="font-bold">طلب استرجاع: ${r.orderId || 'غير محدد'}</span>
-            <span class="px-3 py-1 rounded-full text-sm font-medium ${getReturnStatusClass(r.status || 'قيد المراجعة')}">${r.status || 'قيد المراجعة'}</span>
-          </div>
-          <p class="text-sm text-gray-600 mb-1">التاريخ: ${formatDate(r.createdAt)}</p>
-          <p class="text-sm text-gray-600 mb-1">العميل: ${r.userEmail || 'غير مذكور'}</p>
-          <p class="text-sm mb-3"><strong>السبب:</strong> ${r.reason || 'غير مذكور'}</p>
-          <div class="flex gap-2">
-            <button onclick="updateReturnStatus('${r.id}', 'مقبول')" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">✅ مقبول</button>
-            <button onclick="updateReturnStatus('${r.id}', 'مرفوض')" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">❌ مرفوض</button>
-            <button onclick="updateReturnStatus('${r.id}', 'قيد المراجعة')" class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm hover:bg-yellow-200">⏳ قيد المراجعة</button>
-          </div>
-        </div>
-      `;
-    });
-  } catch (err) {
-    list.innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
-  }
-}
-window.updateReturnStatus = async function(returnId, newStatus) {
-  try {
-    await db.collection('returns').doc(returnId).update({ status: newStatus });
-    showToast(`✅ تم تحديث الحالة إلى: ${newStatus}`);
-    loadAllReturns();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-};
-async function loadProducts() {
-  const list = document.getElementById('products-list');
-  list.innerHTML = '<p class="text-gray-500">جاري تحميل المنتجات...</p>';
-  try {
-    const snapshot = await db.collection('products').orderBy('createdAt', 'desc').get();
-    list.innerHTML = '';
-    if (snapshot.empty) {
-      list.innerHTML = '<p class="text-gray-500 text-center py-8">لا توجد منتجات مضافة حتى الآن</p>';
-      return;
-    }
-    snapshot.forEach(doc => {
-      const p = doc.data();
-      const variants = p.variants || [];
-      const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-      const price = p.price || 0;
-      const priceOrig = p.priceOriginal;
-      const image = p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/80x80';
-      const variantsSummary = variants.map(v => `${v.color} / ${v.size}: ${v.stock}`).join(' | ');
-      
-      list.innerHTML += `
-        <div class="bg-white rounded-xl shadow-sm p-4">
-          <div class="flex items-start gap-4">
-            <img src="${image}" alt="${p.name}" class="w-20 h-20 object-cover rounded-lg">
-            <div class="flex-1">
-              <h3 class="font-bold text-lg">${p.name || 'بدون اسم'}</h3>
-              <p class="text-sm text-gray-600">
-                السعر: ${price.toFixed(2)} درهم
-                ${priceOrig ? `<span class="line-through text-red-400 ml-1">${priceOrig.toFixed(2)} درهم</span>` : ''}
-                | إجمالي المخزون: <span class="font-bold ${totalStock === 0 ? 'text-red-500' : 'text-green-600'}">${totalStock}</span>
-                | ${p.available !== false ? 'متوفر' : 'غير متوفر'}
-              </p>
-              <p class="text-xs text-gray-500 mt-1">${p.gender || ''} ${p.type || ''} ${p.season || ''}</p>
-              <p class="text-xs text-gray-400 mt-1">الخيارات: ${variantsSummary || 'لا يوجد خيارات محددة'}</p>
-            </div>
-            <div class="flex flex-col gap-2">
-              <button class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
-                <i class="fa-solid fa-pen-to-square"></i> تعديل
-              </button>
-              <button onclick="deleteProduct('${doc.id}')" class="text-sm bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200">
-                <i class="fa-solid fa-trash"></i> حذف
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    });
-  } catch (err) {
-    list.innerHTML = `<p class="text-red-500">❌ خطأ في تحميل المنتجات: ${err.message}</p>`;
-  }
-}
-window.deleteProduct = async function(id) {
-  if (!confirm('متأكد من حذف هذا المنتج؟')) return;
-  try {
-    await db.collection('products').doc(id).delete();
-    showToast('✅ تم حذف المنتج');
-    loadProducts();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-};
+
 window.loginWithGoogle = async () => {
   try {
-    const result = await auth.signInWithPopup(googleProvider);
-    if (!await checkAdminAccess(result.user)) return;
+    await window.app.signInWithPopup(window.app.auth, window.app.googleProvider);
     closeModal('login-modal');
-    showToast('✅ تم تسجيل الدخول');
-  } catch (e) { 
-    if (e.code !== 'auth/popup-closed-by-user') showToast('خطأ: ' + e.message, 'error'); 
+    window.Store.showToast('تم تسجيل الدخول بنجاح! ✅');
+  } catch (e) {
+    window.Store.showToast(e.message, 'error');
   }
 };
+
+window.registerUser = async () => {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-password').value;
+  if (!name || !email || pass.length < 6) {
+    return window.Store.showToast('املأ الحقول وكلمة المرور 6 أحرف على الأقل', 'error');
+  }
+  try {
+    const cred = await window.app.createUserWithEmailAndPassword(window.app.auth, email, pass);
+    await window.app.updateProfile(cred.user, { displayName: name });
+    closeModal('login-modal');
+    window.Store.showToast('تم إنشاء الحساب بنجاح! ✅');
+  } catch (e) {
+    window.Store.showToast(e.message, 'error');
+  }
+};
+
 window.loginWithEmail = async () => {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
-  if (!email || !pass) return showToast('أدخل الإيميل وكلمة المرور', 'error');
   try {
-    const cred = await auth.signInWithEmailAndPassword(email, pass);
-    if (!await checkAdminAccess(cred.user)) return;
+    await window.app.signInWithEmailAndPassword(window.app.auth, email, pass);
     closeModal('login-modal');
-    showToast('✅ تم تسجيل الدخول');
-  } catch (e) { showToast('❌ إيميل أو كلمة مرور خاطئة', 'error'); }
+    window.Store.showToast('تم تسجيل الدخول! ✅');
+  } catch (e) {
+    window.Store.showToast('إيميل أو كلمة مرور خاطئة', 'error');
+  }
 };
+
 window.logout = async () => {
-  await auth.signOut();
-  showToast('✅ تم تسجيل الخروج');
-  setTimeout(() => window.location.reload(), 1000);
+  await window.app.signOut(window.app.auth);
+  window.Store.showToast('تم تسجيل الخروج');
 };
-window.showForm = () => {
-  document.getElementById('add-product-form').classList.remove('hidden');
-  if (document.querySelectorAll('#variants-list .variant-row').length === 0) {
-    addVariantRow();
-  }
-};
-function updateUI(user, isAdmin) {
-  const area = document.getElementById('user-area');
-  const tabs = document.getElementById('admin-tabs');
-  const noAccess = document.getElementById('not-admin-message');
-  
-  if (user && isAdmin) {
-    area.innerHTML = `
-      <div class="flex items-center gap-2">
-        <span class="text-sm">أهلاً بك، ${user.displayName || 'مدير'}</span>
-        <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700">تسجيل الخروج</button>
-      </div>
-    `;
-    tabs.classList.remove('hidden');
-    noAccess.classList.add('hidden');
-    switchTab('products');
-  } else {
-    area.innerHTML = `<button onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>`;
-    tabs.classList.add('hidden');
-    noAccess.classList.remove('hidden');
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-  }
-}
+
 document.addEventListener('DOMContentLoaded', () => {
-  auth.onAuthStateChanged(async user => {
-    updateUI(user, user ? await checkAdminAccess(user) : false);
-  });
+  window.app.onAuthStateChanged(window.app.auth, updateUI);
+
   const form = document.getElementById('add-product-form');
-  form.addEventListener('submit', async e => {
+  form.addEventListener('submit', async function(e) {
     e.preventDefault();
-    const variants = collectVariants();
-    if (variants.length === 0) {
-      return showToast('⚠️ أضف خياراً واحداً على الأقل (لون + مقاس + كمية)', 'error');
-    }
-    const images = document.getElementById('p-images').value.trim().split('\n').map(s => s.trim()).filter(s => s);
-    const priceOriginalVal = document.getElementById('p-price-original').value.trim();
     
+    const selectedColors = Array.from(document.querySelectorAll('input[name="colors"]:checked')).map(cb => cb.value);
+    const selectedSizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked')).map(cb => cb.value);
+    const images = document.getElementById('p-images').value.trim().split('\n').map(s => s.trim()).filter(s => s);
+
     try {
-      await db.collection('products').add({
+      await window.app.addDoc(window.app.collection(window.app.db, 'products'), {
         name: document.getElementById('p-name').value.trim(),
-        priceOriginal: priceOriginalVal ? Number(priceOriginalVal) : null,
+        priceOriginal: Number(document.getElementById('p-price-original').value) || null,
         price: Number(document.getElementById('p-price').value),
         gender: document.getElementById('p-gender').value,
         type: document.getElementById('p-type').value.trim(),
-        season: document.getElementById('p-season').value || null,
         available: document.getElementById('p-available').value === 'true',
-        images: images,
-        variants: variants,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        colors: selectedColors,
+        sizes: selectedSizes,
+        images: images
       });
-      showToast('✅ تم إضافة المنتج بنجاح');
+      
+      window.Store.showToast('تم إضافة المنتج بنجاح ✅');
       form.reset();
-      document.getElementById('variants-list').innerHTML = '';
-      addVariantRow();
-      loadProducts();
-    } catch (err) { 
-      showToast('❌ خطأ: ' + err.message, 'error'); 
+    } catch (err) {
+      window.Store.showToast('خطأ: ' + err.message, 'error');
     }
   });
 });
