@@ -6,131 +6,248 @@
   <title>سلة التسوق - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" type="image/png" href="varen.jpeg">
+  <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-    .modal.active { display: flex; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
+    html[lang="en"] { direction: ltr; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
     .toast.show { display: block; }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import firebaseConfig from './firebase-config.js';
-    import * as Store from './store.js';
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const googleProvider = new GoogleAuthProvider();
-    window.app = { auth, googleProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile };
-    window.Store = Store;
-  </script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
+<script>
+const translations = {
+  ar: {
+    page_title: "سلة التسوق - VAREN",
+    back: "الرجوع",
+    empty_cart: "السلة فارغة حالياً",
+    continue_shopping: "تصفح المنتجات",
+    product: "المنتج",
+    color: "اللون",
+    size: "المقاس",
+    quantity: "الكمية",
+    price: "السعر",
+    subtotal: "المجموع الفرعي",
+    shipping: "التوصيل",
+    total: "المجموع الكلي",
+    checkout: "إتمام الطلب",
+    remove: "حذف",
+    free_shipping: "مجاني",
+    added: "✅ تم التحديث",
+    removed: "✅ تم الحذف"
+  },
+  en: {
+    page_title: "Cart - VAREN",
+    back: "Back",
+    empty_cart: "Your cart is empty",
+    continue_shopping: "Browse Products",
+    product: "Product",
+    color: "Color",
+    size: "Size",
+    quantity: "Quantity",
+    price: "Price",
+    subtotal: "Subtotal",
+    shipping: "Shipping",
+    total: "Total",
+    checkout: "Checkout",
+    remove: "Remove",
+    free_shipping: "Free",
+    added: "✅ Updated",
+    removed: "✅ Removed"
+  }
+};
+
+function setLanguage(lang) {
+  if (!translations[lang]) return;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('varen_lang', lang);
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang][key]) el.textContent = translations[lang][key];
+  });
+}
+
+function getCurrentLanguage() {
+  return localStorage.getItem('varen_lang') || 'ar';
+}
+
+function t(key) {
+  return translations[getCurrentLanguage()][key] || key;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+});
+</script>
+
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <a href="index.html" class="text-2xl font-bold text-gray-900">VAREN</a>
-    <div class="hidden md:flex gap-8">
-      <a href="index.html" class="hover:text-gray-600">الرئيسية</a>
-      <a href="category.html?gender=women" class="hover:text-gray-600">نسائي</a>
-      <a href="category.html?gender=men" class="hover:text-gray-600">رجالي</a>
-      <a href="category.html?gender=girls" class="hover:text-gray-600">بنات</a>
-      <a href="category.html?gender=boys" class="hover:text-gray-600">أولاد</a>
-    </div>
-    <div class="flex items-center gap-4">
-      <a href="cart.html" class="text-xl relative">
-        <i class="fa-solid fa-cart-shopping"></i>
-        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-      </a>
-      <div id="user-area">
-        <button id="login-btn" onclick="openModal('login-modal')" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800">تسجيل الدخول</button>
-      </div>
-    </div>
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
+    </a>
+    <a href="javascript:history.back()" class="text-sm text-gray-600 hover:text-black">
+      <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="back">الرجوع</span>
+    </a>
   </div>
 </nav>
 
-<main class="max-w-4xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-6">سلة التسوق</h1>
-  <div id="cart-items" class="space-y-4"></div>
-  <div id="cart-empty" class="text-center py-16 hidden">
+<main class="max-w-7xl mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-8 text-center" data-i18n="page_title">سلة التسوق</h1>
+
+  <div id="empty-cart" class="hidden text-center py-16">
     <i class="fa-solid fa-cart-shopping text-6xl text-gray-300 mb-4"></i>
-    <p class="text-gray-500 text-xl">السلة فارغة</p>
-    <a href="category.html" class="inline-block mt-4 bg-black text-white px-6 py-2 rounded-lg">ابدأ التسوق</a>
+    <p class="text-xl text-gray-500 mb-6" data-i18n="empty_cart">السلة فارغة حالياً</p>
+    <a href="index.html" class="bg-black text-white px-6 py-3 rounded-lg font-semibold inline-block" data-i18n="continue_shopping">تصفح المنتجات</a>
   </div>
-  <div id="cart-summary" class="mt-8 border-t pt-6 hidden">
-    <div class="flex justify-between text-xl font-bold mb-4">
-      <span>المجموع:</span>
-      <span id="cart-total">0 درهم</span>
+
+  <div id="cart-content" class="space-y-4">
+    <!-- سيتم ملؤها بالجافاسكريبت -->
+  </div>
+
+  <div id="summary" class="hidden mt-8 bg-white rounded-xl shadow-sm p-6 border">
+    <div class="space-y-3 mb-4">
+      <div class="flex justify-between text-lg">
+        <span data-i18n="subtotal">المجموع الفرعي</span>
+        <span id="subtotal">0 درهم</span>
+      </div>
+      <div class="flex justify-between text-lg text-gray-600">
+        <span data-i18n="shipping">التوصيل</span>
+        <span data-i18n="free_shipping">مجاني</span>
+      </div>
+      <hr>
+      <div class="flex justify-between text-xl font-bold">
+        <span data-i18n="total">المجموع الكلي</span>
+        <span id="total">0 درهم</span>
+      </div>
     </div>
-    <a href="checkout.html" class="block w-full bg-black text-white text-center py-3 rounded-lg text-lg">إتمام الطلب</a>
+    <button onclick="goToCheckout()" class="w-full bg-black text-white py-3 rounded-lg font-semibold text-lg hover:bg-gray-800" data-i18n="checkout">
+      <i class="fa-solid fa-credit-card ml-2"></i> إتمام الطلب
+    </button>
   </div>
 </main>
-
-<div id="login-modal" class="modal">
-  <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">تسجيل الدخول</h2>
-      <button onclick="closeModal('login-modal')" class="text-gray-500 text-2xl">&times;</button>
-    </div>
-    <div id="login-options">
-      <button onclick="loginWithGoogle()" class="w-full flex items-center justify-center gap-2 border border-gray-300 py-3 rounded-lg mb-4 hover:bg-gray-50">
-        <i class="fa-brands fa-google text-red-500"></i> الدخول بحساب قوقل
-      </button>
-      <div class="flex items-center gap-4 my-4"><hr class="flex-1"><span>أو</span><hr class="flex-1"></div>
-      <button onclick="showEmailLogin()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">الدخول بالإيميل</button>
-      <p class="text-center mt-4">ليس لديك حساب؟ <button onclick="showRegister()" class="text-black font-semibold">إنشاء حساب جديد</button></p>
-    </div>
-    <div id="email-login" class="hidden">
-      <input type="email" id="login-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full border border-gray-300 rounded-lg p-3 mb-4">
-      <button onclick="loginWithEmail()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">دخول</button>
-      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
-    </div>
-    <div id="register-form" class="hidden">
-      <input type="text" id="reg-name" placeholder="الاسم الكامل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="email" id="reg-email" placeholder="الإيميل" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="password" id="reg-password" placeholder="كلمة المرور (6 أحرف على الأقل)" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <input type="tel" id="reg-phone" placeholder="رقم الهاتف" class="w-full border border-gray-300 rounded-lg p-3 mb-3">
-      <textarea id="reg-address" placeholder="العنوان بالتفصيل" class="w-full border border-gray-300 rounded-lg p-3 mb-4" rows="2"></textarea>
-      <button onclick="registerUser()" class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800">إنشاء حساب</button>
-      <button onclick="backToOptions()" class="w-full mt-2 text-gray-600">رجوع</button>
-    </div>
-  </div>
-</div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-window.openModal = id => { document.getElementById(id).classList.add('active'); };
-window.closeModal = id => { document.getElementById(id).classList.remove('active'); };
-window.showEmailLogin = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('email-login').classList.remove('hidden');
-};
-window.showRegister = () => {
-  document.getElementById('login-options').classList.add('hidden');
-  document.getElementById('register-form').classList.remove('hidden');
-};
-window.backToOptions = () => {
-  document.getElementById('login-options').classList.remove('hidden');
-  document.getElementById('email-login').classList.add('hidden');
-  document.getElementById('register-form').classList.add('hidden');
-};
+function showToast(msg, type='success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
 
-function updateUI(user) {
-  const area = document.getElementById('user-area');
-  if (user) {
-    area.innerHTML = `
-      <div class="relative" id="account-menu-container">
-        <button id="account-menu-btn" class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
-          <i class="fa-solid fa-user"></i>
-          <span>${user.displayName || 'حسابي'}</span>
-          <i class="fa-solid fa-chevron-down text-xs"></i>
+function getCart() {
+  return JSON.parse(localStorage.getItem('varen_cart_v1') || '[]');
+}
+
+function saveCart(cart) {
+  localStorage.setItem('varen_cart_v1', JSON.stringify(cart));
+  renderCart();
+}
+
+function formatPrice(amount) {
+  const lang = getCurrentLanguage();
+  return `${amount.toFixed(2)} ${lang === 'ar' ? 'درهم' : 'AED'}`;
+}
+
+function renderCart() {
+  const cart = getCart();
+  const emptyEl = document.getElementById('empty-cart');
+  const contentEl = document.getElementById('cart-content');
+  const summaryEl = document.getElementById('summary');
+
+  if (cart.length === 0) {
+    emptyEl.classList.remove('hidden');
+    contentEl.innerHTML = '';
+    summaryEl.classList.add('hidden');
+    return;
+  }
+
+  emptyEl.classList.add('hidden');
+  summaryEl.classList.remove('hidden');
+
+  let subtotal = 0;
+  const lang = getCurrentLanguage();
+
+  contentEl.innerHTML = cart.map((item, idx) => {
+    const price = Number(item.price) || 0;
+    const qty = Number(item.qty) || 1;
+    const total = price * qty;
+    subtotal += total;
+
+    return `
+      <div class="bg-white rounded-xl shadow-sm p-4 border flex flex-col sm:flex-row gap-4 items-center">
+        <img src="${item.image || 'https://via.placeholder.com/100'}" alt="${item.name}" class="w-24 h-24 object-cover rounded-lg">
+        <div class="flex-1 w-full">
+          <h3 class="font-bold text-lg">${item.name || 'منتج'}</h3>
+          <p class="text-sm text-gray-500">
+            <span data-i18n="color">${translations[lang].color}</span>: ${item.color || '-'} | 
+            <span data-i18n="size">${translations[lang].size}</span>: ${item.size || '-'}
+          </p>
+          <p class="font-semibold text-lg mt-1">${formatPrice(price)}</p>
+        </div>
+        <div class="flex items-center gap-2 border rounded-lg">
+          <button onclick="changeQty(${idx}, -1)" class="px-3 py-2 hover:bg-gray-100">-</button>
+          <span class="px-3 font-semibold">${qty}</span>
+          <button onclick="changeQty(${idx}, 1)" class="px-3 py-2 hover:bg-gray-100">+</button>
+        </div>
+        <button onclick="removeItem(${idx})" class="text-red-500 hover:text-red-700 p-2" title="${translations[lang].remove}">
+          <i class="fa-solid fa-trash"></i>
         </button>
-        <div id="account-menu" class="absolute left-0 bottom-full mb-2 w-48 bg-white shadow-lg rounded-lg p-2 hidden z-50">
-          <a href="account.html" class="block px-4 py-2 hover:bg-gray-100 rounded">حسابي</a>
-          <a href="orders.html" class="block px-4 py-2 hover:bg-gray-100 rounded">طلباتي</a>
-          <a href="returns.html" class="block px-4 py-2 hover:bg-gray-100 rounded">الاسترجاعات</a
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('subtotal').textContent = formatPrice(subtotal);
+  document.getElementById('total').textContent = formatPrice(subtotal);
+}
+
+function changeQty(index, delta) {
+  const cart = getCart();
+  const item = cart[index];
+  if (!item) return;
+  
+  const maxStock = Number(item.variantStock) || 999;
+  const newQty = (Number(item.qty) || 1) + delta;
+  
+  if (newQty < 1) return;
+  if (newQty > maxStock) {
+    showToast('⚠️ الكمية تتجاوز المخزون المتاح!', 'error');
+    return;
+  }
+  
+  item.qty = newQty;
+  saveCart(cart);
+}
+
+function removeItem(index) {
+  const cart = getCart();
+  cart.splice(index, 1);
+  saveCart(cart);
+  showToast(t('removed'));
+}
+
+function goToCheckout() {
+  if (getCart().length === 0) {
+    showToast('السلة فارغة!', 'error');
+    return;
+  }
+  window.location.href = 'checkout.html';
+}
+
+document.addEventListener('DOMContentLoaded', renderCart);
+</script>
+
+</body>
+</html>
