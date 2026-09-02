@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>سلة التسوق - VAREN</title>
+  <title data-i18n="page_title">سلة التسوق - VAREN</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" type="image/jpeg" href="https://i.imgur.com/QXFR5XO.jpeg">
   
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -16,20 +17,29 @@
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
     * { font-family: 'Cairo', sans-serif; }
     html[lang="en"] { direction: ltr; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 12px 24px; border-radius: 8px; z-index: 2000; display: none; }
-    .toast.show { display: block; }
-    .toast.success { background: #16a34a; }
-    .toast.error { background: #dc2626; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; padding: 14px 28px; border-radius: 10px; z-index: 9999; display: none; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .toast.show { display: block; animation: fadeInUp 0.3s ease; }
+    .toast.success { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .toast.error { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .toast.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    @keyframes fadeInUp { from { opacity:0; transform: translate(-50%, 20px); } to { opacity:1; transform: translate(-50%, 0); } }
+    .cart-item { transition: all 0.3s ease; }
+    .cart-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .qty-btn:active { transform: scale(0.95); }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
 <script>
+// ====================================
+// إعدادات الترجمة
+// ====================================
 const translations = {
   ar: {
     page_title: "سلة التسوق - VAREN",
-    back: "الرجوع",
+    back: "الرجوع للخلف",
     empty_cart: "السلة فارغة حالياً",
+    empty_hint: "تصفح منتجاتنا وأضف ما يعجبك إلى سلتك",
     continue_shopping: "تصفح المنتجات",
     product: "المنتج",
     color: "اللون",
@@ -37,18 +47,22 @@ const translations = {
     quantity: "الكمية",
     price: "السعر",
     subtotal: "المجموع الفرعي",
-    shipping: "التوصيل",
-    total: "المجموع الكلي",
-    checkout: "إتمام الطلب",
-    remove: "حذف",
+    shipping: "رسوم التوصيل",
     free_shipping: "مجاني",
-    added: "✅ تم التحديث",
-    removed: "✅ تم الحذف"
+    total: "المجموع الكلي",
+    checkout: "إتمام الطلب الآن",
+    remove: "حذف",
+    added: "✅ تم تحديث السلة",
+    removed: "✅ تم حذف المنتج",
+    max_qty: "⚠️ الكمية تتجاوز المخزون المتاح",
+    cart_empty: "السلة فارغة، لا يمكن إتمام الطلب",
+    items_count: "قطعة"
   },
   en: {
-    page_title: "Cart - VAREN",
-    back: "Back",
+    page_title: "Shopping Cart - VAREN",
+    back: "Go Back",
     empty_cart: "Your cart is empty",
+    empty_hint: "Browse our products and add items to your cart",
     continue_shopping: "Browse Products",
     product: "Product",
     color: "Color",
@@ -57,17 +71,23 @@ const translations = {
     price: "Price",
     subtotal: "Subtotal",
     shipping: "Shipping",
-    total: "Total",
-    checkout: "Checkout",
-    remove: "Remove",
     free_shipping: "Free",
-    added: "✅ Updated",
-    removed: "✅ Removed"
+    total: "Total",
+    checkout: "Proceed to Checkout",
+    remove: "Remove",
+    added: "✅ Cart updated",
+    removed: "✅ Item removed",
+    max_qty: "⚠️ Exceeds available stock",
+    cart_empty: "Cart is empty, cannot checkout",
+    items_count: "items"
   }
 };
 
+// ====================================
+// دوال اللغة
+// ====================================
 function setLanguage(lang) {
-  if (!translations[lang]) return;
+  if (!translations[lang]) lang = 'ar';
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   localStorage.setItem('varen_lang', lang);
@@ -76,77 +96,121 @@ function setLanguage(lang) {
     if (translations[lang][key]) el.textContent = translations[lang][key];
   });
 }
-
 function getCurrentLanguage() {
   return localStorage.getItem('varen_lang') || 'ar';
 }
-
 function t(key) {
   return translations[getCurrentLanguage()][key] || key;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  setLanguage(getCurrentLanguage());
-});
+// ====================================
+// إعدادات فايربيز
+// ====================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
+  authDomain: "varen-f7756.firebaseapp.com",
+  projectId: "varen-f7756",
+  storageBucket: "varen-f7756.firebasestorage.app",
+  messagingSenderId: "648684291842",
+  appId: "1:648684291842:web:f3e806fc76a6e119caa41b",
+  measurementId: "G-SV7DKGPH2M"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 </script>
 
+<!-- شريط التنقل -->
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <a href="index.html" class="flex items-center gap-3">
       <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
       <span class="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">VAREN</span>
     </a>
-    <a href="javascript:history.back()" class="text-sm text-gray-600 hover:text-black">
-      <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="back">الرجوع</span>
-    </a>
+    <div class="flex items-center gap-4">
+      <button onclick="toggleLanguage()" class="text-sm border px-3 py-1 rounded hover:bg-gray-100">
+        <i class="fa-solid fa-globe mr-1"></i> <span id="lang-btn">English</span>
+      </button>
+      <a href="javascript:history.back()" class="text-sm text-gray-600 hover:text-black">
+        <i class="fa-solid fa-arrow-right ml-1"></i> <span data-i18n="back">الرجوع للخلف</span>
+      </a>
+    </div>
   </div>
 </nav>
 
+<!-- المحتوى الرئيسي -->
 <main class="max-w-7xl mx-auto px-4 py-8">
   <h1 class="text-3xl font-bold mb-8 text-center" data-i18n="page_title">سلة التسوق</h1>
 
-  <div id="empty-cart" class="hidden text-center py-16">
-    <i class="fa-solid fa-cart-shopping text-6xl text-gray-300 mb-4"></i>
-    <p class="text-xl text-gray-500 mb-6" data-i18n="empty_cart">السلة فارغة حالياً</p>
-    <a href="index.html" class="bg-black text-white px-6 py-3 rounded-lg font-semibold inline-block" data-i18n="continue_shopping">تصفح المنتجات</a>
+  <!-- حالة السلة الفارغة -->
+  <div id="empty-cart" class="hidden text-center py-20">
+    <i class="fa-solid fa-cart-shopping text-7xl text-gray-300 mb-6"></i>
+    <p class="text-2xl text-gray-500 mb-3" data-i18n="empty_cart">السلة فارغة حالياً</p>
+    <p class="text-gray-400 mb-8" data-i18n="empty_hint">تصفح منتجاتنا وأضف ما يعجبك إلى سلتك</p>
+    <a href="index.html" class="bg-black text-white px-8 py-3 rounded-lg font-semibold text-lg inline-block hover:bg-gray-800 transition-colors">
+      <i class="fa-solid fa-store ml-2"></i> <span data-i18n="continue_shopping">تصفح المنتجات</span>
+    </a>
   </div>
 
-  <div id="cart-content" class="space-y-4">
+  <!-- قائمة السلة -->
+  <div id="cart-content" class="space-y-4 mb-8">
     <!-- سيتم ملؤها بالجافاسكريبت -->
   </div>
 
-  <div id="summary" class="hidden mt-8 bg-white rounded-xl shadow-sm p-6 border">
+  <!-- ملخص الطلب -->
+  <div id="summary" class="hidden mt-6 bg-white rounded-xl shadow-sm p-6 border md:w-1/2 md:mr-auto">
+    <h2 class="text-xl font-bold mb-4 border-b pb-2">ملخص الطلب</h2>
     <div class="space-y-3 mb-4">
       <div class="flex justify-between text-lg">
         <span data-i18n="subtotal">المجموع الفرعي</span>
         <span id="subtotal">0 درهم</span>
       </div>
       <div class="flex justify-between text-lg text-gray-600">
-        <span data-i18n="shipping">التوصيل</span>
-        <span data-i18n="free_shipping">مجاني</span>
+        <span data-i18n="shipping">رسوم التوصيل</span>
+        <span data-i18n="free_shipping" class="text-green-600 font-medium">مجاني</span>
       </div>
-      <hr>
+      <hr class="my-2">
       <div class="flex justify-between text-xl font-bold">
         <span data-i18n="total">المجموع الكلي</span>
-        <span id="total">0 درهم</span>
+        <span id="total" class="text-2xl">0 درهم</span>
       </div>
     </div>
-    <button onclick="goToCheckout()" class="w-full bg-black text-white py-3 rounded-lg font-semibold text-lg hover:bg-gray-800" data-i18n="checkout">
-      <i class="fa-solid fa-credit-card ml-2"></i> إتمام الطلب
+    <button onclick="goToCheckout()" class="w-full bg-black text-white py-3 rounded-lg font-semibold text-lg hover:bg-gray-800 transition-colors mt-2">
+      <i class="fa-solid fa-credit-card ml-2"></i> <span data-i18n="checkout">إتمام الطلب الآن</span>
     </button>
   </div>
 </main>
 
+<!-- رسائل التنبيه -->
 <div id="toast" class="toast"></div>
 
 <script>
+// ====================================
+// دوال مساعدة
+// ====================================
 function showToast(msg, type='success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className = `toast ${type} show`;
-  setTimeout(() => toast.classList.remove('show'), 3000);
+  setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
+function toggleLanguage() {
+  const current = getCurrentLanguage();
+  const newLang = current === 'ar' ? 'en' : 'ar';
+  setLanguage(newLang);
+  document.getElementById('lang-btn').textContent = newLang === 'ar' ? 'English' : 'العربية';
+  renderCart();
+}
+
+function formatPrice(amount) {
+  const lang = getCurrentLanguage();
+  const num = Number(amount) || 0;
+  return `${num.toFixed(2)} ${lang === 'ar' ? 'درهم' : 'AED'}`;
+}
+
+// ====================================
+// دوال السلة
+// ====================================
 function getCart() {
   return JSON.parse(localStorage.getItem('varen_cart_v1') || '[]');
 }
@@ -154,18 +218,24 @@ function getCart() {
 function saveCart(cart) {
   localStorage.setItem('varen_cart_v1', JSON.stringify(cart));
   renderCart();
+  updateCartCounter();
 }
 
-function formatPrice(amount) {
-  const lang = getCurrentLanguage();
-  return `${amount.toFixed(2)} ${lang === 'ar' ? 'درهم' : 'AED'}`;
+function updateCartCounter() {
+  const cart = getCart();
+  const total = cart.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+  document.querySelectorAll('.cart-counter').forEach(el => el.textContent = total);
 }
 
+// ====================================
+// عرض السلة
+// ====================================
 function renderCart() {
   const cart = getCart();
   const emptyEl = document.getElementById('empty-cart');
   const contentEl = document.getElementById('cart-content');
   const summaryEl = document.getElementById('summary');
+  const lang = getCurrentLanguage();
 
   if (cart.length === 0) {
     emptyEl.classList.remove('hidden');
@@ -178,41 +248,47 @@ function renderCart() {
   summaryEl.classList.remove('hidden');
 
   let subtotal = 0;
-  const lang = getCurrentLanguage();
+  contentEl.innerHTML = '';
 
-  contentEl.innerHTML = cart.map((item, idx) => {
+  cart.forEach((item, idx) => {
     const price = Number(item.price) || 0;
     const qty = Number(item.qty) || 1;
     const total = price * qty;
     subtotal += total;
+    const img = item.image || 'https://via.placeholder.com/150';
+    const maxStock = Number(item.variantStock) || 999;
 
-    return `
-      <div class="bg-white rounded-xl shadow-sm p-4 border flex flex-col sm:flex-row gap-4 items-center">
-        <img src="${item.image || 'https://via.placeholder.com/100'}" alt="${item.name}" class="w-24 h-24 object-cover rounded-lg">
-        <div class="flex-1 w-full">
-          <h3 class="font-bold text-lg">${item.name || 'منتج'}</h3>
-          <p class="text-sm text-gray-500">
-            <span data-i18n="color">${translations[lang].color}</span>: ${item.color || '-'} | 
-            <span data-i18n="size">${translations[lang].size}</span>: ${item.size || '-'}
+    contentEl.innerHTML += `
+      <div class="cart-item bg-white rounded-xl shadow-sm p-4 border flex flex-col sm:flex-row gap-4 items-center">
+        <img src="${img}" alt="${item.name}" class="w-28 h-28 object-cover rounded-lg">
+        <div class="flex-1 w-full text-center sm:text-right">
+          <h3 class="font-bold text-xl mb-2">${item.name || 'منتج'}</h3>
+          <p class="text-sm text-gray-500 space-x-2 space-x-reverse">
+            <span><strong data-i18n="color">${translations[lang].color}:</strong> ${item.color || '-'}</span>
+            <span> | </span>
+            <span><strong data-i18n="size">${translations[lang].size}:</strong> ${item.size || '-'}</span>
           </p>
-          <p class="font-semibold text-lg mt-1">${formatPrice(price)}</p>
+          <p class="font-semibold text-xl mt-2 text-black">${formatPrice(price)}</p>
         </div>
-        <div class="flex items-center gap-2 border rounded-lg">
-          <button onclick="changeQty(${idx}, -1)" class="px-3 py-2 hover:bg-gray-100">-</button>
-          <span class="px-3 font-semibold">${qty}</span>
-          <button onclick="changeQty(${idx}, 1)" class="px-3 py-2 hover:bg-gray-100">+</button>
+        <div class="flex items-center border rounded-lg overflow-hidden">
+          <button class="qty-btn px-4 py-2 bg-gray-50 hover:bg-gray-200 transition-colors" onclick="changeQty(${idx}, -1)">-</button>
+          <span class="px-4 font-bold text-lg">${qty}</span>
+          <button class="qty-btn px-4 py-2 bg-gray-50 hover:bg-gray-200 transition-colors" onclick="changeQty(${idx}, 1)">+</button>
         </div>
-        <button onclick="removeItem(${idx})" class="text-red-500 hover:text-red-700 p-2" title="${translations[lang].remove}">
-          <i class="fa-solid fa-trash"></i>
+        <button onclick="removeItem(${idx})" class="text-red-500 hover:text-red-700 p-3 rounded-lg hover:bg-red-50 transition-colors" title="${translations[lang].remove}">
+          <i class="fa-solid fa-trash-can fa-lg"></i>
         </button>
       </div>
     `;
-  }).join('');
+  });
 
   document.getElementById('subtotal').textContent = formatPrice(subtotal);
   document.getElementById('total').textContent = formatPrice(subtotal);
 }
 
+// ====================================
+// تعديل الكمية والحذف
+// ====================================
 function changeQty(index, delta) {
   const cart = getCart();
   const item = cart[index];
@@ -223,7 +299,7 @@ function changeQty(index, delta) {
   
   if (newQty < 1) return;
   if (newQty > maxStock) {
-    showToast('⚠️ الكمية تتجاوز المخزون المتاح!', 'error');
+    showToast(t('max_qty'), 'warning');
     return;
   }
   
@@ -238,16 +314,40 @@ function removeItem(index) {
   showToast(t('removed'));
 }
 
+// ====================================
+// الانتقال للدفع
+// ====================================
 function goToCheckout() {
-  if (getCart().length === 0) {
-    showToast('السلة فارغة!', 'error');
+  const cart = getCart();
+  if (cart.length === 0) {
+    showToast(t('cart_empty'), 'error');
     return;
   }
   window.location.href = 'checkout.html';
 }
 
-document.addEventListener('DOMContentLoaded', renderCart);
+// ====================================
+// عند تحميل الصفحة
+// ====================================
+document.addEventListener('DOMContentLoaded', () => {
+  setLanguage(getCurrentLanguage());
+  document.getElementById('lang-btn').textContent = getCurrentLanguage() === 'ar' ? 'English' : 'العربية';
+  renderCart();
+});
 </script>
+
+<!-- تذييل الصفحة -->
+<footer class="bg-gray-900 text-white py-8 mt-12">
+  <div class="max-w-7xl mx-auto px-4 text-center">
+    <p class="text-lg font-bold mb-2">VAREN © 2026 — جميع الحقوق محفوظة</p>
+    <div class="mt-3 flex justify-center gap-6 text-sm">
+      <a href="about.html" class="hover:underline">من نحن</a>
+      <a href="privacy.html" class="hover:underline">سياسة الخصوصية</a>
+      <a href="terms.html" class="hover:underline">الشروط والأحكام</a>
+      <a href="contact.html" class="hover:underline">تواصل معنا</a>
+    </div>
+  </div>
+</footer>
 
 </body>
 </html>
