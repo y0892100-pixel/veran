@@ -148,7 +148,7 @@ const translations = {
     delivery_date: "تاريخ التوصيل المتوقع",
     return_reason: "سبب الاسترجاع",
     save_status: "حفظ الحالة والتاريخ",
-    status_updated: "✅ تم تحديث حالة الطلب وإرسال الإيميل للعميل",
+    status_updated: "✅ تم تحديث الحالة وإرسال الإيميل للعميل",
     email_sent: "✅ تم إرسال رسالة البريد بنجاح",
     email_failed: "❌ فشل إرسال البريد، تحقق من الإيميل",
     no_orders: "لا يوجد طلبات حتى الآن",
@@ -296,12 +296,10 @@ let filteredOrders = [];
 </script>
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-    <div class="flex items-center gap-3">
-      <a href="index.html" class="flex items-center gap-3">
-        <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
-        <span class="text-2xl font-black text-gray-900">VAREN — لوحة التحكم</span>
-      </a>
-    </div>
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+      <span class="text-2xl font-black text-gray-900">VAREN — لوحة التحكم</span>
+    </a>
     <div class="flex items-center gap-3">
       <a href="index.html" class="text-sm border px-3 py-1.5 rounded-lg hover:bg-gray-100">
         <i class="fa-solid fa-home ml-1"></i>
@@ -755,8 +753,8 @@ function filterOrders(keyword) {
   filteredOrders = kw ? allOrders.filter(o => 
     !o.isReturnRequest && (
       o.id.toLowerCase().includes(kw) ||
-      (o.customerName || '').toLowerCase().includes(kw) ||
-      (o.customerEmail || '').toLowerCase().includes(kw)
+      (o.customerName || o.fullName || '').toLowerCase().includes(kw) ||
+      (o.customerEmail || o.userEmail || '').toLowerCase().includes(kw)
     )
   ) : allOrders.filter(o => !o.isReturnRequest);
   renderOrdersList();
@@ -768,30 +766,33 @@ function renderOrdersList() {
     return;
   }
   list.innerHTML = filteredOrders.map(order => {
-    const itemsList = (order.items || []).map(i => `${i.name} × ${i.qty} (${i.color} / ${i.size})`).join('<br>');
+    const itemsList = (order.items || []).map(i => `${i.name} × ${i.qty || i.quantity || 1} (${i.color || '-'} / ${i.size || '-'})`).join('<br>');
     const statusClass = getStatusClass(order.status || 'pending');
     const statusText = getStatusText(order.status || 'pending');
     const createdAt = order.createdAt ? new Date(order.createdAt.toDate()).toLocaleString('ar-AE') : '-';
     const deliveryDate = order.deliveryDate || '';
-    const customerEmail = order.customerEmail || '';
+    const customerEmail = order.customerEmail || order.userEmail || '';
+    const customerName = order.customerName || order.fullName || '-';
+    const customerPhone = order.customerPhone || order.phone || '-';
+    const totalPrice = order.totalPrice || order.total || 0;
     return `
       <div class="card p-4 border-l-4 border-gray-200">
         <div class="flex flex-wrap justify-between items-start gap-2 mb-3">
           <div>
-            <h4 class="font-bold text-lg">${t('order_id')}: ${order.id.slice(0, 8)}...</h4>
+            <h4 class="font-bold text-lg">${t('order_id')}: ${(order.orderNumber || order.id).slice(0, 8)}...</h4>
             <p class="text-sm text-gray-500">${createdAt}</p>
           </div>
           <span class="status-badge ${statusClass}">${statusText}</span>
         </div>
         <div class="grid md:grid-cols-2 gap-4 mb-3 text-sm">
           <div>
-            <p><strong>${t('customer_name')}:</strong> ${order.customerName || '-'}</p>
+            <p><strong>${t('customer_name')}:</strong> ${customerName}</p>
             <p><strong>${t('customer_email')}:</strong> ${customerEmail || '-'}</p>
-            <p><strong>${t('customer_phone')}:</strong> ${order.customerPhone || '-'}</p>
+            <p><strong>${t('customer_phone')}:</strong> ${customerPhone}</p>
           </div>
           <div>
             <p><strong>${t('order_address')}:</strong> ${order.address || '-'}</p>
-            <p><strong>${t('order_total')}:</strong> ${order.totalPrice || 0} درهم</p>
+            <p><strong>${t('order_total')}:</strong> ${totalPrice} درهم</p>
             <p><strong>${t('delivery_date')}:</strong> ${deliveryDate || 'غير محدد'}</p>
           </div>
         </div>
@@ -801,11 +802,11 @@ function renderOrdersList() {
         <div class="border-t pt-3 space-y-3">
           <div class="flex flex-wrap gap-2">
             <button class="btn btn-sm ${order.status==='pending'?'btn-primary':'btn-success'}" 
-                    onclick="updateOrderStatus('${order.id}', 'confirmed', '${customerEmail}')" ${order.status!=='pending'?'disabled':''}>
+                    onclick="updateOrderStatus('${order.id}', 'confirmed', '${customerEmail}')" ${order.status!=='pending'&&order.status!=='جديد'?'disabled':''}>
               <i class="fa-solid fa-check-circle ml-1"></i> ${t('step1')}
             </button>
-            <button class="btn btn-sm ${order.status==='confirmed'?'btn-primary':'bg-gray-200 text-gray-500'}" 
-                    onclick="updateOrderStatus('${order.id}', 'preparing', '${customerEmail}')" ${order.status!=='confirmed'?'disabled':''}>
+            <button class="btn btn-sm ${order.status==='confirmed'||order.status==='مؤكد'?'btn-primary':'bg-gray-200 text-gray-500'}" 
+                    onclick="updateOrderStatus('${order.id}', 'preparing', '${customerEmail}')" ${order.status!=='confirmed'&&order.status!=='مؤكد'?'disabled':''}>
               <i class="fa-solid fa-box ml-1"></i> ${t('step2')}
             </button>
             <button class="btn btn-sm ${order.status==='preparing'?'btn-primary':'bg-gray-200 text-gray-500'}" 
@@ -815,7 +816,7 @@ function renderOrdersList() {
             <button class="btn btn-sm bg-gray-100 border" style="border:1px solid #ccc;" onclick="openDeliveryDateModal('${order.id}')">
               <i class="fa-solid fa-calendar-check ml-1"></i> ${t('step4')}
             </button>
-            <button class="btn btn-sm btn-danger" onclick="cancelOrder('${order.id}')" ${order.status==='delivered'||order.status==='cancelled'?'disabled':''}>
+            <button class="btn btn-sm btn-danger" onclick="cancelOrder('${order.id}')" ${order.status==='delivered'||order.status==='cancelled'||order.status==='ملغي'?'disabled':''}>
               <i class="fa-solid fa-ban ml-1"></i> ${t('cancel_order')}
             </button>
           </div>
@@ -825,40 +826,66 @@ function renderOrdersList() {
   }).join('');
 }
 
-// 🔄 طلبات الاسترجاع
-function renderReturnsList() {
-  const list = document.getElementById('returns-list');
-  if (allReturns.length === 0) {
-    list.innerHTML = `<p class="text-center text-gray-400 py-6">${t('no_returns')}</p>`;
-    return;
+// ✅ تحديث حالة الطلب + خصم المخزون + إرسال الإيميل
+async function updateOrderStatus(orderId, newStatus, customerEmail) {
+  try {
+    await db.collection('orders').doc(orderId).update({
+      status: newStatus,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // عند التأكيد: خصم الكمية من المخزون
+    if (newStatus === 'confirmed' || newStatus === 'مؤكد') {
+      await deductStockWhenConfirmed(orderId);
+    }
+    
+    // إرسال إيميل عند التأكيد
+    if ((newStatus === 'confirmed' || newStatus === 'مؤكد') && customerEmail && customerEmail.includes('@')) {
+      try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
+          to_email: customerEmail,
+          order_id: orderId,
+          status: getStatusText(newStatus)
+        });
+        showToast(t('status_updated'));
+      } catch (emailErr) {
+        console.warn('Email error:', emailErr);
+        showToast('✅ تم التحديث — فشل إرسال الإيميل', 'warning');
+      }
+    } else if (!customerEmail || !customerEmail.includes('@')) {
+      showToast('✅ تم التحديث — بريد العميل غير صالح', 'warning');
+    } else {
+      showToast('✅ تم تحديث الحالة');
+    }
+    loadOrders();
+  } catch (err) {
+    console.error('Update error:', err);
+    showToast('❌ خطأ: ' + err.message, 'error');
   }
-  list.innerHTML = allReturns.map(order => {
-    const itemsList = (order.items || []).map(i => `${i.name} × ${i.qty} (${i.color} / ${i.size})`).join('<br>');
-    const statusClass = getStatusClass(order.status || 'return-requested');
-    const statusText = getStatusText(order.status || 'return-requested');
-    const createdAt = order.createdAt ? new Date(order.createdAt.toDate()).toLocaleString('ar-AE') : '-';
-    const customerEmail = order.customerEmail || '';
-    return `
-      <div class="card p-4 border-l-4 border-pink-300">
-        <div class="flex flex-wrap justify-between items-start gap-2 mb-3">
-          <div>
-            <h4 class="font-bold text-lg">طلب استرجاع — ${order.id.slice(0, 8)}...</h4>
-            <p class="text-sm text-gray-500">${createdAt}</p>
-          </div>
-          <span class="status-badge ${statusClass}">${statusText}</span>
-        </div>
-        <div class="grid md:grid-cols-2 gap-4 mb-3 text-sm">
-          <div>
-            <p><strong>${t('customer_name')}:</strong> ${order.customerName || '-'}</p>
-            <p><strong>${t('customer_email')}:</strong> ${customerEmail || '-'}</p>
-            <p><strong>${t('customer_phone')}:</strong> ${order.customerPhone || '-'}</p>
-          </div>
-          <div>
-            <p><strong>${t('return_reason')}:</strong> ${order.returnReason || 'غير محدد'}</p>
-            <p><strong>${t('order_total')}:</strong> ${order.totalPrice || 0} درهم</p>
-          </div>
-        </div>
-        <div class="text-sm bg-pink-50 p-2 rounded mb-3">
-          <strong>${t('order_items')}:</strong><br>${itemsList}
-        </div>
-        <div
+}
+
+// 📉 خصم المخزون عند التأكيد
+async function deductStockWhenConfirmed(orderId) {
+  try {
+    const orderDoc = await db.collection('orders').doc(orderId).get();
+    const order = orderDoc.data();
+    if (!order || !order.items) return;
+    const batch = db.batch();
+    for (const item of order.items) {
+      if (!item.productId || !item.color || !item.size) continue;
+      const qty = item.qty || item.quantity || 1;
+      const productRef = db.collection('products').doc(item.productId);
+      const productDoc = await productRef.get();
+      if (!productDoc.exists) continue;
+      const product = productDoc.data();
+      const variants = product.variants || [];
+      const variantIndex = variants.findIndex(v => 
+        String(v.color).trim() === String(item.color).trim() && 
+        String(v.size).trim() === String(item.size).trim()
+      );
+      if (variantIndex !== -1) {
+        variants[variantIndex].stock = Math.max(0, (variants[variantIndex].stock || 0) - qty);
+        batch.update(productRef, { variants });
+      }
+    }
+   
