@@ -43,6 +43,8 @@
     .status-shipping { background: #d1fae5; color: #065f46; }
     .status-delivered { background: #dcfce7; color: #166534; }
     .status-cancelled { background: #fee2e2; color: #991b1b; }
+    .status-return-requested { background: #fce7f3; color: #be185d; }
+    .status-returned { background: #f3e8ff; color: #6b21a8; }
     
     input, select, textarea { border: 2px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; width: 100%; font-size: 1rem; transition: border 0.2s; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: black; }
@@ -57,6 +59,8 @@
     .btn-warning:hover { background: #d97706; }
     .btn-danger { background: #dc2626; color: white; }
     .btn-danger:hover { background: #b91c1c; }
+    .btn-info { background: #3b82f6; color: white; }
+    .btn-info:hover { background: #2563eb; }
     .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
     
     .auth-screen { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
@@ -73,8 +77,10 @@ const translations = {
     logging_in: "جاري التحقق من الصلاحية...",
     welcome: "مرحباً بك في لوحة تحكم VAREN",
     logout: "تسجيل الخروج",
+    home: "الرئيسية",
     tab_products: "المنتجات",
     tab_orders: "الطلبات",
+    tab_returns: "طلبات الاسترجاع",
     tab_add_product: "إضافة منتج جديد",
     tab_edit_product: "تعديل منتج",
     product_name: "اسم المنتج",
@@ -84,6 +90,7 @@ const translations = {
     product_gender: "القسم",
     product_type: "النوع",
     product_season: "الموسم",
+    product_category: "التصنيف الخاص",
     product_images: "روابط الصور (افصل بينها بفاصلة)",
     add_variant: "إضافة خيار (لون - مقاس - كمية)",
     variant_color: "اللون",
@@ -107,6 +114,8 @@ const translations = {
     tracksuit: "ترينق",
     underwear: "ملابس داخلية",
     dress: "فساتين",
+    offer: "عرض خاص",
+    gift: "هدايا",
     winter: "شتوي",
     summer: "صيفي",
     all_season: "مناسب لكل المواسم",
@@ -127,24 +136,32 @@ const translations = {
     status_shipping: "جاري التوصيل",
     status_delivered: "تم التسليم",
     status_cancelled: "ملغي",
+    status_return_requested: "طلب استرجاع",
+    status_returned: "تم الاسترجاع",
     confirm_order: "تأكيد الطلب",
     prepare_order: "جاري التجهيز",
     ship_order: "جاري التوصيل",
     deliver_order: "تم التسليم",
     cancel_order: "إلغاء الطلب",
+    accept_return: "قبول الاسترجاع",
+    reject_return: "رفض الاسترجاع",
     delivery_date: "تاريخ التوصيل المتوقع",
+    return_reason: "سبب الاسترجاع",
     save_status: "حفظ الحالة والتاريخ",
     status_updated: "✅ تم تحديث حالة الطلب وإرسال الإيميل للعميل",
     email_sent: "✅ تم إرسال رسالة البريد بنجاح",
     email_failed: "❌ فشل إرسال البريد، تحقق من الإيميل",
     no_orders: "لا يوجد طلبات حتى الآن",
+    no_returns: "لا يوجد طلبات استرجاع حتى الآن",
     search: "بحث برقم الطلب أو اسم العميل",
     confirm_delete: "هل أنت متأكد من حذف هذا المنتج؟",
     required_fields: "⚠️ الرجاء ملء الحقول المطلوبة (الاسم والسعر والألوان والمقاسات)",
     step1: "1 - مؤكد",
     step2: "2 - جاري التجهيز",
     step3: "3 - جاري التوصيل",
-    step4: "4 - تاريخ التوصيل المتوقع"
+    step4: "4 - تاريخ التوصيل المتوقع",
+    return_accepted: "✅ تم قبول الاسترجاع وإرجاع المخزون",
+    return_rejected: "❌ تم رفض الاسترجاع"
   },
   en: {
     page_title: "Admin Panel - VAREN",
@@ -153,8 +170,10 @@ const translations = {
     logging_in: "Verifying access...",
     welcome: "Welcome to VAREN Admin Panel",
     logout: "Logout",
+    home: "Home",
     tab_products: "Products",
     tab_orders: "Orders",
+    tab_returns: "Returns",
     tab_add_product: "Add New Product",
     tab_edit_product: "Edit Product",
     product_name: "Product Name",
@@ -164,6 +183,7 @@ const translations = {
     product_gender: "Department",
     product_type: "Type",
     product_season: "Season",
+    product_category: "Special Category",
     product_images: "Image URLs (comma separated)",
     add_variant: "Add Option (Color - Size - Stock)",
     variant_color: "Color",
@@ -187,6 +207,8 @@ const translations = {
     tracksuit: "Tracksuit",
     underwear: "Underwear",
     dress: "Dress",
+    offer: "Special Offer",
+    gift: "Gifts",
     winter: "Winter",
     summer: "Summer",
     all_season: "All Season",
@@ -207,27 +229,34 @@ const translations = {
     status_shipping: "Out for Delivery",
     status_delivered: "Delivered",
     status_cancelled: "Cancelled",
+    status_return_requested: "Return Requested",
+    status_returned: "Returned",
     confirm_order: "Confirm Order",
     prepare_order: "Start Preparation",
     ship_order: "Start Delivery",
     deliver_order: "Mark Delivered",
     cancel_order: "Cancel Order",
+    accept_return: "Accept Return",
+    reject_return: "Reject Return",
     delivery_date: "Expected Delivery Date",
+    return_reason: "Return Reason",
     save_status: "Save Status & Date",
     status_updated: "✅ Status updated and email sent to customer",
     email_sent: "✅ Email sent successfully",
     email_failed: "❌ Failed to send email, check the address",
     no_orders: "No orders yet",
+    no_returns: "No return requests yet",
     search: "Search by Order ID or Customer Name",
     confirm_delete: "Are you sure you want to delete this product?",
     required_fields: "⚠️ Please fill required fields (name, price, colors, sizes)",
     step1: "1 - Confirmed",
     step2: "2 - Preparing",
     step3: "3 - Out for Delivery",
-    step4: "4 - Expected Delivery Date"
+    step4: "4 - Expected Delivery Date",
+    return_accepted: "✅ Return accepted and stock restored",
+    return_rejected: "❌ Return rejected"
   }
 };
-
 function setLanguage(lang) {
   if (!translations[lang]) lang = 'ar';
   document.documentElement.lang = lang;
@@ -244,7 +273,6 @@ function getCurrentLanguage() {
 function t(key) {
   return translations[getCurrentLanguage()][key] || key;
 }
-
 const firebaseConfig = {
   apiKey: "AIzaSyCXYzZgFIFU2u6R02_ConvSonD9SJRWS9Q",
   authDomain: "varen-f7756.firebaseapp.com",
@@ -257,25 +285,28 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-
 const EMAILJS_SERVICE_ID = "service_3bs6onj";
 const EMAILJS_TEMPLATE_CONFIRM = "template_om7zrjs";
 const ADMIN_EMAIL = "y0892100@gmail.com";
-
 let currentEditProductId = null;
-let variantsList = [];
 let allProducts = [];
 let allOrders = [];
+let allReturns = [];
 let filteredOrders = [];
 </script>
-
 <nav class="bg-white shadow-md sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
     <div class="flex items-center gap-3">
-      <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
-      <span class="text-2xl font-black text-gray-900">VAREN — لوحة التحكم</span>
+      <a href="index.html" class="flex items-center gap-3">
+        <img src="https://i.imgur.com/QXFR5XO.jpeg" alt="VAREN Logo" class="w-10 h-10 object-contain rounded">
+        <span class="text-2xl font-black text-gray-900">VAREN — لوحة التحكم</span>
+      </a>
     </div>
     <div class="flex items-center gap-3">
+      <a href="index.html" class="text-sm border px-3 py-1.5 rounded-lg hover:bg-gray-100">
+        <i class="fa-solid fa-home ml-1"></i>
+        <span data-i18n="home">الرئيسية</span>
+      </a>
       <button onclick="toggleLanguage()" class="text-sm border px-3 py-1.5 rounded-lg hover:bg-gray-100">
         <i class="fa-solid fa-globe mr-1"></i>
         <span id="lang-btn">English</span>
@@ -287,7 +318,6 @@ let filteredOrders = [];
     </div>
   </div>
 </nav>
-
 <div id="auth-screen" class="auth-screen">
   <div class="card p-8 text-center max-w-md">
     <i class="fa-solid fa-shield-halved fa-3xl text-gray-400 mb-4"></i>
@@ -295,7 +325,6 @@ let filteredOrders = [];
     <p class="text-gray-500">VAREN Admin Panel</p>
   </div>
 </div>
-
 <div id="admin-content" class="hidden max-w-7xl mx-auto px-4 py-6">
   
   <div class="flex flex-wrap gap-2 mb-6 border-b pb-2">
@@ -307,12 +336,17 @@ let filteredOrders = [];
       <i class="fa-solid fa-file-invoice ml-1"></i>
       <span data-i18n="tab_orders">الطلبات</span>
     </button>
+    <button class="tab-btn btn" data-tab="returns">
+      <i class="fa-solid fa-undo ml-1"></i>
+      <span data-i18n="tab_returns">طلبات الاسترجاع</span>
+    </button>
     <button class="tab-btn btn btn-success" data-tab="add-product">
       <i class="fa-solid fa-plus ml-1"></i>
       <span data-i18n="tab_add_product">إضافة منتج</span>
     </button>
   </div>
 
+  <!-- 📦 المنتجات -->
   <div id="tab-products" class="tab-content active">
     <div class="card p-6 mb-6">
       <h2 class="text-xl font-bold mb-4">قائمة المنتجات</h2>
@@ -322,6 +356,7 @@ let filteredOrders = [];
     </div>
   </div>
 
+  <!-- ➕ إضافة منتج -->
   <div id="tab-add-product" class="tab-content">
     <div class="card p-6">
       <h2 id="form-title" class="text-xl font-bold mb-6" data-i18n="tab_add_product">إضافة منتج جديد</h2>
@@ -364,6 +399,14 @@ let filteredOrders = [];
             </select>
           </div>
           <div>
+            <label data-i18n="product_category">تصنيف خاص</label>
+            <select id="prod-category">
+              <option value="">عادي</option>
+              <option value="offer" data-i18n="offer">عرض خاص ⭐</option>
+              <option value="gift" data-i18n="gift">هدايا 🎁</option>
+            </select>
+          </div>
+          <div>
             <label data-i18n="product_season">الموسم</label>
             <select id="prod-season">
               <option value="all" data-i18n="all_season">مناسب لكل المواسم</option>
@@ -402,6 +445,7 @@ let filteredOrders = [];
     </div>
   </div>
 
+  <!-- 📋 الطلبات -->
   <div id="tab-orders" class="tab-content">
     <div class="card p-6 mb-4">
       <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4">
@@ -413,8 +457,18 @@ let filteredOrders = [];
       </div>
     </div>
   </div>
-</div>
 
+  <!-- 🔄 طلبات الاسترجاع -->
+  <div id="tab-returns" class="tab-content">
+    <div class="card p-6 mb-4">
+      <h2 class="text-xl font-bold mb-4">طلبات الاسترجاع</h2>
+      <div id="returns-list" class="space-y-4">
+        <p class="text-center text-gray-400 py-4" data-i18n="loading">جاري التحميل...</p>
+      </div>
+    </div>
+  </div>
+
+</div>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -431,6 +485,7 @@ function toggleLanguage() {
   document.getElementById('lang-btn').textContent = newLang === 'ar' ? 'English' : 'العربية';
   renderProductsList();
   renderOrdersList();
+  renderReturnsList();
 }
 function getStatusClass(status) {
   const map = {
@@ -439,7 +494,9 @@ function getStatusClass(status) {
     preparing: 'status-preparing',
     shipping: 'status-shipping',
     delivered: 'status-delivered',
-    cancelled: 'status-cancelled'
+    cancelled: 'status-cancelled',
+    'return-requested': 'status-return-requested',
+    returned: 'status-returned'
   };
   return map[status] || 'status-pending';
 }
@@ -450,18 +507,16 @@ function getStatusText(status) {
     preparing: t('status_preparing'),
     shipping: t('status_shipping'),
     delivered: t('status_delivered'),
-    cancelled: t('status_cancelled')
+    cancelled: t('status_cancelled'),
+    'return-requested': t('status_return_requested'),
+    returned: t('status_returned')
   };
   return map[status] || status;
 }
 
-// ==============================================
-// ✅ التحقق من الصلاحية مع مهلة زمنية — الحل الجديد
-// ==============================================
+// 🔐 التحقق من صلاحية الدخول
 let authChecked = false;
 const ADMIN_EMAIL_LOWER = ADMIN_EMAIL.trim().toLowerCase();
-
-// ⏱️ مهلة قصوى 3 ثوانٍ فقط — إذا ما رد الفايربيز نخرج
 const authTimeout = setTimeout(() => {
   if (!authChecked) {
     authChecked = true;
@@ -472,21 +527,16 @@ const authTimeout = setTimeout(() => {
 auth.onAuthStateChanged(user => {
   authChecked = true;
   clearTimeout(authTimeout);
-  
-  // ✅ أخفِ شاشة التحقق فوراً — لا تنتظر
   document.getElementById('auth-screen').classList.add('hidden');
-
   if (user && user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL_LOWER) {
-    // ✅ دخول صحيح — عرض المحتوى
     document.getElementById('admin-content').classList.remove('hidden');
     setLanguage(getCurrentLanguage());
     document.getElementById('lang-btn').textContent = getCurrentLanguage() === 'ar' ? 'English' : 'العربية';
-    
     loadProducts();
     loadOrders();
+    loadReturns();
     addVariantRow();
   } else {
-    // ❌ دخول غير مسموح
     if (user) auth.signOut();
     showAccessDenied();
   }
@@ -506,13 +556,13 @@ function showAccessDenied() {
     </div>
   `;
 }
-
 function logout() {
   auth.signOut().then(() => {
     window.location.href = 'index.html';
   });
 }
 
+// 📱 التبويبات
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tabId = btn.dataset.tab;
@@ -524,6 +574,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// 🎨 خيارات المنتج (لون - مقاس - كمية)
 function addVariantRow(color='', size='', stock=1) {
   const container = document.getElementById('variants-container');
   const row = document.createElement('div');
@@ -549,6 +600,7 @@ function collectVariants() {
   return variants;
 }
 
+// 💾 حفظ وتعديل المنتج
 document.getElementById('product-form').addEventListener('submit', async e => {
   e.preventDefault();
   const name = document.getElementById('prod-name').value.trim();
@@ -557,6 +609,7 @@ document.getElementById('product-form').addEventListener('submit', async e => {
   const description = document.getElementById('prod-desc').value.trim();
   const gender = document.getElementById('prod-gender').value;
   const type = document.getElementById('prod-type').value;
+  const category = document.getElementById('prod-category').value || null;
   const season = document.getElementById('prod-season').value;
   const imagesText = document.getElementById('prod-images').value.trim();
   const images = imagesText.split(',').map(u => u.trim()).filter(u => u);
@@ -567,7 +620,7 @@ document.getElementById('product-form').addEventListener('submit', async e => {
     return;
   }
   const productData = {
-    name, price, priceOriginal, description, gender, type, season, images, variants,
+    name, price, priceOriginal, description, gender, type, category, season, images, variants,
     available: true,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -589,6 +642,7 @@ document.getElementById('product-form').addEventListener('submit', async e => {
   }
 });
 
+// 📦 تحميل وعرض المنتجات
 async function loadProducts() {
   try {
     const snap = await db.collection('products').orderBy('updatedAt', 'desc').get();
@@ -611,14 +665,15 @@ function renderProductsList() {
   list.innerHTML = allProducts.map(p => {
     const img = p.images?.[0] || 'https://via.placeholder.com/80x80?text=No+Image';
     const totalStock = (p.variants || []).reduce((sum, v) => sum + (v.stock || 0), 0);
+    const discount = p.priceOriginal ? Math.round((1 - p.price/p.priceOriginal)*100) : 0;
     return `
-      <div class="flex flex-wrap items-center gap-4 p-3 border rounded-lg hover:bg-gray-50">
+      <div class="flex flex-wrap items-center gap-4 p-3 border rounded-lg hover:bg-gray-50 ${p.category==='offer'?'border-red-300 bg-red-50':''} ${p.category==='gift'?'border-purple-300 bg-purple-50':''}">
         <img src="${img}" alt="${p.name}" class="w-20 h-20 object-cover rounded-lg">
         <div class="flex-1 min-w-[200px]">
-          <h4 class="font-bold text-lg">${p.name}</h4>
+          <h4 class="font-bold text-lg">${p.name} ${p.category==='offer'?' ⭐':''} ${p.category==='gift'?' 🎁':''}</h4>
           <p class="text-sm text-gray-500">
-            السعر: ${p.price} درهم | المخزون الكلي: ${totalStock} قطعة
-            ${p.priceOriginal ? ` | خصم: ${Math.round((1 - p.price/p.priceOriginal)*100)}%` : ''}
+            السعر: ${p.price} درهم | المخزون: ${totalStock} قطعة
+            ${discount>0 ? ` | خصم: ${discount}%` : ''}
           </p>
           <p class="text-xs text-gray-400">
             ${(p.variants||[]).map(v => `${v.color} / ${v.size}: ${v.stock}`).join(' | ')}
@@ -632,6 +687,7 @@ function renderProductsList() {
   }).join('');
 }
 
+// ✏️ تعديل وحذف منتج
 async function editProduct(productId) {
   const product = allProducts.find(p => p.id === productId);
   if (!product) return;
@@ -646,6 +702,7 @@ async function editProduct(productId) {
   document.getElementById('prod-desc').value = product.description || '';
   document.getElementById('prod-gender').value = product.gender || 'men';
   document.getElementById('prod-type').value = product.type || 'hoodie';
+  document.getElementById('prod-category').value = product.category || '';
   document.getElementById('prod-season').value = product.season || 'all';
   document.getElementById('prod-images').value = (product.images || []).join(', ');
   
@@ -653,7 +710,6 @@ async function editProduct(productId) {
   (product.variants || []).forEach(v => addVariantRow(v.color, v.size, v.stock));
   document.querySelector('[data-tab="add-product"]').click();
 }
-
 async function deleteProduct() {
   if (!currentEditProductId) return;
   if (!confirm(t('confirm_delete'))) return;
@@ -667,7 +723,6 @@ async function deleteProduct() {
     showToast('❌ خطأ في الحذف: ' + err.message, 'error');
   }
 }
-
 function resetForm() {
   currentEditProductId = null;
   document.getElementById('product-form').reset();
@@ -678,6 +733,7 @@ function resetForm() {
   addVariantRow();
 }
 
+// 📋 تحميل وعرض الطلبات
 async function loadOrders() {
   try {
     const snap = await db.collection('orders').orderBy('createdAt', 'desc').limit(100).get();
@@ -685,8 +741,10 @@ async function loadOrders() {
     snap.forEach(doc => {
       allOrders.push({ id: doc.id, ...doc.data() });
     });
-    filteredOrders = [...allOrders];
+    filteredOrders = allOrders.filter(o => !o.isReturnRequest);
+    allReturns = allOrders.filter(o => o.isReturnRequest);
     renderOrdersList();
+    renderReturnsList();
   } catch (err) {
     console.error('Load orders error:', err);
     document.getElementById('orders-list').innerHTML = `<p class="text-red-500">خطأ: ${err.message}</p>`;
@@ -695,10 +753,12 @@ async function loadOrders() {
 function filterOrders(keyword) {
   const kw = keyword.toLowerCase().trim();
   filteredOrders = kw ? allOrders.filter(o => 
-    o.id.toLowerCase().includes(kw) ||
-    (o.customerName || '').toLowerCase().includes(kw) ||
-    (o.customerEmail || '').toLowerCase().includes(kw)
-  ) : [...allOrders];
+    !o.isReturnRequest && (
+      o.id.toLowerCase().includes(kw) ||
+      (o.customerName || '').toLowerCase().includes(kw) ||
+      (o.customerEmail || '').toLowerCase().includes(kw)
+    )
+  ) : allOrders.filter(o => !o.isReturnRequest);
   renderOrdersList();
 }
 function renderOrdersList() {
@@ -752,10 +812,10 @@ function renderOrdersList() {
                     onclick="updateOrderStatus('${order.id}', 'shipping', '${customerEmail}')" ${order.status!=='preparing'?'disabled':''}>
               <i class="fa-solid fa-truck ml-1"></i> ${t('step3')}
             </button>
-            <button class="btn btn-sm bg-gray-100 border" style="border:1px solid #ccc;" onclick="openDeliveryDateModal('${order.id}', '${customerEmail}')">
+            <button class="btn btn-sm bg-gray-100 border" style="border:1px solid #ccc;" onclick="openDeliveryDateModal('${order.id}')">
               <i class="fa-solid fa-calendar-check ml-1"></i> ${t('step4')}
             </button>
-            <button class="btn btn-sm btn-danger" onclick="cancelOrder('${order.id}', '${customerEmail}')" ${order.status==='delivered'||order.status==='cancelled'?'disabled':''}>
+            <button class="btn btn-sm btn-danger" onclick="cancelOrder('${order.id}')" ${order.status==='delivered'||order.status==='cancelled'?'disabled':''}>
               <i class="fa-solid fa-ban ml-1"></i> ${t('cancel_order')}
             </button>
           </div>
@@ -765,118 +825,40 @@ function renderOrdersList() {
   }).join('');
 }
 
-async function updateOrderStatus(orderId, newStatus, customerEmail) {
-  try {
-    await db.collection('orders').doc(orderId).update({
-      status: newStatus,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    if (newStatus === 'confirmed') {
-      await deductStockWhenConfirmed(orderId);
-    }
-    if (newStatus === 'confirmed' && customerEmail && customerEmail.includes('@')) {
-      try {
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
-          to_email: customerEmail,
-          order_id: orderId,
-          status: getStatusText(newStatus)
-        });
-        showToast(t('status_updated'));
-      } catch (emailErr) {
-        console.warn('Email error:', emailErr);
-        showToast('✅ تم التحديث — فشل إرسال الإيميل', 'warning');
-      }
-    } else if (!customerEmail || !customerEmail.includes('@')) {
-      showToast('✅ تم التحديث — بريد العميل غير صالح', 'warning');
-    } else {
-      showToast('✅ تم تحديث الحالة');
-    }
-    loadOrders();
-  } catch (err) {
-    console.error('Update error:', err);
-    showToast('❌ خطأ: ' + err.message, 'error');
+// 🔄 طلبات الاسترجاع
+function renderReturnsList() {
+  const list = document.getElementById('returns-list');
+  if (allReturns.length === 0) {
+    list.innerHTML = `<p class="text-center text-gray-400 py-6">${t('no_returns')}</p>`;
+    return;
   }
-}
-
-async function deductStockWhenConfirmed(orderId) {
-  try {
-    const orderDoc = await db.collection('orders').doc(orderId).get();
-    const order = orderDoc.data();
-    if (!order || !order.items) return;
-    const batch = db.batch();
-    for (const item of order.items) {
-      if (!item.productId || !item.color || !item.size || !item.qty) continue;
-      const productRef = db.collection('products').doc(item.productId);
-      const productDoc = await productRef.get();
-      if (!productDoc.exists) continue;
-      const product = productDoc.data();
-      const variants = product.variants || [];
-      const variantIndex = variants.findIndex(v => 
-        String(v.color).trim() === String(item.color).trim() && 
-        String(v.size).trim() === String(item.size).trim()
-      );
-      if (variantIndex !== -1) {
-        variants[variantIndex].stock = Math.max(0, (variants[variantIndex].stock || 0) - item.qty);
-        batch.update(productRef, { variants });
-      }
-    }
-    await batch.commit();
-  } catch (err) {
-    console.error('Deduct stock error:', err);
-  }
-}
-
-async function openDeliveryDateModal(orderId, customerEmail) {
-  const deliveryDate = prompt(`أدخل تاريخ التوصيل المتوقع (مثال: 15 سبتمبر 2026):`);
-  if (!deliveryDate || !deliveryDate.trim()) return;
-  try {
-    await db.collection('orders').doc(orderId).update({
-      status: 'delivered',
-      deliveryDate: deliveryDate.trim(),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    showToast('✅ تم حفظ تاريخ التوصيل وتحديث الحالة');
-    loadOrders();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-}
-
-async function cancelOrder(orderId, customerEmail) {
-  if (!confirm('هل أنت متأكد من إلغاء هذا الطلب؟ سيتم إرجاع الكميات للمخزون')) return;
-  try {
-    const orderDoc = await db.collection('orders').doc(orderId).get();
-    const order = orderDoc.data();
-    if (order && order.items) {
-      const batch = db.batch();
-      for (const item of order.items) {
-        if (!item.productId || !item.color || !item.size || !item.qty) continue;
-        const productRef = db.collection('products').doc(item.productId);
-        const productDoc = await productRef.get();
-        if (!productDoc.exists) continue;
-        const product = productDoc.data();
-        const variants = product.variants || [];
-        const variantIndex = variants.findIndex(v => 
-          String(v.color).trim() === String(item.color).trim() && 
-          String(v.size).trim() === String(item.size).trim()
-        );
-        if (variantIndex !== -1) {
-          variants[variantIndex].stock = (variants[variantIndex].stock || 0) + item.qty;
-          batch.update(productRef, { variants });
-        }
-      }
-      await batch.commit();
-    }
-    await db.collection('orders').doc(orderId).update({
-      status: 'cancelled',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    showToast('✅ تم إلغاء الطلب وإرجاع المخزون');
-    loadOrders();
-  } catch (err) {
-    showToast('❌ خطأ: ' + err.message, 'error');
-  }
-}
-</script>
-</body>
-</html>
+  list.innerHTML = allReturns.map(order => {
+    const itemsList = (order.items || []).map(i => `${i.name} × ${i.qty} (${i.color} / ${i.size})`).join('<br>');
+    const statusClass = getStatusClass(order.status || 'return-requested');
+    const statusText = getStatusText(order.status || 'return-requested');
+    const createdAt = order.createdAt ? new Date(order.createdAt.toDate()).toLocaleString('ar-AE') : '-';
+    const customerEmail = order.customerEmail || '';
+    return `
+      <div class="card p-4 border-l-4 border-pink-300">
+        <div class="flex flex-wrap justify-between items-start gap-2 mb-3">
+          <div>
+            <h4 class="font-bold text-lg">طلب استرجاع — ${order.id.slice(0, 8)}...</h4>
+            <p class="text-sm text-gray-500">${createdAt}</p>
+          </div>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4 mb-3 text-sm">
+          <div>
+            <p><strong>${t('customer_name')}:</strong> ${order.customerName || '-'}</p>
+            <p><strong>${t('customer_email')}:</strong> ${customerEmail || '-'}</p>
+            <p><strong>${t('customer_phone')}:</strong> ${order.customerPhone || '-'}</p>
+          </div>
+          <div>
+            <p><strong>${t('return_reason')}:</strong> ${order.returnReason || 'غير محدد'}</p>
+            <p><strong>${t('order_total')}:</strong> ${order.totalPrice || 0} درهم</p>
+          </div>
+        </div>
+        <div class="text-sm bg-pink-50 p-2 rounded mb-3">
+          <strong>${t('order_items')}:</strong><br>${itemsList}
+        </div>
+        <div
