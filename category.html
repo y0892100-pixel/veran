@@ -85,7 +85,10 @@ const translations = {
     products_count: "عدد المنتجات",
     select_gender: "اختر القسم",
     select_type: "اختر النوع",
-    select_season: "الموسم"
+    select_season: "الموسم",
+    limited_stock: "كمية محدودة",
+    out_of_stock: "غير متوفر",
+    reset_filter_btn: "إعادة تعيين الفلترة"
   },
   en: {
     page_title: "Categories - VAREN",
@@ -126,7 +129,10 @@ const translations = {
     products_count: "Products",
     select_gender: "Select Department",
     select_type: "Select Type",
-    select_season: "Season"
+    select_season: "Season",
+    limited_stock: "Limited Stock",
+    out_of_stock: "Out of Stock",
+    reset_filter_btn: "Reset Filters"
   }
 };
 
@@ -214,7 +220,6 @@ let sortBy = 'newest';
 
 <!-- المحتوى الرئيسي -->
 <main class="max-w-7xl mx-auto px-4 py-6">
-
   <!-- بطاقات الأقسام الرئيسية -->
   <section class="mb-10">
     <h2 class="section-title" data-i18n="select_gender">اختر القسم</h2>
@@ -241,13 +246,11 @@ let sortBy = 'newest';
       <span data-i18n="all_products">جميع المنتجات</span>
       <span id="products-count" class="text-sm font-normal text-gray-500">()</span>
     </h2>
-
     <!-- البحث -->
     <div class="mb-4">
       <input type="text" id="search-input" placeholder="🔍 ابحث باسم المنتج..." 
              oninput="updateSearch(this.value)" class="max-w-lg">
     </div>
-
     <!-- الفلترة حسب النوع والموسم -->
     <div class="grid md:grid-cols-3 gap-4 mb-4">
       <div>
@@ -282,7 +285,6 @@ let sortBy = 'newest';
         </select>
       </div>
     </div>
-
     <!-- نطاق السعر -->
     <div class="grid md:grid-cols-2 gap-4 items-end">
       <div>
@@ -313,7 +315,6 @@ let sortBy = 'newest';
       </div>
     </div>
   </section>
-
 </main>
 
 <!-- تذييل الصفحة -->
@@ -330,14 +331,14 @@ let sortBy = 'newest';
           <li><a href="index.html" class="hover:text-white transition-colors">الرئيسية</a></li>
           <li><a href="category.html" class="hover:text-white transition-colors">الأقسام</a></li>
           <li><a href="cart.html" class="hover:text-white transition-colors">سلة التسوق</a></li>
-          <li><a href="my-orders.html" class="hover:text-white transition-colors">طلباتي</a></li>
+          <li><a href="orders.html" class="hover:text-white transition-colors">طلباتي</a></li>
         </ul>
       </div>
       <div>
         <h4 class="font-bold mb-3">مساعدة</h4>
         <ul class="space-y-2 text-gray-400 text-sm">
           <li><a href="about.html" class="hover:text-white transition-colors">من نحن</a></li>
-          <li><a href="shipping.html" class="hover:text-white transition-colors">سياسة التوصيل</a></li>
+          <li><a href="terms.html" class="hover:text-white transition-colors">الشروط والأحكام</a></li>
           <li><a href="returns.html" class="hover:text-white transition-colors">سياسة الإرجاع</a></li>
           <li><a href="contact.html" class="hover:text-white transition-colors">تواصل معنا</a></li>
         </ul>
@@ -359,12 +360,10 @@ function toggleLanguage() {
   setLanguage(newLang);
   document.getElementById('lang-btn').textContent = newLang === 'ar' ? 'English' : 'العربية';
 }
-
 function formatPrice(amount) {
   const lang = getCurrentLanguage();
   return lang === 'ar' ? `${amount} درهم` : `AED ${amount}`;
 }
-
 function updateCartCounter() {
   const cart = JSON.parse(localStorage.getItem('varen_cart') || '[]');
   const total = cart.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
@@ -382,28 +381,22 @@ function selectGender(gender) {
   });
   applyAllFilters();
 }
-
 function updateType(type) {
   activeType = type;
 }
-
 function updateSeason(season) {
   activeSeason = season;
 }
-
 function updateSearch(keyword) {
   searchKeyword = keyword.toLowerCase().trim();
 }
-
 function updateSort(sortVal) {
   sortBy = sortVal;
 }
-
 function updatePriceRange() {
   minPrice = parseFloat(document.getElementById('price-min').value) || 0;
   maxPrice = parseFloat(document.getElementById('price-max').value) || 99999;
 }
-
 function resetAllFilters() {
   activeGender = 'all';
   activeType = 'all';
@@ -429,7 +422,6 @@ function resetAllFilters() {
   sortProducts();
   renderProductsGrid();
 }
-
 function applyAllFilters() {
   updatePriceRange();
   
@@ -441,7 +433,7 @@ function applyAllFilters() {
     if (activeType !== 'all' && p.type !== activeType) return false;
     
     // الموسم
-    if (activeSeason !== 'all' && p.season !== activeSeason && activeSeason !== 'all') return false;
+    if (activeSeason !== 'all' && p.season !== activeSeason) return false;
     
     // السعر
     const price = Number(p.price) || 0;
@@ -459,11 +451,9 @@ function applyAllFilters() {
     
     return true;
   });
-
   sortProducts();
   renderProductsGrid();
 }
-
 function sortProducts() {
   switch (sortBy) {
     case 'price_low':
@@ -515,24 +505,23 @@ async function loadProducts() {
 function renderProducts() {
   applyAllFilters();
 }
-
 function renderProductsGrid() {
   const grid = document.getElementById('products-grid');
   document.getElementById('products-count').textContent = `(${filteredProducts.length})`;
-
+  
   if (filteredProducts.length === 0) {
     grid.innerHTML = `
       <div class="col-span-full text-center py-16 text-gray-400">
         <i class="fa-solid fa-box-open fa-3xl mb-4"></i>
         <p class="text-lg" data-i18n="no_products">لا توجد منتجات مطابقة للبحث</p>
-        <button onclick="resetAllFilters()" class="mt-4 bg-black text-white px-4 py-2 rounded-lg">
+        <button onclick="resetAllFilters()" class="mt-4 bg-black text-white px-4 py-2 rounded-lg" data-i18n="reset_filter_btn">
           إعادة تعيين الفلترة
         </button>
       </div>
     `;
     return;
   }
-
+  
   grid.innerHTML = filteredProducts.map(p => {
     const img = p.images?.[0] || 'https://via.placeholder.com/300x350?text=No+Image';
     const price = Number(p.price) || 0;
@@ -541,14 +530,14 @@ function renderProductsGrid() {
     const discount = hasDiscount ? Math.round((1 - price / priceOrig) * 100) : 0;
     const totalStock = (p.variants || []).reduce((sum, v) => sum + (v.stock || 0), 0);
     const lowStock = totalStock > 0 && totalStock <= 3;
-
+    
     return `
       <a href="product.html?id=${p.id}" class="card group">
         <div class="relative overflow-hidden">
           <img src="${img}" alt="${p.name}" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
           ${hasDiscount ? `<span class="absolute top-2 start-2 discount-tag">-${discount}%</span>` : ''}
-          ${lowStock ? `<span class="absolute top-2 end-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">كمية محدودة</span>` : ''}
-          ${totalStock === 0 ? `<span class="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold">غير متوفر</span>` : ''}
+          ${lowStock ? `<span class="absolute top-2 end-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full" data-i18n="limited_stock">كمية محدودة</span>` : ''}
+          ${totalStock === 0 ? `<span class="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold" data-i18n="out_of_stock">غير متوفر</span>` : ''}
         </div>
         <div class="p-3">
           <h3 class="font-bold text-sm truncate mb-2">${p.name}</h3>
@@ -572,6 +561,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProducts();
 });
 </script>
-
 </body>
 </html>
